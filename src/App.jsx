@@ -881,6 +881,8 @@ function LegalChat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showDraft, setShowDraft] = useState(false);
+  const [draftText, setDraftText] = useState("");
+  const [submittingDraft, setSubmittingDraft] = useState(false);
   const [nearbyCity, setNearbyCity] = useState("Lahore");
   const [nearbyContacts, setNearbyContacts] = useState([]);
   const [nearbyNgos, setNearbyNgos] = useState([]);
@@ -947,21 +949,47 @@ function LegalChat() {
     );
   };
 
-  const send = async () => {
-    if (!input.trim() || loading) return;
-    const userText = input.trim();
-    const next = [...messages, { role: "user", content: userText }];
-    setMessages(next);
-    setInput("");
-    setLoading(true);
+  const generateDraft = () => {
+    const incidentSummary = messages.filter(m => m.role === "user").map(m => m.content).join(" ");
+    const draft = `First Information Report (FIR) Draft
+
+Incident Summary: ${incidentSummary}
+
+Complainant Details:
+Name: [Your Full Name]
+CNIC: [Your CNIC Number]
+Address: [Your Address]
+Phone: [Your Phone Number]
+
+Accused Details: [If known]
+Name: [Accused Name]
+Description: [Description of accused]
+
+Date and Time of Incident: [Date and Time]
+Place of Incident: [Location]
+
+Details of Incident:
+[Describe what happened in detail, including any witnesses, evidence, etc.]
+
+Legal Sections: [Based on advice above]
+
+Complainant Signature: ____________________
+Date: ____________________
+
+Note: This is a draft. Please consult a lawyer before filing.`;
+    setDraftText(draft);
+  };
+
+  const submitDraft = async () => {
+    setSubmittingDraft(true);
     try {
-      const history = next.slice(0, -1).map((m) => ({ role: m.role, content: m.content }));
-      const data = await api("/legal/chat", { method: "POST", body: JSON.stringify({ message: userText, history, systemPrompt: LEGAL_SYSTEM_PROMPT }) });
-      setMessages([...next, { role: "assistant", content: data.reply }]);
+      await api("/legal/queue", { method: "POST", body: JSON.stringify({ draft: draftText }) });
+      setShowDraft(false);
+      setDraftText("");
     } catch {
-      setMessages([...next, { role: "assistant", content: "Service unavailable. Use emergency numbers 15 or 1099 if needed." }]);
+      // ignore
     } finally {
-      setLoading(false);
+      setSubmittingDraft(false);
     }
   };
 
@@ -1037,11 +1065,21 @@ function LegalChat() {
         <button onClick={send} disabled={loading || !input.trim()} className="w-10 h-10 rounded-full bg-violet-900 text-white disabled:bg-stone-300"><Send className="w-4 h-4 mx-auto" /></button>
       </div>
       {showDraft ? (
-        <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-end sm:items-center sm:justify-center">
-          <div className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl">
-            <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3"><p className="font-semibold">FIR Draft</p><button onClick={() => setShowDraft(false)}><X className="w-5 h-5" /></button></div>
-            <div className="px-4 py-3 text-sm"><p>Auto-generated FIR template prepared for FIA Cybercrime Wing.</p></div>
-            <div className="px-4 pb-4 flex gap-2"><button className="flex-1 rounded-xl bg-stone-100 py-2 text-sm font-semibold"><Download className="w-4 h-4 inline mr-1" />PDF</button><button className="flex-1 rounded-xl bg-violet-900 text-white py-2 text-sm font-semibold"><Send className="w-4 h-4 inline mr-1" />Send</button></div>
+        <div className="fixed inset-0 z-40 bg-stone-900/50 flex items-end sm:items-center sm:justify-center p-4">
+          <div className="w-full max-w-lg bg-white rounded-2xl max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between border-b border-stone-200 px-4 py-3">
+              <p className="font-semibold">FIR Draft</p>
+              <button onClick={() => setShowDraft(false)}><X className="w-5 h-5" /></button>
+            </div>
+            <div className="px-4 py-3">
+              <textarea value={draftText} onChange={(e) => setDraftText(e.target.value)} rows={15} className="w-full border border-stone-200 p-3 text-sm rounded-lg" placeholder="Draft will appear here..." />
+            </div>
+            <div className="px-4 pb-4 flex gap-2">
+              <button onClick={generateDraft} className="flex-1 rounded-xl bg-violet-900 text-white py-2 text-sm font-semibold">Generate Draft</button>
+              <button onClick={submitDraft} disabled={submittingDraft || !draftText.trim()} className="flex-1 rounded-xl bg-emerald-600 text-white py-2 text-sm font-semibold disabled:bg-stone-300">
+                {submittingDraft ? "Submitting..." : "Submit for Review"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
