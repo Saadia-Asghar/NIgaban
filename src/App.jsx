@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useUser } from "@clerk/react";
+import { supabase } from "./lib/authClients";
 import AuthHub from "./components/AuthHub.jsx";
 import {
   Activity,
@@ -103,7 +105,7 @@ function BottomNav({ active, onNavigate }) {
   );
 }
 
-function OnboardingScreen({ onFinish }) {
+function WelcomeAuthScreen({ onBypass }) {
   const slides = [
     {
       title: "Stay Safe, Stay in Control",
@@ -128,44 +130,61 @@ function OnboardingScreen({ onFinish }) {
     },
   ];
   const [step, setStep] = useState(0);
-  const isLast = step === slides.length - 1;
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setStep((v) => (v + 1) % slides.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
   const slide = slides[step];
   const Icon = slide.icon;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/55 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-white/5 backdrop-blur-md shadow-2xl p-5 space-y-5">
-        <div className="flex items-center justify-between">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-semibold">Onboarding</p>
-          <button onClick={onFinish} className="text-xs font-semibold text-slate-400 hover:text-slate-300">Skip</button>
+    <div className="min-h-screen bg-[#141523] flex flex-col md:flex-row overflow-y-auto w-full">
+      {/* Left / Top Side: About the App Slideshow */}
+      <div className="w-full md:w-1/2 min-h-[40vh] md:min-h-screen p-8 flex flex-col justify-center items-center relative overflow-hidden bg-white/5 border-b md:border-b-0 md:border-r border-white/10">
+        <div className="absolute top-8 left-8 flex items-center gap-2">
+          <Shield className="w-6 h-6 text-pink-500" />
+          <span className="font-bold text-white tracking-widest uppercase">Nigehbaan</span>
         </div>
-        <div className={`w-14 h-14 rounded-2xl ${slide.color} flex items-center justify-center`}>
-          <Icon className="w-7 h-7" />
+        
+        <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in-95 duration-500" key={step}>
+          <div className={`w-16 h-16 rounded-2xl ${slide.color} flex items-center justify-center shadow-lg shadow-black/20`}>
+            <Icon className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-3xl font-bold text-white mb-4">{slide.title}</h3>
+            <p className="text-lg text-slate-300 leading-relaxed">{slide.description}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {slides.map((_, i) => (
+              <button key={i} onClick={() => setStep(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-8 bg-gradient-to-r from-pink-500 to-purple-600" : "w-4 bg-white/20 hover:bg-white/40"}`} />
+            ))}
+          </div>
         </div>
-        <div>
-          <h3 className="text-2xl font-semibold text-white">{slide.title}</h3>
-          <p className="text-sm text-slate-400 mt-2 leading-relaxed">{slide.description}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {slides.map((_, i) => (
-            <span key={i} className={`h-1.5 rounded-full transition-all ${i === step ? "w-8 bg-rose-900" : "w-3 bg-stone-300"}`} />
-          ))}
-        </div>
-        <div className="flex gap-2">
-          {step > 0 ? (
-            <button
-              onClick={() => setStep((v) => v - 1)}
-              className="flex-1 rounded-xl border border-white/20 text-slate-300 py-2.5 text-sm font-semibold"
-            >
-              Back
-            </button>
-          ) : null}
-          <button
-            onClick={() => (isLast ? onFinish() : setStep((v) => v + 1))}
-            className="flex-1 rounded-xl bg-rose-900 text-white py-2.5 text-sm font-semibold"
-          >
-            {isLast ? "Get Started" : "Next"}
-          </button>
+      </div>
+
+      {/* Right / Bottom Side: AuthHub */}
+      <div className="w-full md:w-1/2 p-6 md:p-12 flex flex-col justify-center items-center relative min-h-[60vh] md:min-h-screen">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center md:text-left space-y-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Welcome</h1>
+            <p className="text-slate-400 text-sm">Sign in or create an account to secure your peace of mind.</p>
+          </div>
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+            <AuthHub />
+            <div className="mt-4 pt-4 border-t border-white/10 flex flex-col items-center gap-2">
+              <p className="text-[11px] text-slate-400">Having trouble signing in?</p>
+              <button 
+                onClick={onBypass} 
+                className="rounded-lg border border-white/20 bg-transparent px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
+              >
+                Continue as Guest (Dev Bypass)
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1032,6 +1051,12 @@ function LegalChat() {
   const [consultStatus, setConsultStatus] = useState("");
   const [consultLoading, setConsultLoading] = useState(false);
   const scrollRef = useRef(null);
+  
+  const [firDraft, setFirDraft] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draftSent, setDraftSent] = useState(false);
+  const [sendingDraft, setSendingDraft] = useState(false);
+
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
   useEffect(() => {
     let mounted = true;
@@ -1138,11 +1163,52 @@ function LegalChat() {
     }
   };
 
+  const handleGenerateDraft = async () => {
+    setShowDraft(true);
+    setDrafting(true);
+    setDraftSent(false);
+    try {
+      const history = messages.map((m) => ({ role: m.role, content: m.content }));
+      const res = await api("/legal/draft-fir", { method: "POST", body: JSON.stringify({ history }) });
+      setFirDraft(res.draft || "");
+    } catch {
+      setFirDraft("Error: Could not generate draft. Please try again.");
+    } finally {
+      setDrafting(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!firDraft) return;
+    const blob = new Blob([firDraft], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "FIR_Draft.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSendDraft = async () => {
+    if (!firDraft || sendingDraft) return;
+    setSendingDraft(true);
+    try {
+      await api("/legal/queue", { method: "POST", body: JSON.stringify({ draft: firDraft }) });
+      setDraftSent(true);
+    } catch {
+      alert("Could not send draft right now.");
+    } finally {
+      setSendingDraft(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#141523] text-white">
       <div className="bg-white/5 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
         <p className="font-semibold text-white">Legal Aid Chat</p>
-        <button onClick={() => setShowDraft(true)} className="text-xs rounded-full bg-white/10 border border-white/20 px-3 py-1.5 text-purple-300 font-semibold hover:bg-white/20 transition-colors">Draft FIR</button>
+        <button onClick={handleGenerateDraft} className="text-xs rounded-full bg-white/10 border border-white/20 px-3 py-1.5 text-purple-300 font-semibold hover:bg-white/20 transition-colors">Draft FIR</button>
       </div>
       <div className="px-4 py-3 bg-white/5 backdrop-blur-md border-b border-white/10 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1309,16 +1375,28 @@ function LegalChat() {
             </div>
             <div className="px-5 py-4 text-sm text-slate-300 space-y-4">
               <p>Auto-generated FIR template prepared for FIA Cybercrime Wing.</p>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-xs font-mono text-slate-400 h-32 overflow-y-auto">
-                [To be generated based on chat history...]
+              <div className="bg-white/5 border border-white/10 rounded-xl p-1 text-xs font-mono text-slate-400 h-48 flex items-center justify-center relative">
+                {drafting ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-pink-500" />
+                    <span>Generating Draft...</span>
+                  </div>
+                ) : (
+                  <textarea 
+                    value={firDraft} 
+                    onChange={(e) => setFirDraft(e.target.value)} 
+                    className="w-full h-full bg-transparent resize-none outline-none p-2 text-white"
+                  />
+                )}
               </div>
             </div>
             <div className="px-5 pb-5 flex gap-3">
-              <button className="flex-1 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 py-2.5 text-sm font-semibold text-white flex items-center justify-center gap-2">
-                <Download className="w-4 h-4" /> PDF
+              <button onClick={handleDownloadPdf} disabled={drafting || !firDraft} className="flex-1 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 py-2.5 text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50">
+                <Download className="w-4 h-4" /> Download
               </button>
-              <button className="flex-1 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 hover:opacity-90 transition-opacity py-2.5 text-sm font-semibold text-white flex items-center justify-center gap-2">
-                <Send className="w-4 h-4" /> Send
+              <button onClick={handleSendDraft} disabled={drafting || !firDraft || sendingDraft || draftSent} className={`flex-1 rounded-xl shadow-lg transition-opacity py-2.5 text-sm font-semibold text-white flex items-center justify-center gap-2 disabled:opacity-50 ${draftSent ? 'bg-emerald-600 shadow-emerald-500/25' : 'bg-gradient-to-r from-pink-500 to-purple-600 shadow-purple-500/25 hover:opacity-90'}`}>
+                {sendingDraft ? <Loader2 className="w-4 h-4 animate-spin" /> : draftSent ? <CheckCircle2 className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+                {draftSent ? "Sent" : "Send"}
               </button>
             </div>
           </div>
@@ -1683,7 +1761,7 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
         <div className="flex gap-2"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="New contact" className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-sm" /><button onClick={addContact} className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold">Add</button></div>
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
-        <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Authentication Hub (Clerk + Supabase)</p>
+        <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Account Profile</p>
         <AuthHub />
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
@@ -1759,6 +1837,10 @@ function ShieldHub({ onSelectTool }) {
 }
 
 export default function App() {
+  const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn } = useUser();
+  const [supabaseSession, setSupabaseSession] = useState(null);
+  const [devBypass, setDevBypass] = useState(false);
+  
   const [screen, setScreen] = useState("home");
   const [shieldTool, setShieldTool] = useState(null);
   const [sosActive, setSosActive] = useState(false);
@@ -1770,13 +1852,18 @@ export default function App() {
   const [timelineEntries, setTimelineEntries] = useState([]);
   const [timelineText, setTimelineText] = useState("");
   const [timelineSaving, setTimelineSaving] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(() => {
-    try {
-      return localStorage.getItem("nigehbaan_onboarding_done") !== "true";
-    } catch {
-      return true;
-    }
-  });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSupabaseSession(session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSupabaseSession(session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const isAuthenticated = clerkSignedIn || !!supabaseSession;
 
   useEffect(() => {
     Promise.all([api("/health"), api("/state")])
@@ -1855,15 +1942,6 @@ export default function App() {
     setInstallPromptEvent(null);
   };
 
-  const finishOnboarding = () => {
-    try {
-      localStorage.setItem("nigehbaan_onboarding_done", "true");
-    } catch {
-      // local storage can be unavailable in strict browser contexts
-    }
-    setShowOnboarding(false);
-  };
-
   const handleNavigate = (target) => {
     setScreen(target);
     setShieldTool(null);
@@ -1896,20 +1974,31 @@ export default function App() {
       ? "AI Threat Shield"
       : null;
 
+  if (!clerkLoaded) {
+    return (
+      <div className="min-h-screen bg-[#141523] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && !devBypass) {
+    return <WelcomeAuthScreen onBypass={() => setDevBypass(true)} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#141523] text-white">
-      <div className="w-full max-w-5xl mx-auto min-h-screen lg:min-h-[92vh] lg:my-4 bg-[#141523] shadow-xl lg:rounded-3xl overflow-hidden flex flex-col">
+      <div className="w-full max-w-5xl mx-auto min-h-screen lg:min-h-[92vh] lg:my-4 bg-[#141523] shadow-xl lg:rounded-3xl overflow-hidden flex flex-col relative z-0">
         {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} /> : null}
         <main className={`flex-1 ${screen === "legal" ? "flex flex-col" : "overflow-y-auto"}`}>{rendered}</main>
         {!sosActive ? <BottomNav active={screen} onNavigate={handleNavigate} /> : null}
         {sosActive ? <SOSScreen onClose={() => setSosActive(false)} contacts={contacts} autoDialPolice={settings.autoDialPolice} cancelPin={settings.cancelPin} /> : null}
       </div>
       {!backendOk ? (
-        <div className="fixed bottom-3 right-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-900 flex items-center gap-1.5">
+        <div className="fixed bottom-3 right-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-900 flex items-center gap-1.5 z-50">
           <AlertCircle className="w-3.5 h-3.5" /> Backend offline. Start with `npm run dev:full`.
         </div>
       ) : null}
-      {showOnboarding ? <OnboardingScreen onFinish={finishOnboarding} /> : null}
     </div>
   );
 }

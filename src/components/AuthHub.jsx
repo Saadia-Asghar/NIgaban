@@ -133,7 +133,7 @@ function SupabaseAuthCard() {
       </div>
       {userEmail
         ? <p className="text-[11px] text-emerald-400">✓ Active user: {userEmail}</p>
-        : <p className="text-[11px] text-slate-400">No active Supabase session.</p>}
+        : null}
       {status ? <p className="text-[11px] text-pink-400">{status}</p> : null}
     </div>
   );

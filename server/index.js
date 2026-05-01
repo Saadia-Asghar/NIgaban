@@ -1173,6 +1173,33 @@ app.post("/api/legal/chat", rateLimit({ keyPrefix: "legal-chat", windowMs: 60 * 
   }
 });
 
+app.post("/api/legal/draft-fir", rateLimit({ keyPrefix: "legal-draft", windowMs: 60 * 1000, max: 5 }), async (req, res) => {
+  const history = Array.isArray(req.body?.history) ? req.body.history.slice(-20) : [];
+  if (history.length === 0) {
+    return res.json({ draft: "No chat history found to generate an FIR draft." });
+  }
+
+  try {
+    const safeHistory = history.map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: sanitizeUserText(m.content) }));
+    const draftPrompt = `You are a legal assistant. Based on the following conversation history between the user and the legal aid chatbot, draft a formal First Information Report (FIR) or official cybercrime complaint addressed to the FIA (Federal Investigation Agency) Cybercrime Wing.
+    
+    Extract the key facts, dates, suspect information, and the nature of the offense from the chat. 
+    Format it formally with placeholders like [Date], [Your Name], [Contact Info] for missing details.
+    Do NOT include any markdown code blocks like \`\`\` text, just return the plain text of the draft.
+    Keep it professional, objective, and structured.`;
+
+    const draft = await callGroq({
+      systemPrompt: draftPrompt,
+      messages: [...safeHistory, { role: "user", content: "Please generate the FIR draft based on our conversation." }],
+      maxTokens: 1000,
+    });
+    
+    res.json({ draft: draft.trim() });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to generate FIR draft. Please try again later." });
+  }
+});
+
 app.post("/api/legal/queue", async (req, res) => {
   const data = await readData();
   const item = {
