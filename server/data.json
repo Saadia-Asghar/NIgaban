@@ -48,6 +48,36 @@
       "noMovementSince": null,
       "distanceTrendUpCount": 0,
       "lastDistanceToDestinationKm": null
+    },
+    {
+      "id": "a849bdd6-d5b6-4af6-97e3-804cd111a00c",
+      "destination": "University Gate",
+      "destinationCoords": null,
+      "startedAt": "2026-05-01T18:11:14.758Z",
+      "status": "active",
+      "events": [
+        "Trip started",
+        "Tracking link sent to trusted contacts"
+      ],
+      "locationHistory": [],
+      "noMovementSince": null,
+      "distanceTrendUpCount": 0,
+      "lastDistanceToDestinationKm": null
+    },
+    {
+      "id": "0e7aa569-3314-4200-878b-4c9afb6ebbc8",
+      "destination": "University Gate",
+      "destinationCoords": null,
+      "startedAt": "2026-05-01T18:11:24.611Z",
+      "status": "active",
+      "events": [
+        "Trip started",
+        "Tracking link sent to trusted contacts"
+      ],
+      "locationHistory": [],
+      "noMovementSince": null,
+      "distanceTrendUpCount": 0,
+      "lastDistanceToDestinationKm": null
     }
   ],
   "sosLogs": [
@@ -227,6 +257,30 @@
         "tripId": "afaa2754-1b37-4f85-8c09-88f28ff1e77e"
       },
       "at": "2026-05-01T18:02:02.900Z"
+    },
+    {
+      "id": "4fb66fe0-6ab4-4333-9651-a828755e9976",
+      "action": "safety_timeline_added",
+      "metadata": {
+        "entryId": "408a9666-d39e-4065-82e6-198121ad63d8"
+      },
+      "at": "2026-05-01T18:07:20.444Z"
+    },
+    {
+      "id": "8273ca6e-8d24-4aeb-8165-05c8cb467f7f",
+      "action": "trip_started",
+      "metadata": {
+        "tripId": "a849bdd6-d5b6-4af6-97e3-804cd111a00c"
+      },
+      "at": "2026-05-01T18:11:14.758Z"
+    },
+    {
+      "id": "44668d0a-067d-49ba-ad4b-bd6a31160109",
+      "action": "trip_started",
+      "metadata": {
+        "tripId": "0e7aa569-3314-4200-878b-4c9afb6ebbc8"
+      },
+      "at": "2026-05-01T18:11:24.611Z"
     }
   ],
   "communityChatMessages": [
@@ -244,6 +298,14 @@
       ],
       "severity": "high",
       "createdAt": "2026-05-01T17:42:56.539Z"
+    }
+  ],
+  "safetyTimeline": [
+    {
+      "id": "408a9666-d39e-4065-82e6-198121ad63d8",
+      "text": "Heading home from office",
+      "context": "night commute",
+      "createdAt": "2026-05-01T18:07:20.444Z"
     }
   ]
 }

@@ -125,6 +125,7 @@ function ensureShape(data) {
   if (!Array.isArray(data.evidenceTimeline)) data.evidenceTimeline = [];
   if (!Array.isArray(data.activityLogs)) data.activityLogs = [];
   if (!Array.isArray(data.communityChatMessages)) data.communityChatMessages = [];
+  if (!Array.isArray(data.safetyTimeline)) data.safetyTimeline = [];
   return data;
 }
 
@@ -245,6 +246,19 @@ async function writeDbData(data) {
           Array.isArray(msg.tags) ? msg.tags.map(String) : [],
           String(msg.severity || "normal"),
           msg.createdAt || new Date().toISOString(),
+        ],
+      );
+    }
+
+    await client.query("DELETE FROM safety_timeline");
+    for (const entry of data.safetyTimeline || []) {
+      await client.query(
+        "INSERT INTO safety_timeline (id, text, context, created_at) VALUES ($1, $2, $3, $4::timestamptz)",
+        [
+          String(entry.id || randomUUID()),
+          String(entry.text || ""),
+          entry.context ? String(entry.context) : null,
+          entry.createdAt || new Date().toISOString(),
         ],
       );
     }
@@ -438,6 +452,13 @@ async function ensureDbReady() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS safety_timeline (
+        id TEXT PRIMARY KEY,
+        text TEXT NOT NULL,
+        context TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS legal_queue (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -575,6 +596,7 @@ async function readData() {
         sosRes,
         reportsRes,
         chatRes,
+        safetyTimelineRes,
         legalRes,
         evidenceRes,
         timelineRes,
@@ -586,6 +608,7 @@ async function readData() {
         dbPool.query("SELECT id, started_at, stopped_at, source, active, dispatch_logs FROM sos_logs ORDER BY started_at ASC"),
         dbPool.query("SELECT id, city, category, area, description, anonymous, level, title, tags, verified, status, moderation_reason, moderated_at, time FROM community_reports ORDER BY time ASC"),
         dbPool.query("SELECT id, city, mode, text, alias, anonymous, area, category, tags, severity, created_at FROM community_chat_messages ORDER BY created_at ASC"),
+        dbPool.query("SELECT id, text, context, created_at FROM safety_timeline ORDER BY created_at ASC"),
         dbPool.query("SELECT id, type, status, user_id, draft, created_at, reviewer_notes FROM legal_queue ORDER BY created_at ASC"),
         dbPool.query("SELECT id, incident_id, title, type, checksum, size, created_at FROM evidence_vault ORDER BY created_at ASC"),
         dbPool.query("SELECT id, incident_id, action, evidence_id, previous_hash, event_hash, created_at FROM evidence_timeline ORDER BY created_at ASC"),
@@ -647,6 +670,12 @@ async function readData() {
           category: r.category || null,
           tags: Array.isArray(r.tags) ? r.tags : [],
           severity: r.severity || "normal",
+          createdAt: new Date(r.created_at).toISOString(),
+        })),
+        safetyTimeline: safetyTimelineRes.rows.map((r) => ({
+          id: r.id,
+          text: r.text,
+          context: r.context || null,
           createdAt: new Date(r.created_at).toISOString(),
         })),
         legalQueue: legalRes.rows.map((r) => ({
@@ -883,6 +912,31 @@ app.get("/api/health", async (_req, res) => {
 app.get("/api/state", async (_req, res) => {
   const data = await readData();
   res.json({ settings: data.settings, contacts: data.contacts });
+});
+
+app.get("/api/safety/timeline", async (_req, res) => {
+  const data = await readData();
+  const entries = (data.safetyTimeline || [])
+    .slice(-40)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  res.json({ entries });
+});
+
+app.post("/api/safety/timeline", rateLimit({ keyPrefix: "safety-timeline", windowMs: 60 * 1000, max: 20 }), async (req, res) => {
+  const text = sanitizeUserText(req.body?.text || "");
+  const context = sanitizeUserText(req.body?.context || "");
+  if (!text.trim()) return res.status(400).json({ error: "text is required" });
+  const data = await readData();
+  const entry = {
+    id: randomUUID(),
+    text: text.trim(),
+    context: context.trim() || null,
+    createdAt: new Date().toISOString(),
+  };
+  data.safetyTimeline.push(entry);
+  logActivity(data, "safety_timeline_added", { entryId: entry.id });
+  await writeData(data);
+  res.json({ entry });
 });
 
 app.put("/api/settings", async (req, res) => {

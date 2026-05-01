@@ -67,6 +67,13 @@ create table if not exists public.community_chat_messages (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.safety_timeline (
+  id text primary key,
+  text text not null,
+  context text,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.legal_queue (
   id text primary key,
   type text not null,

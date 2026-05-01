@@ -173,8 +173,28 @@ function OnboardingScreen({ onFinish }) {
   );
 }
 
-function HomeScreen({ onNavigate, onSOS, lang, contactsCount, stealthMode, canInstall, onInstall }) {
+function HomeScreen({
+  onNavigate,
+  onSOS,
+  lang,
+  contactsCount,
+  stealthMode,
+  canInstall,
+  onInstall,
+  timelineEntries,
+  timelineText,
+  setTimelineText,
+  onAddTimeline,
+  timelineSaving,
+}) {
   const greeting = lang === "ur" ? "السلام علیکم، عائشہ" : "Asalaam-o-Alaikum, Ayesha";
+  const [openGuide, setOpenGuide] = useState("setup");
+  const quickChecklist = [
+    { id: "contacts", label: "Add at least 3 trusted contacts", done: contactsCount >= 3, action: "more" },
+    { id: "timeline", label: "Create your first Safety Timeline note", done: timelineEntries.length > 0, action: "home" },
+    { id: "community", label: "Open Community and check city alerts", done: false, action: "community" },
+    { id: "transit", label: "Start a Safe Transit trip before travel", done: false, action: "transit" },
+  ];
   return (
     <div className="px-4 pt-4 pb-24 space-y-4">
       <div>
@@ -211,6 +231,59 @@ function HomeScreen({ onNavigate, onSOS, lang, contactsCount, stealthMode, canIn
           </button>
         ) : null}
       </div>
+      <div className="rounded-2xl border border-violet-200 bg-white p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-stone-900">Quick Start Checklist</p>
+          <p className="text-xs text-violet-800 font-semibold">
+            {quickChecklist.filter((item) => item.done).length}/{quickChecklist.length} completed
+          </p>
+        </div>
+        <div className="space-y-2">
+          {quickChecklist.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => (item.action === "home" ? null : onNavigate(item.action))}
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-left flex items-center justify-between gap-2"
+            >
+              <span className="text-xs text-stone-700">{item.label}</span>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.done ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                {item.done ? "Done" : item.action === "home" ? "On this screen" : "Open"}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-2xl border border-violet-200 bg-white p-4 space-y-2">
+        <p className="text-sm font-semibold text-stone-900">How it works</p>
+        {[
+          {
+            id: "setup",
+            title: "1) Setup your safety profile",
+            body: "Go to Resources and add trusted contacts, set SOS PIN, and verify identity with OTP.",
+          },
+          {
+            id: "protect",
+            title: "2) Use tools before and during risk",
+            body: "Threat Shield helps detect abuse, Safe Transit tracks your journey, and Legal Aid prepares reporting steps.",
+          },
+          {
+            id: "respond",
+            title: "3) Respond fast in emergency",
+            body: "Hit SOS to notify contacts, log evidence/timeline, and use Community to broadcast nearby safety incidents.",
+          },
+        ].map((guide) => (
+          <div key={guide.id} className="rounded-xl border border-stone-200 bg-stone-50">
+            <button
+              onClick={() => setOpenGuide((prev) => (prev === guide.id ? "" : guide.id))}
+              className="w-full px-3 py-2 text-left flex items-center justify-between gap-2"
+            >
+              <span className="text-xs font-semibold text-stone-800">{guide.title}</span>
+              <ChevronRight className={`w-4 h-4 text-stone-500 transition ${openGuide === guide.id ? "rotate-90" : ""}`} />
+            </button>
+            {openGuide === guide.id ? <p className="px-3 pb-3 text-xs text-stone-600">{guide.body}</p> : null}
+          </div>
+        ))}
+      </div>
       <div className="rounded-2xl border border-violet-200 bg-white p-4 flex items-center gap-2">
         <CheckCircle2 className="w-5 h-5 text-emerald-700" />
         <p className="text-sm text-stone-700">All clear. {contactsCount} trusted contacts active.</p>
@@ -230,6 +303,39 @@ function HomeScreen({ onNavigate, onSOS, lang, contactsCount, stealthMode, canIn
           <Users className="w-4 h-4 text-violet-800" />
           <p className="text-xs font-semibold mt-1 text-stone-900">Community help</p>
           <p className="text-[11px] text-stone-600 mt-1">Find nearby NGOs, share safety updates, and report incidents quickly.</p>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-violet-200 bg-white p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-stone-900">Safety Timeline (real-time)</p>
+          <span className="text-[10px] uppercase tracking-wide rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700 font-semibold">Live</span>
+        </div>
+        <p className="text-xs text-stone-500">
+          Add quick notes when meeting someone new, spotting suspicious activity, or starting a risky commute.
+        </p>
+        <div className="flex gap-2">
+          <input
+            value={timelineText}
+            onChange={(e) => setTimelineText(e.target.value)}
+            placeholder="Add safety note..."
+            className="flex-1 rounded-lg border border-violet-200 bg-white px-2.5 py-2 text-sm"
+          />
+          <button
+            onClick={onAddTimeline}
+            disabled={timelineSaving || !timelineText.trim()}
+            className="rounded-lg bg-violet-900 text-white px-3 py-2 text-xs font-semibold disabled:opacity-60"
+          >
+            {timelineSaving ? "Saving..." : "Add"}
+          </button>
+        </div>
+        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+          {timelineEntries.map((entry) => (
+            <div key={entry.id} className="rounded-lg border border-stone-200 bg-stone-50 p-2.5">
+              <p className="text-xs text-stone-700">{entry.text}</p>
+              <p className="text-[10px] text-stone-500 mt-1">{new Date(entry.createdAt).toLocaleString()}</p>
+            </div>
+          ))}
+          {timelineEntries.length === 0 ? <p className="text-xs text-stone-500">No timeline notes yet.</p> : null}
         </div>
       </div>
       {stealthMode ? <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-800">Stealth mode enabled.</div> : null}
@@ -289,6 +395,8 @@ function CommunityScreen() {
   });
   const [submitMessage, setSubmitMessage] = useState("");
   const [chatMessageStatus, setChatMessageStatus] = useState("");
+  const [liveUpdates, setLiveUpdates] = useState(true);
+  const [lastLiveSync, setLastLiveSync] = useState(null);
   const [pendingReports, setPendingReports] = useState([]);
   const [moderationLoading, setModerationLoading] = useState(false);
 
@@ -297,6 +405,7 @@ function CommunityScreen() {
     try {
       const data = await api(`/community/feed?city=${encodeURIComponent(targetCity)}`);
       setItems(data.feed || []);
+      setLastLiveSync(new Date().toISOString());
     } catch {
       setItems([]);
     } finally {
@@ -342,6 +451,7 @@ function CommunityScreen() {
     try {
       const data = await api(`/community/chat?city=${encodeURIComponent(targetCity)}`);
       setChatMessages(data.messages || []);
+      setLastLiveSync(new Date().toISOString());
     } catch {
       setChatMessages([]);
     } finally {
@@ -365,6 +475,19 @@ function CommunityScreen() {
     loadChat(city);
     loadNgos(city);
   }, [city]);
+
+  useEffect(() => {
+    if (!liveUpdates) return undefined;
+    const intervalId = setInterval(() => {
+      if (activePanel === "chat") {
+        loadChat(city);
+      } else {
+        loadFeed(city);
+      }
+      loadPendingReports();
+    }, 8000);
+    return () => clearInterval(intervalId);
+  }, [city, activePanel, liveUpdates]);
 
   const loadPendingReports = async () => {
     setModerationLoading(true);
@@ -474,6 +597,25 @@ function CommunityScreen() {
       >
         Refresh activity feed
       </button>
+      <div className="rounded-xl border border-violet-200 bg-white px-3 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${liveUpdates ? "bg-emerald-500" : "bg-stone-400"}`} />
+          <p className="text-xs text-stone-700">
+            {liveUpdates ? "Real-time updates ON" : "Real-time updates OFF"}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastLiveSync ? (
+            <p className="text-[10px] text-stone-500">Last sync: {new Date(lastLiveSync).toLocaleTimeString()}</p>
+          ) : null}
+          <button
+            onClick={() => setLiveUpdates((v) => !v)}
+            className="text-xs font-semibold text-violet-800"
+          >
+            {liveUpdates ? "Pause" : "Resume"}
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-2 rounded-2xl border border-violet-200 bg-white p-2">
         <button
@@ -1196,6 +1338,9 @@ export default function App() {
   const [settings, setSettings] = useState({ stealthMode: false, autoDialPolice: true, cancelPin: "1234" });
   const [backendOk, setBackendOk] = useState(true);
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [timelineEntries, setTimelineEntries] = useState([]);
+  const [timelineText, setTimelineText] = useState("");
+  const [timelineSaving, setTimelineSaving] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => {
     try {
       return localStorage.getItem("nigehbaan_onboarding_done") !== "true";
@@ -1213,6 +1358,46 @@ export default function App() {
       })
       .catch(() => setBackendOk(false));
   }, []);
+
+  const loadTimeline = async () => {
+    try {
+      const data = await api("/safety/timeline");
+      setTimelineEntries(data.entries || []);
+    } catch {
+      setTimelineEntries([]);
+    }
+  };
+
+  useEffect(() => {
+    loadTimeline();
+  }, []);
+
+  useEffect(() => {
+    const timerId = setInterval(() => {
+      loadTimeline();
+    }, 9000);
+    return () => clearInterval(timerId);
+  }, []);
+
+  const addTimelineEntry = async () => {
+    if (!timelineText.trim() || timelineSaving) return;
+    setTimelineSaving(true);
+    try {
+      await api("/safety/timeline", {
+        method: "POST",
+        body: JSON.stringify({
+          text: timelineText.trim(),
+          context: "home-screen-quick-entry",
+        }),
+      });
+      setTimelineText("");
+      await loadTimeline();
+    } catch {
+      // ignore temporary errors in UI
+    } finally {
+      setTimelineSaving(false);
+    }
+  };
 
   useEffect(() => {
     const onBeforeInstall = (event) => {
@@ -1256,7 +1441,7 @@ export default function App() {
   };
 
   const rendered = useMemo(() => {
-    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} />;
+    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} />;
     if (screen === "legal") return <LegalChat />;
     if (screen === "transit") return <SafeTransit contacts={contacts} autoDialPolice={settings.autoDialPolice} />;
     if (screen === "community") return <CommunityScreen />;
@@ -1269,7 +1454,7 @@ export default function App() {
       return <ShieldHub onSelectTool={setShieldTool} />;
     }
     return null;
-  }, [screen, shieldTool, lang, contacts, settings]);
+  }, [screen, shieldTool, lang, contacts, settings, installPromptEvent, timelineEntries, timelineText, timelineSaving]);
 
   const title =
     screen === "transit"
