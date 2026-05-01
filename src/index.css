@@ -3,10 +3,10 @@
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background:
-    radial-gradient(circle at top right, #ede9fe 0, #f8fafc 35%),
-    radial-gradient(circle at bottom left, #fdf2f8 0, #f8fafc 30%);
-  color: #111827;
+  background: radial-gradient(circle at top right, #2b1b54 0, #141523 35%),
+    radial-gradient(circle at bottom left, #3b185f 0, #141523 30%);
+  background-color: #141523;
+  color: #e2e8f0;
 }
 
 #root {
@@ -15,5 +15,5 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #c4b5fd #f5f3ff;
+  scrollbar-color: #4c1d95 #1e1b4b;
 }

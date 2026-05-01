@@ -29,4 +29,5 @@ dist-ssr
 # AI coding assistant skills (not project source)
 .agents/
 .trae/
+.claude/
 skills-lock.json
