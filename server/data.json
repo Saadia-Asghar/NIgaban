@@ -78,6 +78,21 @@
       "noMovementSince": null,
       "distanceTrendUpCount": 0,
       "lastDistanceToDestinationKm": null
+    },
+    {
+      "id": "5e551ecb-8fa3-4419-966d-5a1184e67914",
+      "destination": "University Gate",
+      "destinationCoords": null,
+      "startedAt": "2026-05-01T18:37:26.843Z",
+      "status": "active",
+      "events": [
+        "Trip started",
+        "Tracking link sent to trusted contacts"
+      ],
+      "locationHistory": [],
+      "noMovementSince": null,
+      "distanceTrendUpCount": 0,
+      "lastDistanceToDestinationKm": null
     }
   ],
   "sosLogs": [
@@ -281,6 +296,14 @@
         "tripId": "0e7aa569-3314-4200-878b-4c9afb6ebbc8"
       },
       "at": "2026-05-01T18:11:24.611Z"
+    },
+    {
+      "id": "e7851149-797c-4861-af28-da2bbd998d47",
+      "action": "trip_started",
+      "metadata": {
+        "tripId": "5e551ecb-8fa3-4419-966d-5a1184e67914"
+      },
+      "at": "2026-05-01T18:37:26.843Z"
     }
   ],
   "communityChatMessages": [

@@ -36,6 +36,11 @@ import {
 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const LEGAL_SYSTEM_PROMPT = `You are the Legal Aid Assistant for Nigehbaan...`;
 const DM_SCAN_SYSTEM_PROMPT = `Return only JSON with classification, severity, peca_section, peca_explanation, evidence_value, recommended_action, summary.`;
@@ -59,7 +64,7 @@ async function api(path, options = {}) {
   return res.json();
 }
 
-function Header({ lang, setLang, title, showBack, onBack }) {
+function Header({ lang, setLang, title, showBack, onBack, user, onLogout }) {
   return (
     <header className="sticky top-0 z-20 border-b border-violet-200 bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 px-4 py-3 backdrop-blur flex items-center justify-between">
       <div className="flex items-center gap-2">
@@ -73,9 +78,12 @@ function Header({ lang, setLang, title, showBack, onBack }) {
           {!title ? <p className="text-[10px] text-stone-500">نگہبان · your guardian</p> : null}
         </div>
       </div>
-      <button onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white border border-violet-200 text-violet-900 flex items-center gap-1">
-        <Languages className="w-3.5 h-3.5" />{lang === "en" ? "EN" : "اردو"}
-      </button>
+      <div className="flex items-center gap-2">
+        {user && <button onClick={onLogout} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-100 text-red-900">Logout</button>}
+        <button onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white border border-violet-200 text-violet-900 flex items-center gap-1">
+          <Languages className="w-3.5 h-3.5" />{lang === "en" ? "EN" : "اردو"}
+        </button>
+      </div>
     </header>
   );
 }
@@ -1450,7 +1458,83 @@ function ShieldHub({ onSelectTool }) {
   return <div className="px-4 pt-5 pb-24 space-y-3">{tools.map((t) => { const Icon = t.icon; return <button key={t.id} onClick={() => onSelectTool(t.id)} className="w-full rounded-2xl border border-violet-200 bg-white p-4 text-left flex items-center gap-3 hover:shadow-sm"><div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center"><Icon className="w-5 h-5 text-violet-900" /></div><span className="font-semibold text-sm flex-1">{t.title}</span><ChevronRight className="w-4 h-4 text-stone-400" /></button>; })}</div>;
 }
 
+function Auth({ supabase, mode, setMode }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    try {
+      if (mode === 'signin') {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setMessage('Check your email for the confirmation link!');
+      }
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 rounded-full bg-violet-800 text-white flex items-center justify-center font-bold text-2xl mx-auto mb-4">ن</div>
+          <h1 className="text-2xl font-bold text-stone-900">Nigehbaan</h1>
+          <p className="text-stone-600">Your women safety companion</p>
+        </div>
+        <form onSubmit={handleAuth} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+            required
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-violet-900 text-white py-3 rounded-lg font-semibold disabled:opacity-50"
+          >
+            {loading ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Sign Up'}
+          </button>
+        </form>
+        {message && <p className="text-center text-sm text-stone-600 mt-4">{message}</p>}
+        <div className="text-center mt-4">
+          <button
+            onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+            className="text-violet-900 font-semibold"
+          >
+            {mode === 'signin' ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
+  const [authMode, setAuthMode] = useState('signin'); // signin or signup
   const [screen, setScreen] = useState("home");
   const [shieldTool, setShieldTool] = useState(null);
   const [sosActive, setSosActive] = useState(false);
@@ -1469,6 +1553,28 @@ export default function App() {
       return true;
     }
   });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (!user) {
+    return <Auth supabase={supabase} mode={authMode} setMode={setAuthMode} />;
+  }
 
   useEffect(() => {
     Promise.all([api("/health"), api("/state")])
@@ -1591,7 +1697,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
       <div className="w-full max-w-5xl mx-auto min-h-screen lg:min-h-[92vh] lg:my-4 bg-stone-50 shadow-xl lg:rounded-3xl overflow-hidden flex flex-col">
-        {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} /> : null}
+        {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} user={user} onLogout={handleLogout} /> : null}
         <main className={`flex-1 ${screen === "legal" ? "flex flex-col" : "overflow-y-auto"}`}>{rendered}</main>
         {!sosActive ? <BottomNav active={screen} onNavigate={handleNavigate} /> : null}
         {sosActive ? <SOSScreen onClose={() => setSosActive(false)} contacts={contacts} autoDialPolice={settings.autoDialPolice} cancelPin={settings.cancelPin} /> : null}
