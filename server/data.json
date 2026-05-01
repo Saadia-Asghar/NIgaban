@@ -1,6 +1,6 @@
 {
   "settings": {
-    "stealthMode": false,
+    "stealthMode": true,
     "autoDialPolice": true,
     "cancelPin": "1234"
   },
@@ -18,7 +18,38 @@
       "name": "Zara"
     }
   ],
-  "trips": [],
+  "trips": [
+    {
+      "id": "673d7a01-f054-40e5-bb68-07de99bdf577",
+      "destination": "University Gate",
+      "destinationCoords": null,
+      "startedAt": "2026-05-01T17:53:13.578Z",
+      "status": "active",
+      "events": [
+        "Trip started",
+        "Tracking link sent to trusted contacts"
+      ],
+      "locationHistory": [],
+      "noMovementSince": null,
+      "distanceTrendUpCount": 0,
+      "lastDistanceToDestinationKm": null
+    },
+    {
+      "id": "afaa2754-1b37-4f85-8c09-88f28ff1e77e",
+      "destination": "University Gate",
+      "destinationCoords": null,
+      "startedAt": "2026-05-01T18:02:02.900Z",
+      "status": "active",
+      "events": [
+        "Trip started",
+        "Tracking link sent to trusted contacts"
+      ],
+      "locationHistory": [],
+      "noMovementSince": null,
+      "distanceTrendUpCount": 0,
+      "lastDistanceToDestinationKm": null
+    }
+  ],
   "sosLogs": [
     {
       "id": "5b066821-f96d-4b1e-b037-bf0efbf35688",
@@ -170,6 +201,32 @@
         "city": "Lahore"
       },
       "at": "2026-05-01T17:42:56.540Z"
+    },
+    {
+      "id": "3d14cbdb-bb4d-4b8c-8e6e-c5c6e1d0aad7",
+      "action": "settings_updated",
+      "metadata": {
+        "keys": [
+          "stealthMode"
+        ]
+      },
+      "at": "2026-05-01T17:51:46.717Z"
+    },
+    {
+      "id": "e06e5000-3ab2-405b-9f50-7704087a55f9",
+      "action": "trip_started",
+      "metadata": {
+        "tripId": "673d7a01-f054-40e5-bb68-07de99bdf577"
+      },
+      "at": "2026-05-01T17:53:13.579Z"
+    },
+    {
+      "id": "016be322-5038-4135-a293-c6e80aa358de",
+      "action": "trip_started",
+      "metadata": {
+        "tripId": "afaa2754-1b37-4f85-8c09-88f28ff1e77e"
+      },
+      "at": "2026-05-01T18:02:02.900Z"
     }
   ],
   "communityChatMessages": [

@@ -30,6 +30,9 @@ import {
   User,
   Volume2,
   X,
+  Smartphone,
+  Compass,
+  Users,
 } from "lucide-react";
 
 const LEGAL_SYSTEM_PROMPT = `You are the Legal Aid Assistant for Nigehbaan...`;
@@ -170,7 +173,7 @@ function OnboardingScreen({ onFinish }) {
   );
 }
 
-function HomeScreen({ onNavigate, onSOS, lang, contactsCount, stealthMode }) {
+function HomeScreen({ onNavigate, onSOS, lang, contactsCount, stealthMode, canInstall, onInstall }) {
   const greeting = lang === "ur" ? "السلام علیکم، عائشہ" : "Asalaam-o-Alaikum, Ayesha";
   return (
     <div className="px-4 pt-4 pb-24 space-y-4">
@@ -178,9 +181,56 @@ function HomeScreen({ onNavigate, onSOS, lang, contactsCount, stealthMode }) {
         <p className="text-xs uppercase tracking-wide text-stone-500">{new Date().toDateString()}</p>
         <h2 className="text-2xl font-semibold text-stone-900 mt-1">{greeting}</h2>
       </div>
+      <div className="rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-900 via-purple-800 to-fuchsia-800 p-5 text-white">
+        <p className="text-[11px] uppercase tracking-[0.2em] text-violet-100">Welcome to Nigehbaan</p>
+        <h3 className="text-xl font-semibold mt-1">Your women safety companion</h3>
+        <p className="text-sm text-violet-100 mt-2 leading-relaxed">
+          Nigehbaan helps you handle harassment, unsafe travel, and emergencies with SOS, legal guidance, AI threat tools, and community alerts.
+        </p>
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="rounded-xl bg-white/10 border border-white/20 p-2.5">
+            <p className="text-[11px] uppercase tracking-wide text-violet-100">Step 1</p>
+            <p className="text-xs mt-1">Set trusted contacts in Resources</p>
+          </div>
+          <div className="rounded-xl bg-white/10 border border-white/20 p-2.5">
+            <p className="text-[11px] uppercase tracking-wide text-violet-100">Step 2</p>
+            <p className="text-xs mt-1">Use Transit + Shield during risky situations</p>
+          </div>
+          <div className="rounded-xl bg-white/10 border border-white/20 p-2.5">
+            <p className="text-[11px] uppercase tracking-wide text-violet-100">Step 3</p>
+            <p className="text-xs mt-1">Tap SOS immediately if danger escalates</p>
+          </div>
+        </div>
+        {canInstall ? (
+          <button
+            onClick={onInstall}
+            className="mt-3 w-full rounded-xl bg-white text-violet-900 py-2.5 text-sm font-semibold flex items-center justify-center gap-2"
+          >
+            <Smartphone className="w-4 h-4" />
+            Install app on mobile home screen
+          </button>
+        ) : null}
+      </div>
       <div className="rounded-2xl border border-violet-200 bg-white p-4 flex items-center gap-2">
         <CheckCircle2 className="w-5 h-5 text-emerald-700" />
         <p className="text-sm text-stone-700">All clear. {contactsCount} trusted contacts active.</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="rounded-xl border border-violet-200 bg-white p-3">
+          <Shield className="w-4 h-4 text-violet-800" />
+          <p className="text-xs font-semibold mt-1 text-stone-900">What this app is for</p>
+          <p className="text-[11px] text-stone-600 mt-1">Prevent abuse, collect evidence, and trigger emergency response fast.</p>
+        </div>
+        <div className="rounded-xl border border-violet-200 bg-white p-3">
+          <Compass className="w-4 h-4 text-violet-800" />
+          <p className="text-xs font-semibold mt-1 text-stone-900">How to use it</p>
+          <p className="text-[11px] text-stone-600 mt-1">Open tools by tab: Shield, Legal, Transit, Community, and Resources.</p>
+        </div>
+        <div className="rounded-xl border border-violet-200 bg-white p-3">
+          <Users className="w-4 h-4 text-violet-800" />
+          <p className="text-xs font-semibold mt-1 text-stone-900">Community help</p>
+          <p className="text-[11px] text-stone-600 mt-1">Find nearby NGOs, share safety updates, and report incidents quickly.</p>
+        </div>
       </div>
       {stealthMode ? <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-800">Stealth mode enabled.</div> : null}
       <div className="rounded-xl border border-stone-200 bg-white px-3 py-2.5 flex items-center justify-between">
@@ -1145,6 +1195,7 @@ export default function App() {
   const [contacts, setContacts] = useState([]);
   const [settings, setSettings] = useState({ stealthMode: false, autoDialPolice: true, cancelPin: "1234" });
   const [backendOk, setBackendOk] = useState(true);
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(() => {
     try {
       return localStorage.getItem("nigehbaan_onboarding_done") !== "true";
@@ -1163,6 +1214,33 @@ export default function App() {
       .catch(() => setBackendOk(false));
   }, []);
 
+  useEffect(() => {
+    const onBeforeInstall = (event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+    };
+    const onInstalled = () => {
+      setInstallPromptEvent(null);
+    };
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!installPromptEvent) return;
+    installPromptEvent.prompt();
+    try {
+      await installPromptEvent.userChoice;
+    } catch {
+      // ignore dismissal
+    }
+    setInstallPromptEvent(null);
+  };
+
   const finishOnboarding = () => {
     try {
       localStorage.setItem("nigehbaan_onboarding_done", "true");
@@ -1178,7 +1256,7 @@ export default function App() {
   };
 
   const rendered = useMemo(() => {
-    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} />;
+    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} />;
     if (screen === "legal") return <LegalChat />;
     if (screen === "transit") return <SafeTransit contacts={contacts} autoDialPolice={settings.autoDialPolice} />;
     if (screen === "community") return <CommunityScreen />;
