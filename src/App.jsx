@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useUser } from "@clerk/react";
+import { useUser, UserButton, useClerk } from "@clerk/react";
 import { supabase } from "./lib/authClients";
 import AuthHub from "./components/AuthHub.jsx";
 import {
@@ -20,6 +20,7 @@ import {
   Languages,
   Loader2,
   Lock,
+  LogOut,
   MapPin,
   MessageSquare,
   Mic,
@@ -58,7 +59,7 @@ async function api(path, options = {}) {
   return res.json();
 }
 
-function Header({ lang, setLang, title, showBack, onBack }) {
+function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut, isClerk }) {
   return (
     <header className="sticky top-0 z-20 border-b border-white/10 bg-[#141523]/80 px-4 py-3 backdrop-blur flex items-center justify-between">
       <div className="flex items-center gap-2">
@@ -72,9 +73,21 @@ function Header({ lang, setLang, title, showBack, onBack }) {
           {!title ? <p className="text-[10px] text-slate-400">نگہبان · your guardian</p> : null}
         </div>
       </div>
-      <button onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-purple-300 flex items-center gap-1">
-        <Languages className="w-3.5 h-3.5" />{lang === "en" ? "EN" : "اردو"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-purple-300 flex items-center gap-1">
+          <Languages className="w-3.5 h-3.5" />{lang === "en" ? "EN" : "اردو"}
+        </button>
+        {isClerk ? (
+          <UserButton afterSignOutUrl="/" />
+        ) : userProfile ? (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-slate-300 hidden sm:inline">{userProfile}</span>
+            <button onClick={onSignOut} className="rounded-full p-1.5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors" title="Sign out">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : null}
+      </div>
     </header>
   );
 }
@@ -205,7 +218,7 @@ function HomeScreen({
   onAddTimeline,
   timelineSaving,
 }) {
-  const greeting = lang === "ur" ? "السلام علیکم، عائشہ" : "Asalaam-o-Alaikum, Ayesha";
+  const greeting = lang === "ur" ? "خوش آمدید" : "Welcome";
   const [openGuide, setOpenGuide] = useState("setup");
   const [infoPanel, setInfoPanel] = useState("about");
   const quickChecklist = [
@@ -542,7 +555,7 @@ function CommunityScreen() {
   const [chatForm, setChatForm] = useState({
     mode: "chat",
     text: "",
-    alias: "Ayesha",
+    alias: "",
     anonymous: true,
     area: "",
     category: "Harassment",
@@ -1040,9 +1053,9 @@ function LegalChat() {
   const [detectingCity, setDetectingCity] = useState(false);
   const [detectMessage, setDetectMessage] = useState("");
   const [consultForm, setConsultForm] = useState({
-    name: "Ayesha",
-    phone: "+923001112233",
-    city: "Lahore",
+    name: "",
+    phone: "",
+    city: "",
     issueType: "Harassment",
     preferredTime: "Evening",
     description: "",
@@ -1837,7 +1850,8 @@ function ShieldHub({ onSelectTool }) {
 }
 
 export default function App() {
-  const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn } = useUser();
+  const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn, user: clerkUser } = useUser();
+  const { signOut: clerkSignOut } = useClerk();
   const [supabaseSession, setSupabaseSession] = useState(null);
   const [devBypass, setDevBypass] = useState(false);
   
@@ -1864,6 +1878,17 @@ export default function App() {
   }, []);
 
   const isAuthenticated = clerkSignedIn || !!supabaseSession;
+
+  const userProfile = clerkSignedIn ? (clerkUser?.primaryEmailAddress?.emailAddress || clerkUser?.fullName || "User") : supabaseSession ? supabaseSession.user.email : devBypass ? "Guest" : null;
+
+  const handleSignOut = async () => {
+    if (clerkSignedIn) {
+      await clerkSignOut();
+    } else if (supabaseSession) {
+      await supabase.auth.signOut();
+    }
+    setDevBypass(false);
+  };
 
   useEffect(() => {
     Promise.all([api("/health"), api("/state")])
@@ -1989,7 +2014,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#141523] text-white">
       <div className="w-full max-w-5xl mx-auto min-h-screen lg:min-h-[92vh] lg:my-4 bg-[#141523] shadow-xl lg:rounded-3xl overflow-hidden flex flex-col relative z-0">
-        {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} /> : null}
+        {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} userProfile={userProfile} onSignOut={handleSignOut} isClerk={clerkSignedIn} /> : null}
         <main className={`flex-1 ${screen === "legal" ? "flex flex-col" : "overflow-y-auto"}`}>{rendered}</main>
         {!sosActive ? <BottomNav active={screen} onNavigate={handleNavigate} /> : null}
         {sosActive ? <SOSScreen onClose={() => setSosActive(false)} contacts={contacts} autoDialPolice={settings.autoDialPolice} cancelPin={settings.cancelPin} /> : null}

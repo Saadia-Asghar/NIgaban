@@ -12,10 +12,6 @@
     {
       "id": "c2",
       "name": "Maham"
-    },
-    {
-      "id": "c3",
-      "name": "Zara"
     }
   ],
   "trips": [
@@ -154,7 +150,17 @@
       "time": "2026-05-01T17:42:56.539Z"
     }
   ],
-  "legalQueue": [],
+  "legalQueue": [
+    {
+      "id": "cc48ce82-4761-452c-aea3-da2b0670b559",
+      "type": "FIR_DRAFT_REVIEW",
+      "status": "pending_review",
+      "userId": "anonymous",
+      "draft": "Federal Investigation Agency Cybercrime Wing\n[Date]\n\nFirst Information Report (FIR) for Online Blackmail\n\nI, [Your Name], son/daughter of [Father's Name], resident of [Your Address], do hereby report that I am a victim of online blackmail. The incident occurred on [Date of Incident] and has been ongoing since then.\n\nThe facts of the case are as follows: I was contacted by an unknown individual(s) through [Platform/Method of Communication, e.g., social media, email, text message]. The blackmailer has been threatening to share my personal pictures online unless I comply with their demands. The demands include [Specify Demands, e.g., money, favors, silence].\n\nThe blackmailer has been using [Specify Platform/Method of Communication] to communicate with me and has shared [Specify Number] pictures/videos of me online. I have reason to believe that the blackmailer's intention is to harass, intimidate, and extort me.\n\nI have tried to [Specify Any Previous Actions Taken, e.g., block the blackmailer, report to the platform], but the blackmailer has continued to harass me. I am providing the following evidence in support of my complaint:\n\n* Screenshots of messages/posts: [Attach Screenshots]\n* URLs/links to online content: [Provide URLs/Links]\n* Communication records: [Attach Records]\n\nI request that the FIA Cybercrime Wing take immediate action to:\n\n* Investigate the incident and identify the blackmailer\n* Remove the offending content from the internet\n* Protect my identity and safety\n* Take legal action against the blackmailer under relevant laws, including the Prevention of Electronic Crimes Act, 2016\n\nI can be contacted at [Your Contact Info, e.g., phone number, email address] for any further information or assistance. I hereby declare that the information provided is true and correct to the best of my knowledge and belief.\n\nSignature: [Your Signature]\nName: [Your Name]\nContact Information: [Your Contact Info]\nDate: [Date]",
+      "createdAt": "2026-05-01T20:06:09.756Z",
+      "reviewerNotes": ""
+    }
+  ],
   "evidenceVault": [
     {
       "id": "86bb2aff-6963-4189-8e97-bc0097a1a185",
@@ -281,6 +287,22 @@
         "tripId": "0e7aa569-3314-4200-878b-4c9afb6ebbc8"
       },
       "at": "2026-05-01T18:11:24.611Z"
+    },
+    {
+      "id": "6c57b572-b004-4e49-b7c1-aff240c2b130",
+      "action": "legal_queue_item_created",
+      "metadata": {
+        "queueId": "cc48ce82-4761-452c-aea3-da2b0670b559"
+      },
+      "at": "2026-05-01T20:06:09.757Z"
+    },
+    {
+      "id": "2c76ff04-d6a9-4ff1-aa3b-56f26b3c7dd5",
+      "action": "contact_removed",
+      "metadata": {
+        "contactId": "c3"
+      },
+      "at": "2026-05-01T20:25:19.282Z"
     }
   ],
   "communityChatMessages": [
@@ -307,5 +329,6 @@
       "context": "night commute",
       "createdAt": "2026-05-01T18:07:20.444Z"
     }
-  ]
+  ],
+  "legalConsultRequests": []
 }
