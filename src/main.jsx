@@ -1,7 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { ClerkProvider } from '@clerk/clerk-react'
 import './index.css'
 import App from './App.jsx'
+import { clerkPublishableKey } from './lib/authClients'
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -9,8 +11,18 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-createRoot(document.getElementById('root')).render(
+const content = (
   <StrictMode>
     <App />
-  </StrictMode>,
+  </StrictMode>
+)
+
+createRoot(document.getElementById('root')).render(
+  clerkPublishableKey ? (
+    <ClerkProvider publishableKey={clerkPublishableKey}>
+      {content}
+    </ClerkProvider>
+  ) : (
+    content
+  ),
 )

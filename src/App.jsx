@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import AuthHub from "./components/AuthHub.jsx";
 import {
   Activity,
   AlertCircle,
@@ -31,8 +32,6 @@ import {
   Volume2,
   X,
   Smartphone,
-  Compass,
-  Users,
 } from "lucide-react";
 
 const LEGAL_SYSTEM_PROMPT = `You are the Legal Aid Assistant for Nigehbaan...`;
@@ -189,6 +188,7 @@ function HomeScreen({
 }) {
   const greeting = lang === "ur" ? "السلام علیکم، عائشہ" : "Asalaam-o-Alaikum, Ayesha";
   const [openGuide, setOpenGuide] = useState("setup");
+  const [infoPanel, setInfoPanel] = useState("about");
   const quickChecklist = [
     { id: "contacts", label: "Add at least 3 trusted contacts", done: contactsCount >= 3, action: "more" },
     { id: "timeline", label: "Create your first Safety Timeline note", done: timelineEntries.length > 0, action: "home" },
@@ -230,6 +230,129 @@ function HomeScreen({
             Install app on mobile home screen
           </button>
         ) : null}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button
+          onClick={() => onNavigate("more")}
+          className="rounded-xl border border-violet-200 bg-white p-3 text-left hover:shadow-sm transition"
+        >
+          <p className="text-[11px] uppercase tracking-wide text-violet-700 font-semibold">Start Here</p>
+          <p className="text-sm font-semibold text-stone-900 mt-1">Setup Safety Profile</p>
+          <p className="text-[11px] text-stone-600 mt-1">Add contacts, PIN, OTP identity.</p>
+        </button>
+        <button
+          onClick={() => onNavigate("transit")}
+          className="rounded-xl border border-violet-200 bg-white p-3 text-left hover:shadow-sm transition"
+        >
+          <p className="text-[11px] uppercase tracking-wide text-violet-700 font-semibold">Before Travel</p>
+          <p className="text-sm font-semibold text-stone-900 mt-1">Start Safe Transit</p>
+          <p className="text-[11px] text-stone-600 mt-1">Use local check-ins even without APIs.</p>
+        </button>
+        <button
+          onClick={() => onNavigate("legal")}
+          className="rounded-xl border border-violet-200 bg-white p-3 text-left hover:shadow-sm transition"
+        >
+          <p className="text-[11px] uppercase tracking-wide text-violet-700 font-semibold">Need Help</p>
+          <p className="text-sm font-semibold text-stone-900 mt-1">Open Legal Aid</p>
+          <p className="text-[11px] text-stone-600 mt-1">Chat + consult request in one place.</p>
+        </button>
+      </div>
+      <div className="rounded-2xl border border-violet-200 bg-white p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-stone-900">App Information</p>
+          <span className="text-[10px] uppercase tracking-wide rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-violet-700 font-semibold">
+            Start here
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => setInfoPanel("about")}
+            className={`rounded-lg py-2 text-xs font-semibold ${infoPanel === "about" ? "bg-violet-900 text-white" : "bg-stone-100 text-stone-700"}`}
+          >
+            About
+          </button>
+          <button
+            onClick={() => setInfoPanel("directions")}
+            className={`rounded-lg py-2 text-xs font-semibold ${infoPanel === "directions" ? "bg-violet-900 text-white" : "bg-stone-100 text-stone-700"}`}
+          >
+            Directions
+          </button>
+          <button
+            onClick={() => setInfoPanel("features")}
+            className={`rounded-lg py-2 text-xs font-semibold ${infoPanel === "features" ? "bg-violet-900 text-white" : "bg-stone-100 text-stone-700"}`}
+          >
+            Features
+          </button>
+        </div>
+        {infoPanel === "about" ? (
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-3">
+            <p className="text-xs font-semibold text-stone-900">What Nigehbaan does</p>
+            <p className="text-[12px] text-stone-600 mt-1 leading-relaxed">
+              Nigehbaan is a women safety web app for prevention, emergency response, and legal support. It helps users stay protected during harassment risks, travel, and cyber abuse situations.
+            </p>
+            <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="rounded-lg border border-violet-200 bg-white p-2">
+                <p className="text-[11px] text-violet-700 font-semibold">Prevent</p>
+                <p className="text-[11px] text-stone-600 mt-1">Threat checks + awareness</p>
+              </div>
+              <div className="rounded-lg border border-violet-200 bg-white p-2">
+                <p className="text-[11px] text-violet-700 font-semibold">Protect</p>
+                <p className="text-[11px] text-stone-600 mt-1">Transit + SOS workflows</p>
+              </div>
+              <div className="rounded-lg border border-violet-200 bg-white p-2">
+                <p className="text-[11px] text-violet-700 font-semibold">Pursue justice</p>
+                <p className="text-[11px] text-stone-600 mt-1">Legal aid + consult requests</p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        {infoPanel === "directions" ? (
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 space-y-2">
+            <p className="text-xs font-semibold text-stone-900">How to use (simple flow)</p>
+            {[
+              "1. Open Resources and add trusted contacts + SOS PIN.",
+              "2. Use Safe Transit before leaving and log check-ins.",
+              "3. If threatened, open Shield tools or Legal Aid guidance.",
+              "4. Post alerts in Community to warn others nearby.",
+              "5. Trigger SOS immediately for urgent danger.",
+            ].map((step) => (
+              <p key={step} className="text-[12px] text-stone-700">• {step}</p>
+            ))}
+          </div>
+        ) : null}
+        {infoPanel === "features" ? (
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {[
+              "AI Threat Shield (DM/deepfake/voice checks)",
+              "Safe Transit with no-key fallback check-ins",
+              "Emergency SOS with trusted contact alerts",
+              "Legal Aid chat + consultation request",
+              "Community safety feed + city chat + incident reports",
+              "Evidence timeline notes for safer documentation",
+            ].map((item) => (
+              <div key={item} className="rounded-lg border border-violet-200 bg-white p-2">
+                <p className="text-[12px] text-stone-700">{item}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <div className="rounded-2xl border border-violet-200 bg-white p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-stone-900">Safety Profile Strength</p>
+          <p className="text-xs font-semibold text-violet-800">
+            {Math.min(100, 40 + contactsCount * 15 + (timelineEntries.length > 0 ? 20 : 0))}%
+          </p>
+        </div>
+        <div className="mt-2 h-2 rounded-full bg-violet-100 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600"
+            style={{ width: `${Math.min(100, 40 + contactsCount * 15 + (timelineEntries.length > 0 ? 20 : 0))}%` }}
+          />
+        </div>
+        <p className="text-[11px] text-stone-500 mt-2">
+          Improve score by adding contacts, using timeline notes, and checking live community alerts.
+        </p>
       </div>
       <div className="rounded-2xl border border-violet-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -284,25 +407,37 @@ function HomeScreen({
           </div>
         ))}
       </div>
-      <div className="rounded-2xl border border-violet-200 bg-white p-4 flex items-center gap-2">
-        <CheckCircle2 className="w-5 h-5 text-emerald-700" />
-        <p className="text-sm text-stone-700">All clear. {contactsCount} trusted contacts active.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-xl border border-violet-200 bg-white p-3">
+          <p className="text-xs font-semibold text-stone-900">When to use Threat Shield</p>
+          <p className="text-[11px] text-stone-600 mt-1">For suspicious DMs, deepfake checks, and abuse detection before escalation.</p>
+        </div>
+        <div className="rounded-xl border border-violet-200 bg-white p-3">
+          <p className="text-xs font-semibold text-stone-900">When to use Legal Aid</p>
+          <p className="text-[11px] text-stone-600 mt-1">For FIR guidance, rights under PECA, and direct legal consult requests.</p>
+        </div>
+        <div className="rounded-xl border border-violet-200 bg-white p-3">
+          <p className="text-xs font-semibold text-stone-900">When to use Community</p>
+          <p className="text-[11px] text-stone-600 mt-1">To monitor local alerts, chat with city members, and report incidents.</p>
+        </div>
+        <div className="rounded-xl border border-violet-200 bg-white p-3">
+          <p className="text-xs font-semibold text-stone-900">When to use SOS</p>
+          <p className="text-[11px] text-stone-600 mt-1">Immediate danger only. It triggers contact alerts and emergency workflow.</p>
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-violet-200 bg-white p-3">
-          <Shield className="w-4 h-4 text-violet-800" />
-          <p className="text-xs font-semibold mt-1 text-stone-900">What this app is for</p>
-          <p className="text-[11px] text-stone-600 mt-1">Prevent abuse, collect evidence, and trigger emergency response fast.</p>
-        </div>
-        <div className="rounded-xl border border-violet-200 bg-white p-3">
-          <Compass className="w-4 h-4 text-violet-800" />
-          <p className="text-xs font-semibold mt-1 text-stone-900">How to use it</p>
-          <p className="text-[11px] text-stone-600 mt-1">Open tools by tab: Shield, Legal, Transit, Community, and Resources.</p>
-        </div>
-        <div className="rounded-xl border border-violet-200 bg-white p-3">
-          <Users className="w-4 h-4 text-violet-800" />
-          <p className="text-xs font-semibold mt-1 text-stone-900">Community help</p>
-          <p className="text-[11px] text-stone-600 mt-1">Find nearby NGOs, share safety updates, and report incidents quickly.</p>
+      <div className="rounded-2xl border border-violet-200 bg-white p-4">
+        <p className="text-sm font-semibold text-stone-900">Emergency Numbers (Pakistan)</p>
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {[
+            { label: "Police", phone: "15" },
+            { label: "Madadgaar", phone: "1099" },
+            { label: "FIA Cybercrime", phone: "1991" },
+          ].map((item) => (
+            <a key={item.label} href={`tel:${item.phone}`} className="rounded-xl border border-stone-200 bg-stone-50 px-3 py-2">
+              <p className="text-[11px] text-stone-500">{item.label}</p>
+              <p className="text-sm font-semibold text-violet-900">{item.phone}</p>
+            </a>
+          ))}
         </div>
       </div>
       <div className="rounded-2xl border border-violet-200 bg-white p-4 space-y-3">
@@ -1507,6 +1642,10 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
         <p className="text-xs uppercase tracking-wide text-stone-500 font-semibold">Trusted Contacts</p>
         {contacts.map((contact) => <div key={contact.id} className="flex items-center justify-between bg-stone-100 rounded-lg px-3 py-2"><span className="text-sm">{contact.name}</span><button onClick={() => removeContact(contact.id)} className="text-xs font-semibold text-rose-700">Remove</button></div>)}
         <div className="flex gap-2"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="New contact" className="flex-1 rounded-lg border border-stone-200 px-3 py-2 text-sm" /><button onClick={addContact} className="rounded-lg bg-violet-900 text-white px-3 py-2 text-xs font-semibold">Add</button></div>
+      </div>
+      <div className="rounded-2xl border border-violet-200 bg-white p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-violet-700 font-semibold">Authentication Hub (Clerk + Supabase)</p>
+        <AuthHub />
       </div>
       <div className="rounded-2xl border border-violet-200 bg-white p-3 space-y-2">
         <p className="text-xs uppercase tracking-wide text-violet-700 font-semibold">Auth & Identity (OTP)</p>
