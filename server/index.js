@@ -121,6 +121,7 @@ function ensureShape(data) {
   if (!Array.isArray(data.sosLogs)) data.sosLogs = [];
   if (!Array.isArray(data.communityReports)) data.communityReports = [];
   if (!Array.isArray(data.legalQueue)) data.legalQueue = [];
+  if (!Array.isArray(data.legalConsultRequests)) data.legalConsultRequests = [];
   if (!Array.isArray(data.evidenceVault)) data.evidenceVault = [];
   if (!Array.isArray(data.evidenceTimeline)) data.evidenceTimeline = [];
   if (!Array.isArray(data.activityLogs)) data.activityLogs = [];
@@ -275,6 +276,27 @@ async function writeDbData(data) {
           String(item.draft || ""),
           item.createdAt || new Date().toISOString(),
           String(item.reviewerNotes || ""),
+        ],
+      );
+    }
+
+    await client.query("DELETE FROM legal_consult_requests");
+    for (const item of data.legalConsultRequests || []) {
+      await client.query(
+        `INSERT INTO legal_consult_requests (
+          id, name, phone, city, issue_type, description, preferred_time, urgent, status, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::timestamptz)`,
+        [
+          String(item.id || randomUUID()),
+          String(item.name || "Anonymous"),
+          String(item.phone || ""),
+          String(item.city || ""),
+          String(item.issueType || ""),
+          String(item.description || ""),
+          String(item.preferredTime || "Earliest available"),
+          Boolean(item.urgent),
+          String(item.status || "queued"),
+          item.createdAt || new Date().toISOString(),
         ],
       );
     }
@@ -469,6 +491,19 @@ async function ensureDbReady() {
         reviewer_notes TEXT NOT NULL DEFAULT ''
       );
 
+      CREATE TABLE IF NOT EXISTS legal_consult_requests (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        city TEXT NOT NULL,
+        issue_type TEXT NOT NULL,
+        description TEXT NOT NULL,
+        preferred_time TEXT NOT NULL DEFAULT 'Earliest available',
+        urgent BOOLEAN NOT NULL DEFAULT false,
+        status TEXT NOT NULL DEFAULT 'queued',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS evidence_vault (
         id TEXT PRIMARY KEY,
         incident_id TEXT NOT NULL,
@@ -598,6 +633,7 @@ async function readData() {
         chatRes,
         safetyTimelineRes,
         legalRes,
+        legalConsultRes,
         evidenceRes,
         timelineRes,
         activityRes,
@@ -610,6 +646,7 @@ async function readData() {
         dbPool.query("SELECT id, city, mode, text, alias, anonymous, area, category, tags, severity, created_at FROM community_chat_messages ORDER BY created_at ASC"),
         dbPool.query("SELECT id, text, context, created_at FROM safety_timeline ORDER BY created_at ASC"),
         dbPool.query("SELECT id, type, status, user_id, draft, created_at, reviewer_notes FROM legal_queue ORDER BY created_at ASC"),
+        dbPool.query("SELECT id, name, phone, city, issue_type, description, preferred_time, urgent, status, created_at FROM legal_consult_requests ORDER BY created_at ASC"),
         dbPool.query("SELECT id, incident_id, title, type, checksum, size, created_at FROM evidence_vault ORDER BY created_at ASC"),
         dbPool.query("SELECT id, incident_id, action, evidence_id, previous_hash, event_hash, created_at FROM evidence_timeline ORDER BY created_at ASC"),
         dbPool.query("SELECT id, action, metadata, at FROM activity_logs ORDER BY at ASC"),
@@ -686,6 +723,18 @@ async function readData() {
           draft: r.draft,
           createdAt: new Date(r.created_at).toISOString(),
           reviewerNotes: r.reviewer_notes,
+        })),
+        legalConsultRequests: legalConsultRes.rows.map((r) => ({
+          id: r.id,
+          name: r.name,
+          phone: r.phone,
+          city: r.city,
+          issueType: r.issue_type,
+          description: r.description,
+          preferredTime: r.preferred_time,
+          urgent: Boolean(r.urgent),
+          status: r.status,
+          createdAt: new Date(r.created_at).toISOString(),
         })),
         evidenceVault: evidenceRes.rows.map((r) => ({
           id: r.id,
@@ -1139,6 +1188,50 @@ app.post("/api/legal/queue", async (req, res) => {
   logActivity(data, "legal_queue_item_created", { queueId: item.id });
   await writeData(data);
   res.json({ item });
+});
+
+app.post("/api/legal/consult", rateLimit({ keyPrefix: "legal-consult", windowMs: 60 * 1000, max: 10 }), async (req, res) => {
+  const name = sanitizeUserText(req.body?.name || "").trim();
+  const phone = sanitizeUserText(req.body?.phone || "").trim();
+  const city = sanitizeUserText(req.body?.city || "").trim();
+  const issueType = sanitizeUserText(req.body?.issueType || "").trim();
+  const description = sanitizeUserText(req.body?.description || "").trim();
+  const preferredTime = sanitizeUserText(req.body?.preferredTime || "").trim();
+  const urgent = Boolean(req.body?.urgent);
+  if (!phone || !city || !issueType || !description) {
+    return res.status(400).json({ error: "phone, city, issueType, and description are required" });
+  }
+  const data = await readData();
+  const request = {
+    id: randomUUID(),
+    name: name || "Anonymous",
+    phone,
+    city,
+    issueType,
+    description,
+    preferredTime: preferredTime || "Earliest available",
+    urgent,
+    status: urgent ? "priority_queue" : "queued",
+    createdAt: new Date().toISOString(),
+  };
+  data.legalConsultRequests.push(request);
+  logActivity(data, "legal_consult_requested", {
+    requestId: request.id,
+    city: request.city,
+    issueType: request.issueType,
+    urgent: request.urgent,
+  });
+  await writeData(data);
+  res.json({ request });
+});
+
+app.get("/api/legal/consult", async (req, res) => {
+  const status = String(req.query.status || "all");
+  const data = await readData();
+  const items = data.legalConsultRequests
+    .filter((item) => (status === "all" ? true : item.status === status))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  res.json({ items });
 });
 
 app.post("/api/dm/scan", rateLimit({ keyPrefix: "dm-scan", windowMs: 60 * 1000, max: 20 }), async (req, res) => {

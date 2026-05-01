@@ -885,6 +885,17 @@ function LegalChat() {
   const [helpLoading, setHelpLoading] = useState(false);
   const [detectingCity, setDetectingCity] = useState(false);
   const [detectMessage, setDetectMessage] = useState("");
+  const [consultForm, setConsultForm] = useState({
+    name: "Ayesha",
+    phone: "+923001112233",
+    city: "Lahore",
+    issueType: "Harassment",
+    preferredTime: "Evening",
+    description: "",
+    urgent: false,
+  });
+  const [consultStatus, setConsultStatus] = useState("");
+  const [consultLoading, setConsultLoading] = useState(false);
   const scrollRef = useRef(null);
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
   useEffect(() => {
@@ -963,6 +974,35 @@ function LegalChat() {
     }
   };
 
+  const requestConsult = async (e) => {
+    e.preventDefault();
+    setConsultStatus("");
+    if (!consultForm.phone.trim() || !consultForm.city.trim() || !consultForm.issueType.trim() || !consultForm.description.trim()) {
+      setConsultStatus("Please complete phone, city, issue type, and description.");
+      return;
+    }
+    setConsultLoading(true);
+    try {
+      await api("/legal/consult", {
+        method: "POST",
+        body: JSON.stringify({
+          ...consultForm,
+          phone: consultForm.phone.trim(),
+          city: consultForm.city.trim(),
+          issueType: consultForm.issueType.trim(),
+          description: consultForm.description.trim(),
+          preferredTime: consultForm.preferredTime.trim(),
+        }),
+      });
+      setConsultForm((prev) => ({ ...prev, description: "" }));
+      setConsultStatus("Consult request sent. A legal volunteer/lawyer can follow up on your phone.");
+    } catch {
+      setConsultStatus("Could not submit consult request right now.");
+    } finally {
+      setConsultLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="bg-white border-b border-violet-200 px-4 py-3 flex items-center justify-between">
@@ -1021,6 +1061,73 @@ function LegalChat() {
             </div>
           </div>
         )}
+      </div>
+      <div className="px-4 py-3 border-b border-violet-200 bg-white">
+        <form onSubmit={requestConsult} className="rounded-xl border border-violet-200 bg-violet-50/40 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-violet-900">Request Legal Consult</p>
+            <label className="text-[10px] text-stone-600 flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={consultForm.urgent}
+                onChange={(e) => setConsultForm((prev) => ({ ...prev, urgent: e.target.checked }))}
+              />
+              Urgent
+            </label>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              value={consultForm.name}
+              onChange={(e) => setConsultForm((prev) => ({ ...prev, name: e.target.value }))}
+              placeholder="Your name"
+              className="rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs"
+            />
+            <input
+              value={consultForm.phone}
+              onChange={(e) => setConsultForm((prev) => ({ ...prev, phone: e.target.value }))}
+              placeholder="Phone"
+              className="rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input
+              value={consultForm.city}
+              onChange={(e) => setConsultForm((prev) => ({ ...prev, city: e.target.value }))}
+              placeholder="City"
+              className="rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs"
+            />
+            <select
+              value={consultForm.issueType}
+              onChange={(e) => setConsultForm((prev) => ({ ...prev, issueType: e.target.value }))}
+              className="rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs"
+            >
+              {["Harassment", "Cyber Abuse", "Blackmail", "Domestic Violence", "FIR Filing", "Other"].map((issue) => (
+                <option key={issue} value={issue}>{issue}</option>
+              ))}
+            </select>
+            <input
+              value={consultForm.preferredTime}
+              onChange={(e) => setConsultForm((prev) => ({ ...prev, preferredTime: e.target.value }))}
+              placeholder="Preferred time"
+              className="rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs"
+            />
+          </div>
+          <textarea
+            value={consultForm.description}
+            onChange={(e) => setConsultForm((prev) => ({ ...prev, description: e.target.value }))}
+            rows={2}
+            placeholder="Briefly explain your issue..."
+            className="w-full rounded-lg border border-violet-200 bg-white px-2.5 py-1.5 text-xs"
+          />
+          {consultStatus ? <p className="text-[11px] text-violet-800">{consultStatus}</p> : null}
+          <button
+            type="submit"
+            disabled={consultLoading}
+            className="w-full rounded-lg bg-violet-900 text-white py-2 text-xs font-semibold disabled:opacity-60"
+          >
+            {consultLoading ? "Submitting..." : "Request consult"}
+          </button>
+        </form>
       </div>
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-stone-50">
         {messages.map((m, i) => (
@@ -1101,25 +1208,129 @@ function DistressListener({ onTriggerSOS }) {
 
 function SafeTransit({ contacts, autoDialPolice }) {
   const [trip, setTrip] = useState(null);
+  const [tripMode, setTripMode] = useState("online");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [checkInText, setCheckInText] = useState("");
+  const [checkInTimerMinutes, setCheckInTimerMinutes] = useState(5);
+  const [nextCheckInAt, setNextCheckInAt] = useState(null);
+
+  useEffect(() => {
+    if (!nextCheckInAt || !trip) return undefined;
+    const timerId = setInterval(() => {
+      const remainingMs = new Date(nextCheckInAt).getTime() - Date.now();
+      if (remainingMs <= 0) {
+        setStatusMessage("Check-in overdue. Notify your trusted contacts or trigger SOS if needed.");
+      }
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, [nextCheckInAt, trip]);
+
   const startTrip = async () => {
-    const data = await api("/transit/start", { method: "POST", body: JSON.stringify({ destination: "University Gate" }) });
-    setTrip(data.trip);
+    setStatusMessage("");
+    try {
+      const data = await api("/transit/start", { method: "POST", body: JSON.stringify({ destination: "University Gate" }) });
+      setTrip(data.trip);
+      setTripMode("online");
+      setStatusMessage("Trip started with backend tracking.");
+      setNextCheckInAt(new Date(Date.now() + checkInTimerMinutes * 60 * 1000).toISOString());
+    } catch {
+      const localTrip = {
+        id: `local-${Date.now()}`,
+        destination: "University Gate",
+        startedAt: new Date().toISOString(),
+        status: "active",
+        events: [
+          "Local trip mode started",
+          "Backend tracking unavailable, using manual check-ins",
+        ],
+      };
+      setTrip(localTrip);
+      setTripMode("local");
+      setStatusMessage("Transit works in local mode (no paid/free keys needed).");
+      setNextCheckInAt(new Date(Date.now() + checkInTimerMinutes * 60 * 1000).toISOString());
+    }
   };
   const simulateDeviation = async () => {
     if (!trip) return;
-    const data = await api("/transit/deviation", { method: "POST", body: JSON.stringify({ tripId: trip.id }) });
-    setTrip(data.trip);
+    if (tripMode === "local") {
+      setTrip((prev) => ({
+        ...prev,
+        status: "deviated",
+        events: [...(prev?.events || []), "Possible route deviation detected (local mode)"],
+      }));
+      return;
+    }
+    try {
+      const data = await api("/transit/deviation", { method: "POST", body: JSON.stringify({ tripId: trip.id }) });
+      setTrip(data.trip);
+    } catch {
+      setStatusMessage("Could not reach backend deviation endpoint. You can still use SOS.");
+    }
+  };
+
+  const submitCheckIn = () => {
+    if (!trip || !checkInText.trim()) return;
+    setTrip((prev) => ({
+      ...prev,
+      events: [...(prev?.events || []), `Check-in: ${checkInText.trim()}`],
+    }));
+    setCheckInText("");
+    setStatusMessage("Check-in recorded.");
+    setNextCheckInAt(new Date(Date.now() + checkInTimerMinutes * 60 * 1000).toISOString());
+  };
+
+  const markSafeArrival = () => {
+    if (!trip) return;
+    setTrip((prev) => ({
+      ...prev,
+      status: "completed",
+      events: [...(prev?.events || []), "Arrived safely"],
+    }));
+    setStatusMessage("Trip marked as completed.");
+    setNextCheckInAt(null);
   };
   return (
     <div className="px-4 pt-4 pb-24 space-y-4">
       <h2 className="text-xl font-semibold">Safe Transit</h2>
-      <div className="rounded-2xl border border-stone-200 bg-stone-100 aspect-[4/5]" />
+      <div className="rounded-2xl border border-stone-200 bg-stone-100 p-4">
+        <p className="text-xs text-stone-600">Transit mode: <span className="font-semibold text-stone-900">{tripMode === "online" ? "Backend tracked" : "Local manual fallback"}</span></p>
+        <p className="text-[11px] text-stone-500 mt-1">
+          Works without map API keys. If backend/API fails, manual safety check-in flow continues.
+        </p>
+      </div>
       {!trip ? <button onClick={startTrip} className="w-full rounded-2xl bg-emerald-800 text-white py-3 text-sm font-semibold">Start tracked trip</button> : null}
-      {trip?.status === "active" ? <button onClick={simulateDeviation} className="w-full rounded-xl bg-stone-900 text-white py-2.5 text-xs font-semibold">Simulate deviation</button> : null}
+      {trip?.status === "active" ? <button onClick={simulateDeviation} className="w-full rounded-xl bg-stone-900 text-white py-2.5 text-xs font-semibold">Mark possible deviation</button> : null}
       {trip ? (
         <div className="rounded-2xl border border-stone-200 bg-white p-3">
           <p className="text-xs text-stone-500">Shared with: {contacts.map((c) => c.name).join(", ") || "none"}</p>
           <p className="text-xs text-stone-500 mt-1">Auto-dial police: {autoDialPolice ? "enabled" : "disabled"}</p>
+          {nextCheckInAt ? (
+            <p className="text-xs text-violet-700 mt-1">Next check-in due: {new Date(nextCheckInAt).toLocaleTimeString()}</p>
+          ) : null}
+          <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <input
+              value={checkInText}
+              onChange={(e) => setCheckInText(e.target.value)}
+              placeholder="I'm safe at..."
+              className="sm:col-span-2 rounded-lg border border-stone-200 px-2.5 py-2 text-xs"
+            />
+            <button onClick={submitCheckIn} className="rounded-lg bg-violet-900 text-white px-2.5 py-2 text-xs font-semibold">Add check-in</button>
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            <label className="text-[11px] text-stone-600">Check-in timer (min):</label>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={checkInTimerMinutes}
+              onChange={(e) => setCheckInTimerMinutes(Math.max(1, Math.min(30, Number(e.target.value) || 5)))}
+              className="w-16 rounded border border-stone-300 px-2 py-1 text-xs"
+            />
+            <button onClick={markSafeArrival} className="ml-auto rounded-lg bg-emerald-700 text-white px-2.5 py-1.5 text-[11px] font-semibold">
+              Mark arrived safe
+            </button>
+          </div>
+          {statusMessage ? <p className="text-xs text-violet-800 mt-2">{statusMessage}</p> : null}
           <div className="mt-2 space-y-1">{trip.events?.map((event, i) => <p key={`${event}-${i}`} className="text-xs text-stone-700">• {event}</p>)}</div>
         </div>
       ) : null}
@@ -1184,6 +1395,8 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
     content: "Harassment message screenshot details...",
   });
   const [evidenceMsg, setEvidenceMsg] = useState("");
+  const [consultRequests, setConsultRequests] = useState([]);
+  const [consultLoading, setConsultLoading] = useState(false);
   const addContact = async () => {
     if (!name.trim()) return;
     const data = await api("/contacts", { method: "POST", body: JSON.stringify({ name: name.trim() }) });
@@ -1265,6 +1478,22 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
       setEvidenceMsg("Evidence export failed.");
     }
   };
+
+  const loadConsultRequests = async () => {
+    setConsultLoading(true);
+    try {
+      const data = await api("/legal/consult?status=all");
+      setConsultRequests(data.items || []);
+    } catch {
+      setConsultRequests([]);
+    } finally {
+      setConsultLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadConsultRequests();
+  }, []);
   return (
     <div className="px-4 pt-4 pb-24 space-y-5">
       <h2 className="text-2xl font-semibold">Resources & Settings</h2>
@@ -1308,6 +1537,28 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
           <button onClick={exportEvidencePacket} className="rounded-lg bg-stone-900 text-white px-3 py-2 text-xs font-semibold">Export packet</button>
         </div>
         {evidenceMsg ? <p className="text-xs text-stone-600">{evidenceMsg}</p> : null}
+      </div>
+      <div className="rounded-2xl border border-violet-200 bg-white p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs uppercase tracking-wide text-violet-700 font-semibold">Legal Consult Requests</p>
+          <button onClick={loadConsultRequests} className="text-xs font-semibold text-violet-800">Refresh</button>
+        </div>
+        {consultLoading ? <p className="text-xs text-stone-500">Loading requests...</p> : null}
+        <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+          {consultRequests.map((item) => (
+            <div key={item.id} className="rounded-lg border border-stone-200 bg-stone-50 p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-stone-900">{item.issueType} • {item.city}</p>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.urgent ? "bg-rose-100 text-rose-700" : "bg-violet-100 text-violet-700"}`}>
+                  {item.urgent ? "Urgent" : "Normal"}
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-600 mt-1">{item.description}</p>
+              <p className="text-[10px] text-stone-500 mt-1">{new Date(item.createdAt).toLocaleString()}</p>
+            </div>
+          ))}
+          {!consultLoading && consultRequests.length === 0 ? <p className="text-xs text-stone-500">No consult requests yet.</p> : null}
+        </div>
       </div>
       <div className="rounded-2xl bg-stone-100 border border-stone-200 p-3 space-y-2">
         <p className="text-xs uppercase tracking-wide text-stone-500 font-semibold">Settings</p>

@@ -84,6 +84,19 @@ create table if not exists public.legal_queue (
   reviewer_notes text not null default ''
 );
 
+create table if not exists public.legal_consult_requests (
+  id text primary key,
+  name text not null,
+  phone text not null,
+  city text not null,
+  issue_type text not null,
+  description text not null,
+  preferred_time text not null default 'Earliest available',
+  urgent boolean not null default false,
+  status text not null default 'queued',
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.evidence_vault (
   id text primary key,
   incident_id text not null,
