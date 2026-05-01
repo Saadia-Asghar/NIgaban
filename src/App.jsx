@@ -34,6 +34,8 @@ import {
   Compass,
   Users,
 } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 const LEGAL_SYSTEM_PROMPT = `You are the Legal Aid Assistant for Nigehbaan...`;
 const DM_SCAN_SYSTEM_PROMPT = `Return only JSON with classification, severity, peca_section, peca_explanation, evidence_value, recommended_action, summary.`;
@@ -1101,26 +1103,107 @@ function DistressListener({ onTriggerSOS }) {
 
 function SafeTransit({ contacts, autoDialPolice }) {
   const [trip, setTrip] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [watchId, setWatchId] = useState(null);
+
+  useEffect(() => {
+    if (trip && trip.status === "active") {
+      const id = navigator.geolocation.watchPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          setCurrentLocation([lat, lon]);
+          // Send location to server
+          api("/transit/location", {
+            method: "POST",
+            body: JSON.stringify({ tripId: trip.id, lat, lon }),
+          }).then((data) => setTrip(data.trip));
+        },
+        (error) => console.error("Geolocation error:", error),
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+      );
+      setWatchId(id);
+      return () => {
+        navigator.geolocation.clearWatch(id);
+      };
+    } else if (watchId) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+    }
+  }, [trip]);
+
   const startTrip = async () => {
     const data = await api("/transit/start", { method: "POST", body: JSON.stringify({ destination: "University Gate" }) });
     setTrip(data.trip);
   };
+
+  const stopTrip = async () => {
+    if (trip) {
+      // Assume stop by setting status to completed
+      const updatedTrip = { ...trip, status: "completed" };
+      setTrip(updatedTrip);
+      setCurrentLocation(null);
+    }
+  };
+
   const simulateDeviation = async () => {
     if (!trip) return;
     const data = await api("/transit/deviation", { method: "POST", body: JSON.stringify({ tripId: trip.id }) });
     setTrip(data.trip);
   };
+
+  const mapCenter = currentLocation || [31.5204, 74.3587]; // Default to Lahore
+  const path = trip?.locationHistory?.map((loc) => [loc.lat, loc.lon]) || [];
+
   return (
     <div className="px-4 pt-4 pb-24 space-y-4">
       <h2 className="text-xl font-semibold">Safe Transit</h2>
-      <div className="rounded-2xl border border-stone-200 bg-stone-100 aspect-[4/5]" />
-      {!trip ? <button onClick={startTrip} className="w-full rounded-2xl bg-emerald-800 text-white py-3 text-sm font-semibold">Start tracked trip</button> : null}
-      {trip?.status === "active" ? <button onClick={simulateDeviation} className="w-full rounded-xl bg-stone-900 text-white py-2.5 text-xs font-semibold">Simulate deviation</button> : null}
+      <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden" style={{ height: '400px' }}>
+        <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }}>
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
+          {currentLocation && (
+            <Marker position={currentLocation}>
+              <Popup>You are here</Popup>
+            </Marker>
+          )}
+          {trip?.destinationCoords && (
+            <Marker position={[trip.destinationCoords.lat, trip.destinationCoords.lon]}>
+              <Popup>Destination</Popup>
+            </Marker>
+          )}
+          {path.length > 1 && (
+            <Polyline positions={path} color="blue" />
+          )}
+        </MapContainer>
+      </div>
+      {!trip ? (
+        <button onClick={startTrip} className="w-full rounded-2xl bg-emerald-800 text-white py-3 text-sm font-semibold">
+          Start tracked trip
+        </button>
+      ) : trip.status === "active" ? (
+        <div className="space-y-2">
+          <button onClick={stopTrip} className="w-full rounded-2xl bg-red-800 text-white py-3 text-sm font-semibold">
+            Stop trip
+          </button>
+          <button onClick={simulateDeviation} className="w-full rounded-xl bg-stone-900 text-white py-2.5 text-xs font-semibold">
+            Simulate deviation
+          </button>
+        </div>
+      ) : (
+        <p className="text-center text-sm text-stone-600">Trip {trip.status}</p>
+      )}
       {trip ? (
         <div className="rounded-2xl border border-stone-200 bg-white p-3">
           <p className="text-xs text-stone-500">Shared with: {contacts.map((c) => c.name).join(", ") || "none"}</p>
           <p className="text-xs text-stone-500 mt-1">Auto-dial police: {autoDialPolice ? "enabled" : "disabled"}</p>
-          <div className="mt-2 space-y-1">{trip.events?.map((event, i) => <p key={`${event}-${i}`} className="text-xs text-stone-700">• {event}</p>)}</div>
+          <div className="mt-2 space-y-1">
+            {trip.events?.map((event, i) => (
+              <p key={`${event}-${i}`} className="text-xs text-stone-700">• {event}</p>
+            ))}
+          </div>
         </div>
       ) : null}
     </div>
