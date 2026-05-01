@@ -1,46 +1,50 @@
 import { useEffect, useState } from "react";
 import {
-  SignedIn,
-  SignedOut,
+  Show,
   SignInButton,
   SignUpButton,
   UserButton,
-} from "@clerk/clerk-react";
-import { clerkPublishableKey, supabase, supabaseEnabled } from "../lib/authClients";
+  useUser,
+} from "@clerk/react";
+import { supabase, supabaseEnabled } from "../lib/authClients";
 
 function ClerkAuthCard() {
-  const clerkEnabled = Boolean(clerkPublishableKey);
-  if (!clerkEnabled) {
-    return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-        <p className="text-xs font-semibold text-amber-800">Clerk not configured</p>
-        <p className="text-[11px] text-amber-700 mt-1">
-          Add `VITE_CLERK_PUBLISHABLE_KEY` in `.env` to enable Clerk login/signup.
-        </p>
-      </div>
-    );
-  }
+  const { isLoaded, isSignedIn, user } = useUser();
+
   return (
     <div className="rounded-xl border border-violet-200 bg-violet-50/40 p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-violet-900">Clerk Authentication</p>
-        <SignedIn>
-          <UserButton afterSignOutUrl="/" />
-        </SignedIn>
+        <Show when="signed-in">
+          <UserButton />
+        </Show>
       </div>
-      <SignedOut>
-        <div className="flex flex-wrap gap-2">
-          <SignInButton mode="modal">
-            <button className="rounded-lg bg-violet-900 px-3 py-2 text-xs font-semibold text-white">Sign in</button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <button className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-800">Create account</button>
-          </SignUpButton>
-        </div>
-      </SignedOut>
-      <SignedIn>
-        <p className="text-xs text-emerald-700 font-semibold">Signed in with Clerk.</p>
-      </SignedIn>
+
+      {!isLoaded ? (
+        <p className="text-xs text-stone-400">Loading...</p>
+      ) : (
+        <>
+          <Show when="signed-out">
+            <div className="flex flex-wrap gap-2">
+              <SignInButton mode="modal">
+                <button className="rounded-lg bg-violet-900 px-3 py-2 text-xs font-semibold text-white">
+                  Sign in with Clerk
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button className="rounded-lg border border-violet-300 bg-white px-3 py-2 text-xs font-semibold text-violet-800">
+                  Create account
+                </button>
+              </SignUpButton>
+            </div>
+          </Show>
+          <Show when="signed-in">
+            <p className="text-xs text-emerald-700 font-semibold">
+              ✓ Signed in as {user?.primaryEmailAddress?.emailAddress || user?.fullName || "user"}
+            </p>
+          </Show>
+        </>
+      )}
     </div>
   );
 }
@@ -127,7 +131,9 @@ function SupabaseAuthCard() {
           Sign out
         </button>
       </div>
-      {userEmail ? <p className="text-[11px] text-emerald-700">Active user: {userEmail}</p> : <p className="text-[11px] text-stone-500">No active Supabase session.</p>}
+      {userEmail
+        ? <p className="text-[11px] text-emerald-700">✓ Active user: {userEmail}</p>
+        : <p className="text-[11px] text-stone-500">No active Supabase session.</p>}
       {status ? <p className="text-[11px] text-violet-700">{status}</p> : null}
     </div>
   );
@@ -141,4 +147,3 @@ export default function AuthHub() {
     </div>
   );
 }
-
