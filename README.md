@@ -58,6 +58,14 @@ If you deploy with **GitHub Actions** or another host, add the same keys as **en
 | `npm run dev:full` | API + Vite (recommended)         |
 | `npm run build` | Production frontend bundle        |
 
+## Cursor: Google Stitch MCP + Gemini keys
+
+Google Cloud **Agent Platform** lists many MCP servers (BigQuery, Vertex, **Stitch**, etc.). In Cursor, **do not** point Stitch at a raw `https://stitch.googleapis.com/...` URL (Cursor often errors on that). Use the official **stdio proxy** instead — already added as **`stitch`** in **`.cursor/mcp.json`** (`npx @_davideast/stitch-mcp proxy`).
+
+1. Copy **`.env.example` → `.env`** and set **`STITCH_API_KEY`** and/or **`GOOGLE_CLOUD_PROJECT`**, or run **`npx @_davideast/stitch-mcp init`** once for OAuth + project setup.
+2. For **Gemini / API key** experiments (outside MCP), set **`GEMINI_API_KEY`** or **`GOOGLE_API_KEY`** in `.env` (see Google AI Studio).
+3. Restart Cursor so MCP reloads; the Stitch entry uses **`envFile`: `${workspaceFolder}/.env`** so those variables load into the proxy process.
+
 ## Lint & CI
 
 `npm run lint` should pass (warnings only for a few intentional `useEffect` dependency choices). The Express server is linted with **Node** globals; `.agents/` is excluded.
