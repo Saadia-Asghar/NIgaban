@@ -4,6 +4,7 @@ import { supabase, supabaseEnabled } from "./lib/authClients";
 import { api, configureApiAuth } from "./lib/api.js";
 import AuthHub from "./components/AuthHub.jsx";
 import {
+  Activity,
   AlertCircle,
   AlertTriangle,
   Building2,
