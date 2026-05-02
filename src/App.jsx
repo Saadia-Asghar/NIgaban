@@ -229,9 +229,9 @@ function HomeScreen({
           </div>
           
           <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tight animate-in slide-up duration-500">
-            {lang === "ur" ? "آپ کا ڈیجیٹل محافظ" : "Empowering Your"} <br/> 
+            {lang === "ur" ? "آپ کا ڈیجیٹل محافظ" : "Your Digital Guardian."} <br/> 
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-indigo-500">
-              Personal Safety.
+              Total Protection.
             </span>
           </h1>
           
@@ -323,6 +323,14 @@ function HomeScreen({
         </div>
       </div>
 
+      {/* What We Do Section */}
+      <div className="px-6 mt-24 max-w-6xl mx-auto w-full text-center space-y-8 animate-in slide-up">
+        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">What We Do</h2>
+        <p className="text-slate-400 text-lg max-w-3xl mx-auto leading-relaxed">
+          Nigehbaan is designed to provide comprehensive, AI-driven personal safety. We empower users with proactive monitoring, real-time threat detection, and instant emergency response. From scanning digital communications for abuse to ensuring safe physical transit, our platform acts as your ultimate guardian.
+        </p>
+      </div>
+
       {/* Feature Grid - Cards Section */}
       <div className="px-6 mt-24 max-w-6xl mx-auto w-full space-y-12">
         <div className="text-center space-y-4">
@@ -359,43 +367,27 @@ function HomeScreen({
         </div>
       </div>
 
-      {/* How it Works Section - Visual Steps */}
-      <div className="px-6 mt-32 max-w-6xl mx-auto w-full">
-        <div className="rounded-[60px] bg-gradient-to-br from-violet-900/40 via-purple-900/20 to-transparent p-12 border border-white/10 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-pink-500/10 blur-[100px] rounded-full pointer-events-none" />
-          
-          <div className="flex flex-col lg:flex-row gap-16 items-center relative z-10">
-            <div className="flex-1 space-y-6 text-center lg:text-left">
-              <h2 className="text-5xl font-black text-white leading-[1.1]">Security <br/> Reimagined.</h2>
-              <p className="text-slate-300 text-lg leading-relaxed">
-                We've spent months perfecting the safest way for women to navigate the digital and physical world. Here's how Nigehbaan works for you.
-              </p>
-              <div className="pt-4">
-                <button onClick={() => setInfoPanel("guide")} className="px-8 py-4 rounded-2xl bg-white text-[#141523] font-black hover:bg-slate-200 transition-all active:scale-95 shadow-xl shadow-white/10">
-                  Read Full Safety Guide
-                </button>
+      {/* How to Use Section - Cards */}
+      <div className="px-6 mt-32 max-w-6xl mx-auto w-full space-y-12">
+        <div className="text-center space-y-4">
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">How To Use</h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">Three simple steps to activate your personal guardian and stay protected everywhere.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { step: "01", title: "Setup Your Circle", desc: "Define your trusted contacts and a secure 4-digit SOS PIN.", icon: Heart, bg: "bg-rose-500/10", border: "border-rose-500/20", color: "text-rose-400" },
+            { step: "02", title: "Activate Monitoring", desc: "Toggle Distress Listener or Safe Transit when heading out.", icon: Smartphone, bg: "bg-blue-500/10", border: "border-blue-500/20", color: "text-blue-400" },
+            { step: "03", title: "Instant Response", desc: "If a threat is detected, we alert your contacts and police in <3 seconds.", icon: AlertCircle, bg: "bg-emerald-500/10", border: "border-emerald-500/20", color: "text-emerald-400" },
+          ].map((s) => (
+            <div key={s.step} className={`group relative overflow-hidden rounded-[40px] p-8 glass hover:-translate-y-2 transition-all duration-500 border ${s.border}`}>
+              <div className={`w-16 h-16 rounded-2xl ${s.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                <s.icon className={`w-8 h-8 ${s.color}`} />
               </div>
+              <h4 className="text-2xl font-black text-white mb-2">{s.title}</h4>
+              <p className="text-slate-400 leading-relaxed mb-6">{s.desc}</p>
+              <div className="text-7xl font-black text-white/5 group-hover:text-white/10 transition-colors absolute -bottom-4 -right-2 pointer-events-none">{s.step}</div>
             </div>
-            
-            <div className="flex-1 grid grid-cols-1 gap-6 w-full">
-              {[
-                { step: "01", title: "Setup Your Circle", desc: "Define your trusted contacts and a secure 4-digit SOS PIN.", icon: Heart, color: "text-rose-400" },
-                { step: "02", title: "Activate Monitoring", desc: "Toggle Distress Listener or Safe Transit when heading out.", icon: Smartphone, color: "text-blue-400" },
-                { step: "03", title: "Instant Response", desc: "If threat detected, we alert contacts and police in <3 seconds.", icon: AlertCircle, color: "text-emerald-400" },
-              ].map((s) => (
-                <div key={s.step} className="group flex items-center gap-6 p-6 rounded-[32px] glass-dark hover:bg-white/5 transition-all border-white/5 hover:border-white/10">
-                  <div className="text-4xl font-black text-white/5 group-hover:text-white/10 transition-colors">{s.step}</div>
-                  <div className="flex-1">
-                    <h4 className="text-lg font-bold text-white mb-1">{s.title}</h4>
-                    <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">{s.desc}</p>
-                  </div>
-                  <div className={`p-3 rounded-2xl bg-white/5 group-hover:bg-white/10 transition-all ${s.color}`}>
-                    <s.icon className="w-6 h-6" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
