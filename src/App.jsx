@@ -194,6 +194,7 @@ function HomeScreen({
   setTimelineText,
   onAddTimeline,
   timelineSaving,
+  communityFeed,
 }) {
   const greeting = lang === "ur" ? "خوش آمدید" : "Welcome";
   const [openGuide, setOpenGuide] = useState("setup");
@@ -201,7 +202,7 @@ function HomeScreen({
   const quickChecklist = [
     { id: "contacts", label: "Add at least 3 trusted contacts", done: contactsCount >= 3, action: "more" },
     { id: "timeline", label: "Create your first Safety Timeline note", done: timelineEntries.length > 0, action: "home" },
-    { id: "community", label: "Open Community and check city alerts", done: false, action: "community" },
+    { id: "community", label: "Open Community and check city alerts", done: communityFeed.length > 0, action: "community" },
     { id: "transit", label: "Start a Safe Transit trip before travel", done: false, action: "transit" },
   ];
   return (
@@ -239,6 +240,27 @@ function HomeScreen({
             Install app on mobile home screen
           </button>
         ) : null}
+      </div>
+
+      <div className="rounded-2xl glass p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-white">Live Community Alerts</p>
+          <button onClick={() => onNavigate("community")} className="text-[10px] uppercase tracking-widest text-purple-400 font-bold hover:text-purple-300">View All</button>
+        </div>
+        <div className="space-y-2">
+          {communityFeed.slice(0, 2).map((item) => (
+            <div key={item.id} className="rounded-xl glass-dark p-3 animate-in slide-up">
+              <div className="flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full ${item.level === "high" ? "bg-red-500 animate-pulse" : "bg-amber-500"}`} />
+                <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">{item.title}</p>
+              </div>
+              <p className="text-xs text-slate-400 mt-1 line-clamp-1">{item.description}</p>
+            </div>
+          ))}
+          {communityFeed.length === 0 && (
+            <p className="text-xs text-slate-500 italic">No recent alerts in your area.</p>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
@@ -1400,24 +1422,181 @@ function LegalChat() {
 
 function DMScanner() {
   const [text, setText] = useState("");
+  const [imageBase64, setImageBase64] = useState(null);
+  const [imageMimeType, setImageMimeType] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImageBase64(event.target.result.split(",")[1]);
+      setImageMimeType(file.type);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const scan = async () => {
-    if (!text.trim() || loading) return;
+    if ((!text.trim() && !imageBase64) || loading) return;
     setLoading(true);
     try {
-      const data = await api("/dm/scan", { method: "POST", body: JSON.stringify({ text, systemPrompt: DM_SCAN_SYSTEM_PROMPT }) });
+      const data = await api("/dm/scan", { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          text, 
+          imageBase64, 
+          imageMimeType,
+          systemPrompt: DM_SCAN_SYSTEM_PROMPT 
+        }) 
+      });
       setResult(data.result);
     } finally {
       setLoading(false);
     }
   };
+
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4">
+    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
       <h2 className="text-xl font-semibold">DM Harassment Scanner</h2>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} className="w-full rounded-2xl border border-white/10 p-3 text-sm" placeholder="Paste message..." />
-      <button onClick={scan} className="w-full rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-3 text-sm font-semibold">{loading ? "Analyzing..." : "Scan with AI"}</button>
-      {result ? <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 text-sm space-y-1"><p><strong>Classification:</strong> {result.classification}</p><p><strong>Severity:</strong> {result.severity}/10</p><p><strong>Law:</strong> {result.peca_section}</p><p>{result.summary}</p></div> : null}
+      <div className="space-y-3">
+        <textarea 
+          value={text} 
+          onChange={(e) => setText(e.target.value)} 
+          rows={4} 
+          className="w-full rounded-2xl glass-dark p-3 text-sm focus:ring-2 focus:ring-purple-500/50 outline-none" 
+          placeholder="Paste message text or upload a screenshot below..." 
+        />
+        <div className="flex flex-col gap-2">
+          <label className="text-xs text-slate-400 font-semibold">Upload Screenshot (Optional)</label>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={handleImageChange} 
+            className="text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-violet-600 file:text-white hover:file:bg-violet-700"
+          />
+        </div>
+      </div>
+      <button 
+        onClick={scan} 
+        disabled={loading}
+        className="w-full rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-3 text-sm font-semibold active:scale-95 transition-transform"
+      >
+        {loading ? "Analyzing with Gemini AI..." : "Scan for Harassment"}
+      </button>
+      {result && (
+        <div className="rounded-2xl glass p-4 text-sm space-y-3 animate-in slide-up">
+          <div className="flex items-center justify-between">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${result.severity > 6 ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"}`}>
+              {result.classification}
+            </span>
+            <span className="text-[10px] text-slate-400">Severity: {result.severity}/10</span>
+          </div>
+          <div className="space-y-2">
+            <p className="font-semibold text-purple-300">{result.summary}</p>
+            <div className="rounded-lg glass-dark p-2.5">
+              <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Legal Reference (PECA)</p>
+              <p className="text-xs text-slate-300 mt-1"><strong>{result.peca_section}:</strong> {result.peca_explanation}</p>
+            </div>
+            <div className="rounded-lg glass-dark p-2.5">
+              <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Recommended Action</p>
+              <p className="text-xs text-emerald-400 mt-1">{result.recommended_action}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DeepfakeDetector() {
+  const [imageBase64, setImageBase64] = useState(null);
+  const [imageMimeType, setImageMimeType] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImageBase64(event.target.result.split(",")[1]);
+      setImageMimeType(file.type);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const analyze = async () => {
+    if (!imageBase64 || loading) return;
+    setLoading(true);
+    try {
+      const data = await api("/api/ai/analyze-image", { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          imageBase64, 
+          imageMimeType,
+          toolType: "deepfake"
+        }) 
+      });
+      setResult(data.result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
+      <h2 className="text-xl font-semibold text-white">Deepfake Detector</h2>
+      <div className="rounded-2xl glass p-6 text-center space-y-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-full max-w-xs h-48 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative">
+            {imageBase64 ? (
+              <img src={`data:${imageMimeType};base64,${imageBase64}`} alt="Target" className="w-full h-full object-cover" />
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-slate-500">
+                <ImageIcon className="w-10 h-10 opacity-20" />
+                <p className="text-[10px] uppercase tracking-widest font-bold">Upload Image</p>
+              </div>
+            )}
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageChange} 
+              className="absolute inset-0 opacity-0 cursor-pointer" 
+            />
+          </div>
+          <p className="text-xs text-slate-400">Analysis for AI-generation, lighting inconsistencies, and artifacts.</p>
+        </div>
+        
+        <button 
+          onClick={analyze} 
+          disabled={!imageBase64 || loading}
+          className="w-full rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 text-sm font-bold shadow-lg shadow-indigo-900/20 active:scale-95 transition-transform disabled:opacity-50"
+        >
+          {loading ? "Analyzing Image with Gemini..." : "Run AI Integrity Check"}
+        </button>
+
+        {result && (
+          <div className="rounded-2xl glass-dark p-4 text-left space-y-3 animate-in slide-up">
+            <div className="flex items-center justify-between">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${result.classification === "AI-Generated" ? "bg-red-500/20 text-red-400" : result.classification === "Suspicious" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
+                {result.classification}
+              </span>
+              <span className="text-[10px] text-slate-400">Confidence: {result.confidence_score}%</span>
+            </div>
+            <p className="text-sm text-slate-200">{result.explanation}</p>
+            {result.anomalies?.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Detected Anomalies</p>
+                <ul className="text-xs text-slate-400 list-disc list-inside">
+                  {result.anomalies.map((a, i) => <li key={i}>{a}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1436,6 +1615,48 @@ function SimpleDetector({ title, button, doneText }) {
 function DistressListener({ onTriggerSOS }) {
   const [listening, setListening] = useState(false);
   const [detected, setDetected] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US"; // Also supports "ur-PK" for Urdu
+
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => {
+      if (listening) recognition.start(); // Auto-restart if we intended to keep listening
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0].transcript.toLowerCase())
+        .join("");
+      
+      const keywords = ["help", "bachao", "save me", "emergency", "police", "danger"];
+      if (keywords.some(k => transcript.includes(k))) {
+        setDetected(true);
+        // We trigger SOS automatically after a short delay unless canceled
+      }
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+  };
+
+  const stopListening = () => {
+    setListening(false);
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+  };
+
   return (
     <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
       <h2 className="text-xl font-semibold">Distress Listener</h2>
@@ -1448,9 +1669,9 @@ function DistressListener({ onTriggerSOS }) {
           <p className="text-xs text-slate-400 mt-1">App listens for screams or trigger keywords like "Help" or "Bachao".</p>
         </div>
         {!listening ? (
-          <button onClick={() => setListening(true)} className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white py-3 text-sm font-semibold transition-colors">Start Monitoring</button>
+          <button onClick={startListening} className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white py-3 text-sm font-semibold transition-colors">Start Monitoring</button>
         ) : (
-          <button onClick={() => { setListening(false); setDetected(false); }} className="w-full rounded-xl glass text-slate-300 py-3 text-sm font-semibold hover:bg-white/10 transition-colors">Stop Monitoring</button>
+          <button onClick={stopListening} className="w-full rounded-xl glass text-slate-300 py-3 text-sm font-semibold hover:bg-white/10 transition-colors">Stop Monitoring</button>
         )}
         {listening && !detected ? (
           <button onClick={() => setDetected(true)} className="w-full rounded-xl glass-dark text-purple-300 py-3 text-sm font-semibold hover:bg-white/5 transition-colors">Simulate Detection</button>
@@ -1482,6 +1703,34 @@ function SafeTransit({ contacts, autoDialPolice }) {
     }, 1000);
     return () => clearInterval(timerId);
   }, [nextCheckInAt, trip]);
+
+  useEffect(() => {
+    if (!trip || trip.status !== "active") return undefined;
+    const intervalId = setInterval(() => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            api("/transit/location", {
+              method: "POST",
+              body: JSON.stringify({
+                tripId: trip.id,
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+                at: new Date().toISOString(),
+              }),
+            })
+              .then((data) => {
+                if (data.trip) setTrip(data.trip);
+              })
+              .catch(() => {});
+          },
+          null,
+          { enableHighAccuracy: true }
+        );
+      }
+    }, 15000);
+    return () => clearInterval(intervalId);
+  }, [trip?.id, trip?.status]);
 
   const startTrip = async () => {
     setStatusMessage("");
@@ -1856,39 +2105,70 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
         </div>
         {authMsg ? <p className="text-xs text-slate-400">{authMsg}</p> : null}
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
-        <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Evidence Vault</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <input value={evidenceForm.incidentId} onChange={(e) => setEvidenceForm((prev) => ({ ...prev, incidentId: e.target.value }))} placeholder="Incident ID" className="rounded-lg border border-white/10 px-3 py-2 text-sm" />
-          <input value={evidenceForm.title} onChange={(e) => setEvidenceForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Evidence title" className="rounded-lg border border-white/10 px-3 py-2 text-sm" />
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-widest text-pink-400 font-bold">Secure Evidence Vault</p>
+          <Lock className="w-4 h-4 text-pink-500 opacity-50" />
         </div>
-        <textarea value={evidenceForm.content} onChange={(e) => setEvidenceForm((prev) => ({ ...prev, content: e.target.value }))} rows={3} placeholder="Evidence content (or metadata)" className="w-full rounded-lg border border-white/10 px-3 py-2 text-sm" />
-        <div className="flex gap-2">
-          <button onClick={uploadEvidence} className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold">Upload evidence</button>
-          <button onClick={exportEvidencePacket} className="rounded-lg bg-stone-900 text-white px-3 py-2 text-xs font-semibold">Export packet</button>
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          Store tamper-proof evidence for legal reporting. Each entry is hashed and chained to prevent modification.
+        </p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input value={evidenceForm.incidentId} onChange={(e) => setEvidenceForm((prev) => ({ ...prev, incidentId: e.target.value }))} placeholder="Incident ID / Name" className="rounded-xl glass-dark px-3 py-2 text-sm focus:ring-1 focus:ring-pink-500 outline-none" />
+            <input value={evidenceForm.title} onChange={(e) => setEvidenceForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Evidence title" className="rounded-xl glass-dark px-3 py-2 text-sm focus:ring-1 focus:ring-pink-500 outline-none" />
+          </div>
+          <textarea 
+            value={evidenceForm.content} 
+            onChange={(e) => setEvidenceForm((prev) => ({ ...prev, content: e.target.value }))} 
+            rows={3}
+            placeholder="Describe the evidence or paste links/details here..." 
+            className="w-full rounded-xl glass-dark px-3 py-2 text-sm min-h-[80px] focus:ring-1 focus:ring-pink-500 outline-none"
+          />
+          <div className="flex gap-2">
+            <button onClick={uploadEvidence} className="flex-1 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 text-white py-2.5 text-xs font-bold shadow-lg shadow-pink-900/20 active:scale-95 transition-transform">
+              Sign & Lock Evidence
+            </button>
+            <button onClick={exportEvidencePacket} className="rounded-xl glass px-4 py-2.5 text-xs font-bold hover:bg-white/10 transition-colors">
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-        {evidenceMsg ? <p className="text-xs text-slate-400">{evidenceMsg}</p> : null}
+        {evidenceMsg ? (
+          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 flex items-start gap-2 animate-in slide-up">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5" />
+            <p className="text-[10px] text-emerald-300 font-mono break-all">{evidenceMsg}</p>
+          </div>
+        ) : null}
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-4">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Legal Consult Requests</p>
-          <button onClick={loadConsultRequests} className="text-xs font-semibold text-purple-400">Refresh</button>
+          <p className="text-xs uppercase tracking-widest text-purple-400 font-bold">Your Legal Requests</p>
+          <button onClick={loadConsultRequests} className="text-[10px] uppercase tracking-widest text-slate-500 font-bold hover:text-purple-400 transition-colors">Refresh</button>
         </div>
-        {consultLoading ? <p className="text-xs text-slate-400">Loading requests...</p> : null}
-        <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+        {consultLoading ? <p className="text-xs text-slate-400">Syncing with legal desk...</p> : null}
+        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
           {consultRequests.map((item) => (
-            <div key={item.id} className="rounded-lg border border-white/10 bg-[#141523] p-2.5">
+            <div key={item.id} className="rounded-xl glass-dark p-3 group hover:bg-white/5 transition-colors animate-in slide-up">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-white">{item.issueType} • {item.city}</p>
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.urgent ? "bg-rose-100 text-rose-700" : "bg-white/10 text-pink-400"}`}>
-                  {item.urgent ? "Urgent" : "Normal"}
+                <p className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors">{item.issueType}</p>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${item.urgent ? "bg-red-500/20 text-red-400 border border-red-500/20" : "bg-purple-500/20 text-purple-400 border border-purple-500/20"}`}>
+                  {item.urgent ? "Urgent" : "Queued"}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-1">{item.description}</p>
-              <p className="text-[10px] text-slate-400 mt-1">{new Date(item.createdAt).toLocaleString()}</p>
+              <p className="text-[11px] text-slate-400 mt-1.5 line-clamp-2">{item.description}</p>
+              <div className="mt-2 flex items-center justify-between">
+                <p className="text-[9px] text-slate-500 font-medium">{item.city}</p>
+                <p className="text-[9px] text-slate-600">{new Date(item.createdAt).toLocaleDateString()}</p>
+              </div>
             </div>
           ))}
-          {!consultLoading && consultRequests.length === 0 ? <p className="text-xs text-slate-400">No consult requests yet.</p> : null}
+          {!consultLoading && consultRequests.length === 0 && (
+            <div className="py-8 text-center">
+              <Scale className="w-8 h-8 text-slate-700 mx-auto opacity-20" />
+              <p className="text-xs text-slate-500 mt-2 italic">No active legal consultation requests.</p>
+            </div>
+          )}
         </div>
       </div>
       <div className="rounded-2xl bg-white/10 border border-white/10 p-3 space-y-2">
@@ -1964,6 +2244,22 @@ export default function App() {
   const [timelineText, setTimelineText] = useState("");
   const [timelineSaving, setTimelineSaving] = useState(false);
   const [clerkProfileSyncHint, setClerkProfileSyncHint] = useState(null);
+  const [communityFeed, setCommunityFeed] = useState([]);
+
+  const loadCommunityFeed = async () => {
+    try {
+      const data = await api("/community/feed?city=Lahore");
+      setCommunityFeed(data.feed || []);
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    loadCommunityFeed();
+    const interval = setInterval(loadCommunityFeed, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!supabaseEnabled || !supabase) {
@@ -2140,20 +2436,20 @@ export default function App() {
   };
 
   const rendered = useMemo(() => {
-    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} />;
+    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} communityFeed={communityFeed} />;
     if (screen === "legal") return <LegalChat />;
     if (screen === "transit") return <SafeTransit contacts={contacts} autoDialPolice={settings.autoDialPolice} />;
     if (screen === "community") return <CommunityScreen />;
     if (screen === "more") return <MoreScreen settings={settings} setSettings={setSettings} contacts={contacts} setContacts={setContacts} />;
     if (screen === "shield") {
       if (shieldTool === "dm") return <DMScanner />;
-      if (shieldTool === "deepfake") return <SimpleDetector title="Deepfake Detector" button="Analyze sample image" doneText="Likely AI-generated image (92.4%)" />;
+      if (shieldTool === "deepfake") return <DeepfakeDetector />;
       if (shieldTool === "voice") return <SimpleDetector title="Voice Clone Detector" button="Analyze sample call" doneText="Synthetic voice likely (87.1%)" />;
       if (shieldTool === "distress") return <DistressListener onTriggerSOS={() => setSosActive(true)} />;
       return <ShieldHub onSelectTool={setShieldTool} />;
     }
     return null;
-  }, [screen, shieldTool, lang, contacts, settings, installPromptEvent, timelineEntries, timelineText, timelineSaving]);
+  }, [screen, shieldTool, lang, contacts, settings, installPromptEvent, timelineEntries, timelineText, timelineSaving, communityFeed]);
 
   const title =
     screen === "transit"

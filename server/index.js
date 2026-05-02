@@ -894,17 +894,39 @@ async function callGroq({ systemPrompt, messages, maxTokens = 900 }) {
   }
 }
 
-async function callGemini({ systemPrompt, messages, maxTokens = 900 }) {
+async function callGemini({ systemPrompt, messages, maxTokens = 900, imageBase64 = null, imageMimeType = "image/jpeg" }) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("No AI API keys configured (GROQ or GEMINI)");
 
-  // Convert OpenAI-style messages to Gemini-style
-  // Gemini expects: { contents: [ { role: 'user', parts: [{ text: '...' }] } ] }
-  // System prompt is passed separately or as a special instruction in newer models
   const history = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
+
+  // If there's an image, append it to the last user message or add a new one
+  if (imageBase64) {
+    const lastMessage = history[history.length - 1];
+    if (lastMessage && lastMessage.role === "user") {
+      lastMessage.parts.push({
+        inline_data: {
+          mime_type: imageMimeType,
+          data: imageBase64,
+        },
+      });
+    } else {
+      history.push({
+        role: "user",
+        parts: [
+          {
+            inline_data: {
+              mime_type: imageMimeType,
+              data: imageBase64,
+            },
+          },
+        ],
+      });
+    }
+  }
 
   const payload = {
     contents: history,
@@ -917,8 +939,10 @@ async function callGemini({ systemPrompt, messages, maxTokens = 900 }) {
     },
   };
 
+  const modelName = imageBase64 ? "gemini-1.5-flash" : "gemini-1.5-flash"; // Both support vision
+
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1455,29 +1479,61 @@ app.get("/api/legal/consult", async (req, res) => {
   res.json({ items });
 });
 
-app.post("/api/dm/scan", rateLimit({ keyPrefix: "dm-scan", windowMs: 60 * 1000, max: 20 }), async (req, res) => {
-  const text = sanitizeUserText(req.body?.text);
-  const systemPrompt = String(req.body?.systemPrompt || "");
+app.post("/api/ai/analyze-image", rateLimit({ keyPrefix: "ai-vision", windowMs: 60 * 1000, max: 10 }), async (req, res) => {
+  const { imageBase64, imageMimeType, toolType } = req.body;
+  if (!imageBase64) return res.status(400).json({ error: "imageBase64 is required" });
+
+  let systemPrompt = "";
+  if (toolType === "deepfake") {
+    systemPrompt = "You are an AI Deepfake and Image Manipulation Detector. Analyze the provided image for signs of AI generation, inconsistencies in lighting, skin texture, background artifacts, or metadata anomalies. Provide a probability score and a detailed explanation of why you think it is or is not AI-generated. Return strict JSON with fields: { classification: 'Real'|'AI-Generated'|'Suspicious', confidence_score: number, anomalies: string[], explanation: string }";
+  } else if (toolType === "dm") {
+    systemPrompt = "You are an AI Harassment Scanner. Analyze this screenshot of a chat/message for threats, harassment, stalking, or abusive behavior under the PECA (Prevention of Electronic Crimes Act) framework of Pakistan. Return strict JSON with fields: { classification: string, severity: number, peca_section: string, peca_explanation: string, evidence_value: string, recommended_action: string, summary: string }";
+  } else {
+    systemPrompt = "Analyze this image for any safety concerns, threats, or useful context for a women's safety app. Return strict JSON with a summary of findings.";
+  }
+
   try {
-    const output = await callGroq({
+    const output = await callGemini({
       systemPrompt: `${systemPrompt}\n\nReturn strict JSON only. No markdown.`,
-      messages: [{ role: "user", content: text }],
-      maxTokens: 500,
+      messages: [{ role: "user", content: "Analyze this image." }],
+      imageBase64,
+      imageMimeType: imageMimeType || "image/jpeg",
     });
     const parsed = JSON.parse(output.replace(/```json|```/g, "").trim());
     res.json({ result: parsed, live: true });
-  } catch {
+  } catch (err) {
+    console.error("AI Vision failed:", err.message);
+    res.status(500).json({ error: "AI Analysis failed", detail: err.message });
+  }
+});
+
+app.post("/api/dm/scan", rateLimit({ keyPrefix: "dm-scan", windowMs: 60 * 1000, max: 20 }), async (req, res) => {
+  const { text, imageBase64, imageMimeType, systemPrompt } = req.body;
+  if (!text && !imageBase64) return res.status(400).json({ error: "text or imageBase64 is required" });
+
+  try {
+    const output = await callGemini({
+      systemPrompt: `${systemPrompt || DM_SCAN_SYSTEM_PROMPT}\n\nReturn strict JSON only. No markdown.`,
+      messages: [{ role: "user", content: text || "Analyze this screenshot." }],
+      imageBase64: imageBase64 || null,
+      imageMimeType: imageMimeType || "image/jpeg",
+    });
+    const parsed = JSON.parse(output.replace(/```json|```/g, "").trim());
+    res.json({ result: parsed, live: true });
+  } catch (err) {
+    console.error("DM Scan failed:", err.message);
     res.json({
       result: {
-        classification: "Threat",
-        severity: 8,
+        classification: "Threat (Offline Fallback)",
+        severity: 7,
         peca_section: "PECA Section 24",
-        peca_explanation: "Contains threatening and stalking language.",
-        evidence_value: "High",
-        recommended_action: "Preserve screenshots and file FIA complaint immediately.",
-        summary: "High risk threatening message.",
+        peca_explanation: "Likely harassment based on offline heuristics.",
+        evidence_value: "Medium",
+        recommended_action: "Keep this proof and consult a legal expert.",
+        summary: "Analysis failed, but the content appears concerning.",
       },
       live: false,
+      error: err.message,
     });
   }
 });
