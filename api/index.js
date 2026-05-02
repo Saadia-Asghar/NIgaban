@@ -8,6 +8,7 @@ import { createClerkClient, verifyToken } from "@clerk/backend";
 import { Pool } from "pg";
 
 const app = express();
+const DM_SCAN_SYSTEM_PROMPT = `Return only JSON with classification, severity, peca_section, peca_explanation, evidence_value, recommended_action, summary.`;
 const port = Number(process.env.PORT || 8787);
 const dataPath = path.resolve(process.cwd(), "api", "data.json");
 const supabaseDbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
@@ -1483,7 +1484,7 @@ app.post("/api/ai/analyze-image", rateLimit({ keyPrefix: "ai-vision", windowMs: 
   const { imageBase64, imageMimeType, toolType } = req.body;
   if (!imageBase64) return res.status(400).json({ error: "imageBase64 is required" });
 
-  let systemPrompt = "";
+  let systemPrompt;
   if (toolType === "deepfake") {
     systemPrompt = "You are an AI Deepfake and Image Manipulation Detector. Analyze the provided image for signs of AI generation, inconsistencies in lighting, skin texture, background artifacts, or metadata anomalies. Provide a probability score and a detailed explanation of why you think it is or is not AI-generated. Return strict JSON with fields: { classification: 'Real'|'AI-Generated'|'Suspicious', confidence_score: number, anomalies: string[], explanation: string }";
   } else if (toolType === "dm") {

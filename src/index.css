@@ -82,7 +82,45 @@
    backdrop-filter: blur(12px); 
    -webkit-backdrop-filter: blur(12px); 
    border: 1px solid rgba(255,255,255,0.08); 
- } 
+ }
+
+/* Refined surfaces for marketing / dashboard cards */
+.surface-card {
+  border-radius: 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.075) 0%,
+    rgba(255, 255, 255, 0.02) 42%,
+    rgba(12, 14, 28, 0.55) 100%
+  );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 24px 48px -12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.surface-card-interactive {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+
+.surface-card-interactive:hover {
+  border-color: rgba(167, 139, 250, 0.28);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 28px 56px -14px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(139, 92, 246, 0.12);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 100%);
+} 
  
  /* ===== SOS screen pulse ===== */ 
  @keyframes sos-ring { 

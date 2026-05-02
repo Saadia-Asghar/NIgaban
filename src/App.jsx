@@ -14,6 +14,7 @@ import {
   Download,
   Ear,
   EyeOff,
+  FileText,
   Heart,
   Home,
   Image as ImageIcon,
@@ -102,9 +103,9 @@ function BottomNav({ active, onNavigate }) {
 function WelcomeAuthScreen({ onBypass }) {
   const slides = [
     {
-      title: "Stay Safe, Stay in Control",
+      title: "Built for women’s safety",
       description:
-        "Nigehbaan helps you act quickly during harassment, unsafe commutes, or emergencies.",
+        "One place for SOS, trusted contacts, harassment screening, and safer travel—so you can move through your day with more control.",
       icon: Shield,
       color: "bg-rose-500/20 text-rose-200 border border-rose-500/20",
     },
@@ -136,38 +137,61 @@ function WelcomeAuthScreen({ onBypass }) {
   const Icon = slide.icon;
 
   return (
-    <div className="min-h-screen bg-[#141523] flex flex-col md:flex-row overflow-y-auto w-full animate-in fade-in">
+    <div className="min-h-screen bg-[#0a0b12] flex flex-col md:flex-row overflow-y-auto w-full animate-in fade-in">
       {/* Left / Top Side: About the App Slideshow */}
-      <div className="w-full md:w-1/2 min-h-[40vh] md:min-h-screen p-8 flex flex-col justify-center items-center relative overflow-hidden glass border-0 md:border-r md:border-white/5">
-        <div className="absolute top-8 left-8 flex items-center gap-2">
-          <Shield className="w-6 h-6 text-pink-500 logo-glow" />
-          <span className="font-bold text-white tracking-widest uppercase">Nigehbaan</span>
+      <div className="w-full md:w-1/2 min-h-[40vh] md:min-h-screen p-8 flex flex-col justify-center items-center relative overflow-hidden border-0 md:border-r border-white/[0.06]">
+        <div className="pointer-events-none absolute inset-0 hero-grid opacity-80" />
+        <div className="pointer-events-none absolute top-1/4 left-1/2 h-72 w-[120%] -translate-x-1/2 rounded-full bg-violet-600/15 blur-[100px]" />
+
+        <div className="absolute top-8 left-8 right-8 md:right-auto z-10 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 shadow-lg shadow-purple-900/20">
+              <Shield className="h-5 w-5 text-pink-400 logo-glow" />
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-purple-300/90">Safety app</p>
+              <p className="text-lg font-bold tracking-tight text-white">Nigehbaan</p>
+            </div>
+          </div>
+          <p className="text-sm leading-relaxed text-slate-400 max-w-xs">
+            <span className="text-violet-200/95 font-medium" dir="rtl">نگہبان</span>
+            <span className="text-slate-500"> · </span>
+            Urdu for “guardian.” SOS, legal guidance, AI screening, and safe transit in one calm interface.
+          </p>
         </div>
-        
-        <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in-95 duration-500" key={step}>
-          <div className={`w-16 h-16 rounded-2xl ${slide.color} flex items-center justify-center shadow-lg shadow-black/20`}>
-            <Icon className="w-8 h-8" />
-          </div>
-          <div>
-            <h3 className="text-3xl font-bold text-white mb-4">{slide.title}</h3>
-            <p className="text-lg text-slate-300 leading-relaxed">{slide.description}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {slides.map((_, i) => (
-              <button key={i} onClick={() => setStep(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-8 bg-gradient-to-r from-pink-500 to-purple-600" : "w-4 glass hover:bg-white/20"}`} />
-            ))}
+
+        <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in-95 duration-500 z-10 mt-24 md:mt-0" key={step}>
+          <div className="surface-card surface-card-interactive p-8 md:p-10">
+            <div className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl ${slide.color} shadow-inner`}>
+              <Icon className="h-7 w-7" />
+            </div>
+            <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-4">{slide.title}</h3>
+            <p className="text-base text-slate-300 leading-relaxed">{slide.description}</p>
+            <div className="mt-8 flex items-center gap-2">
+              {slides.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  aria-label={`Slide ${i + 1}`}
+                  onClick={() => setStep(i)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-8 bg-gradient-to-r from-pink-500 to-purple-600" : "w-4 bg-white/15 hover:bg-white/25"}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Right / Bottom Side: AuthHub */}
-      <div className="w-full md:w-1/2 p-6 md:p-12 flex flex-col justify-center items-center relative min-h-[60vh] md:min-h-screen">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center md:text-left space-y-2">
-            <h1 className="text-2xl md:text-3xl font-bold text-white">Welcome</h1>
-            <p className="text-slate-400 text-sm">Sign in or create an account to secure your peace of mind.</p>
+      <div className="w-full md:w-1/2 p-6 md:p-12 flex flex-col justify-center items-center relative min-h-[60vh] md:min-h-screen bg-gradient-to-b from-transparent via-[#141523]/80 to-[#141523]">
+        <div className="w-full max-w-md space-y-8 z-10">
+          <div className="text-center md:text-left space-y-3">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Sign in to Nigehbaan</h1>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Create an account to sync trusted contacts, safety notes, and alerts. Your data stays under your control.
+            </p>
           </div>
-          <div className="glass p-6 shadow-2xl rounded-3xl animate-in slide-up">
+          <div className="surface-card p-6 md:p-7 animate-in slide-up">
             <AuthHub />
             <div className="mt-4 pt-4 border-t border-white/5 flex flex-col items-center gap-2">
               <p className="text-[11px] text-slate-400">Having trouble signing in?</p>
@@ -190,7 +214,6 @@ function HomeScreen({
   onSOS,
   lang,
   contactsCount,
-  stealthMode,
   canInstall,
   onInstall,
   timelineEntries,
@@ -200,65 +223,69 @@ function HomeScreen({
   timelineSaving,
   communityFeed,
 }) {
-  const greeting = lang === "ur" ? "خوش آمدید" : "Welcome";
-  
   const quickChecklist = [
     { id: "contacts", label: "Add 3 trusted contacts", done: contactsCount >= 3, action: "more" },
-    { id: "timeline", label: "Create Safety Note", done: timelineEntries.length > 0, action: "home" },
-    { id: "community", label: "Check City Alerts", done: communityFeed.length > 0, action: "community" },
+    { id: "timeline", label: "Create a safety note", done: timelineEntries.length > 0, action: "home" },
+    { id: "community", label: "Check city alerts", done: communityFeed.length > 0, action: "community" },
   ];
 
-  const features = [
-    { id: "legal", title: "Legal Aid Desk", desc: "Expert guidance on FIRs & PECA laws.", icon: Scale, color: "text-blue-400", graphic: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=200&h=200" },
-    { id: "shield", title: "AI Threat Shield", desc: "Scan screenshots & audio for threats.", icon: Shield, color: "text-purple-400", graphic: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=200&h=200" },
-    { id: "transit", title: "Safe Transit", desc: "Live trip tracking & auto-alerts.", icon: MapPin, color: "text-emerald-400", graphic: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=200&h=200" },
-    { id: "community", title: "Guardian Feed", desc: "Real-time safety reports near you.", icon: Activity, color: "text-pink-400", graphic: "https://images.unsplash.com/photo-1582213726892-2e250c48574b?auto=format&fit=crop&q=80&w=200&h=200" },
+  const tagline =
+    lang === "ur"
+      ? "نگہبان — خواتین کے لیے SOS، قانونی مدد، AI حفاظت، اور محفوظ سفر ایک ایپ میں۔"
+      : "Nigehbaan (نگہبان — “guardian”) is a women’s safety app: SOS, legal help, Gemini-powered screening, trusted contacts, and safer travel—designed to stay clear when stress is high.";
+
+  const capabilityPillars = [
+    { title: "Emergency SOS", detail: "One tap, trusted contacts, optional police dial." },
+    { title: "Gemini legal & scan", detail: "Chat for rights guidance; DM and media checks." },
+    { title: "Safe transit", detail: "Check-ins and journey notes you control." },
+    { title: "City pulse", detail: "Community reports so you can avoid hot spots." },
   ];
 
   return (
     <div className="pb-24 animate-in fade-in overflow-x-hidden">
       {/* Hero Section */}
-      <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#1a1b2e] via-[#2b1b54] to-[#141523] px-6 pt-12 pb-20 text-center">
-        {/* Animated Background Elements */}
+      <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0a0b12] via-[#1a1530] to-[#141523] px-6 pt-12 pb-20 text-center">
+        <div className="pointer-events-none absolute inset-0 hero-grid opacity-70" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none animate-pulse" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500/5 blur-[100px] rounded-full pointer-events-none" />
         
         <div className="relative z-10 space-y-8 max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border-white/5 text-xs font-bold uppercase tracking-[0.2em] text-purple-300 animate-in slide-up">
-            <Shield className="w-4 h-4" /> Trusted by 10k+ Women Across Pakistan
+          <div className="space-y-3 animate-in slide-up">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-[10px] font-semibold uppercase tracking-[0.2em] text-purple-300/90">
+              <Shield className="w-3.5 h-3.5 shrink-0" /> Nigehbaan · women’s safety
+            </div>
+            <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">{tagline}</p>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tight animate-in slide-up duration-500">
-            {lang === "ur" ? "آپ کا ڈیجیٹل محافظ" : "Your Digital Guardian."} <br/> 
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-indigo-500">
-              Total Protection.
-            </span>
+          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black text-white leading-[0.95] tracking-tight animate-in slide-up duration-500">
+            Secure. <br/>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400">Transparent.</span> <br/>
+            Unstoppable.
           </h1>
           
-          <p className="text-slate-300 text-xl leading-relaxed max-w-2xl mx-auto animate-in slide-up duration-700">
-            Nigehbaan is Pakistan's first AI-powered safety companion. We combine real-time monitoring, legal intelligence, and community vigilance to ensure you're never alone.
+          <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-2xl mx-auto animate-in slide-up duration-700">
+            Practical tools—not hype—so you can document, decide, and reach help on your terms.
           </p>
           
           <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4 animate-in slide-up duration-1000">
-            <button onClick={onSOS} className="group w-full sm:w-auto px-10 py-5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-black text-lg shadow-2xl shadow-red-900/40 active:scale-95 transition-all flex items-center justify-center gap-3">
-              <AlertTriangle className="w-6 h-6 group-hover:animate-bounce" /> Emergency SOS
+            <button type="button" onClick={onSOS} className="group w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold text-base shadow-[0_0_40px_rgba(225,29,72,0.25)] hover:shadow-[0_0_48px_rgba(225,29,72,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+              <AlertTriangle className="w-5 h-5 shrink-0" /> Emergency SOS
             </button>
-            <button onClick={() => onNavigate("shield")} className="w-full sm:w-auto px-10 py-5 rounded-2xl glass text-white font-bold text-lg hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-2">
-              <EyeOff className="w-5 h-5" /> Explore AI Features
+            <button type="button" onClick={() => onNavigate("shield")} className="w-full sm:w-auto px-10 py-4 rounded-2xl surface-card text-white font-bold text-base active:scale-[0.98] transition-all">
+              AI Threat Shield
             </button>
+            {canInstall ? (
+              <button type="button" onClick={onInstall} className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/15 bg-white/5 text-sm font-semibold text-slate-200 hover:bg-white/10 active:scale-[0.98] transition-all">
+                Install app
+              </button>
+            ) : null}
           </div>
-
-          {/* Stats Bar */}
-          <div className="pt-12 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-up duration-1000 delay-300">
-            {[
-              { label: "Active Guardians", val: "12.4k" },
-              { label: "Alerts Resolved", val: "850+" },
-              { label: "Legal Consults", val: "2.1k" },
-              { label: "Response Time", val: "<3s" },
-            ].map(s => (
-              <div key={s.label} className="glass p-4 rounded-2xl">
-                <p className="text-2xl font-black text-white">{s.val}</p>
-                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">{s.label}</p>
+          
+          <div className="pt-10 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto animate-in slide-up duration-1000 delay-150 text-left">
+            {capabilityPillars.map((c) => (
+              <div key={c.title} className="surface-card surface-card-interactive px-5 py-4">
+                <p className="text-sm font-semibold text-white">{c.title}</p>
+                <p className="text-xs text-slate-400 mt-1 leading-snug">{c.detail}</p>
               </div>
             ))}
           </div>
@@ -267,7 +294,7 @@ function HomeScreen({
 
       {/* Safety Score & Live Feed Overlay */}
       <div className="px-6 -mt-16 relative z-20 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="rounded-[40px] glass p-8 shadow-2xl backdrop-blur-3xl border-white/10">
+        <div className="surface-card p-8 md:rounded-[2rem]">
           <div className="flex items-center justify-between mb-6">
             <div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Safety Readiness</p>
@@ -293,7 +320,7 @@ function HomeScreen({
           </div>
         </div>
 
-        <div className="rounded-[40px] glass p-8 shadow-2xl backdrop-blur-3xl border-white/10">
+        <div className="surface-card p-8 md:rounded-[2rem]">
           <div className="flex items-center justify-between mb-6">
             <div>
               <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Community Pulse</p>
@@ -325,61 +352,58 @@ function HomeScreen({
 
       {/* What We Do Section */}
       <div className="px-6 mt-24 max-w-6xl mx-auto w-full text-center space-y-8 animate-in slide-up">
-        <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">What We Do</h2>
-        <p className="text-slate-400 text-lg max-w-3xl mx-auto leading-relaxed">
-          Nigehbaan is designed to provide comprehensive, AI-driven personal safety. We empower users with proactive monitoring, real-time threat detection, and instant emergency response. From scanning digital communications for abuse to ensuring safe physical transit, our platform acts as your ultimate guardian.
+        <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">What Nigehbaan does</h2>
+        <p className="text-slate-400 text-base md:text-lg max-w-3xl mx-auto leading-relaxed">
+          The app keeps your safety workflow in one place: emergency SOS, trusted contacts, a private timeline for notes, legal-style guidance (not a substitute for a lawyer), AI-assisted scans of messages and media, safe transit check-ins, and a local alert feed—so you can respond with context instead of panic.
         </p>
       </div>
 
       {/* Feature Grid - Cards Section */}
       <div className="px-6 mt-24 max-w-6xl mx-auto w-full space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">One App. Total Protection.</h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">Integrated tools powered by Gemini AI and real-time data to keep you safe at home, work, or transit.</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">One app, one calm flow</h2>
+          <p className="text-slate-400 text-base max-w-2xl mx-auto leading-relaxed">
+            Core modules use Google Gemini where noted; everything else is plain, fast UI—so you always know what is AI and what is action.
+          </p>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((f) => {
-            const Icon = f.icon;
-            return (
-              <button 
-                key={f.id} 
-                onClick={() => onNavigate(f.id)}
-                className="group relative h-[320px] rounded-[40px] glass overflow-hidden text-left hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 border-white/5"
-              >
-                {/* Background Graphic */}
-                <div className="absolute inset-0 z-0">
-                  <img src={f.graphic} alt="" className="w-full h-full object-cover opacity-20 grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#141523] via-[#141523]/80 to-transparent" />
-                </div>
-                
-                {/* Content */}
-                <div className="relative z-10 h-full p-8 flex flex-col justify-end">
-                  <div className={`w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center mb-6 border border-white/10 group-hover:scale-110 group-hover:bg-white/20 transition-all`}>
-                    <Icon className={`w-7 h-7 ${f.color}`} />
-                  </div>
-                  <h3 className="text-xl font-black text-white mb-2">{f.title}</h3>
-                  <p className="text-sm text-slate-400 leading-relaxed group-hover:text-slate-200 transition-colors">{f.desc}</p>
-                </div>
-              </button>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { id: "shield", title: "AI Threat Shield", desc: "Scan messages or audio for red flags before you reply or meet.", icon: Shield, color: "text-purple-400" },
+            { id: "transit", title: "Safe Transit", desc: "Share trip context and check in with people you trust.", icon: MapPin, color: "text-emerald-400" },
+            { id: "legal", title: "Legal AI desk", desc: "Orient on rights and paperwork—then speak with a qualified lawyer for decisions.", icon: Scale, color: "text-blue-400" },
+          ].map((f) => (
+            <button 
+              key={f.id} 
+              type="button"
+              onClick={() => onNavigate(f.id)}
+              className="group surface-card surface-card-interactive p-8 md:p-10 text-center flex flex-col items-center space-y-5"
+            >
+              <div className="w-16 h-16 rounded-2xl border border-white/10 bg-white/[0.04] flex items-center justify-center group-hover:scale-[1.04] transition-transform">
+                <f.icon className={`w-8 h-8 ${f.color}`} />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">{f.title}</h3>
+                <p className="text-slate-400 leading-relaxed text-sm">{f.desc}</p>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
       {/* How to Use Section - Cards */}
       <div className="px-6 mt-32 max-w-6xl mx-auto w-full space-y-12">
         <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">How To Use</h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">Three simple steps to activate your personal guardian and stay protected everywhere.</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">How to use it</h2>
+          <p className="text-slate-400 text-base max-w-2xl mx-auto leading-relaxed">Three steps—set up once, then each outing takes seconds.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { step: "01", title: "Setup Your Circle", desc: "Define your trusted contacts and a secure 4-digit SOS PIN.", icon: Heart, bg: "bg-rose-500/10", border: "border-rose-500/20", color: "text-rose-400" },
-            { step: "02", title: "Activate Monitoring", desc: "Toggle Distress Listener or Safe Transit when heading out.", icon: Smartphone, bg: "bg-blue-500/10", border: "border-blue-500/20", color: "text-blue-400" },
-            { step: "03", title: "Instant Response", desc: "If a threat is detected, we alert your contacts and police in <3 seconds.", icon: AlertCircle, bg: "bg-emerald-500/10", border: "border-emerald-500/20", color: "text-emerald-400" },
+            { step: "01", title: "Set up your circle", desc: "Add trusted contacts and a 4-digit SOS cancel PIN in More.", icon: Heart, bg: "bg-rose-500/10", border: "border-rose-500/25", color: "text-rose-400" },
+            { step: "02", title: "Turn on what you need", desc: "Safe Transit when commuting; Distress Listener only when you want audio watch.", icon: Smartphone, bg: "bg-blue-500/10", border: "border-blue-500/25", color: "text-blue-400" },
+            { step: "03", title: "Act fast if it spikes", desc: "SOS notifies your circle; optional auto-dial is configurable.", icon: AlertCircle, bg: "bg-emerald-500/10", border: "border-emerald-500/25", color: "text-emerald-400" },
           ].map((s) => (
-            <div key={s.step} className={`group relative overflow-hidden rounded-[40px] p-8 glass hover:-translate-y-2 transition-all duration-500 border ${s.border}`}>
+            <div key={s.step} className={`group relative overflow-hidden surface-card surface-card-interactive p-8 border ${s.border}`}>
               <div className={`w-16 h-16 rounded-2xl ${s.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
                 <s.icon className={`w-8 h-8 ${s.color}`} />
               </div>
@@ -405,7 +429,7 @@ function HomeScreen({
             </div>
           </div>
           
-          <div className="lg:col-span-2 rounded-[40px] glass p-8 space-y-6 border-white/10 shadow-2xl">
+          <div className="lg:col-span-2 surface-card p-8 space-y-6 md:rounded-[2rem]">
             <div className="flex gap-3">
               <input
                 value={timelineText}
@@ -452,7 +476,7 @@ function HomeScreen({
 
       {/* Local Help & Emergency - Pakistan Specific */}
       <div className="px-6 mt-32 max-w-6xl mx-auto w-full pb-12">
-        <div className="rounded-[40px] glass p-10 border-white/10">
+        <div className="surface-card p-8 md:p-10 md:rounded-[2rem]">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-10">
             <div>
               <h3 className="text-3xl font-black text-white">Emergency Hotline</h3>
@@ -1651,16 +1675,7 @@ function VoiceDetector() {
   );
 }
 
-function SimpleDetector({ title, button, doneText }) {
-  const [done, setDone] = useState(false);
-  return (
-    <div className="px-4 pt-4 pb-24 space-y-3">
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 text-sm">{done ? doneText : "Ready for analysis"}</div>
-      {!done ? <button onClick={() => setDone(true)} className="w-full rounded-2xl bg-stone-900 text-white py-3 text-sm font-semibold">{button}</button> : null}
-    </div>
-  );
-}
+
 
 function DistressListener({ onTriggerSOS }) {
   const [listening, setListening] = useState(false);
@@ -2241,8 +2256,8 @@ function ShieldHub({ onSelectTool }) {
   return (
     <div className="px-4 pt-5 pb-24 space-y-3 animate-in fade-in">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white">AI Threat Shield</h2>
-        <p className="text-xs text-slate-400 mt-1">Advanced AI protection against modern threats.</p>
+        <h2 className="text-2xl font-bold text-white tracking-tight">AI Threat Shield</h2>
+        <p className="text-sm text-slate-400 mt-1 leading-snug">Gemini-backed checks where configured—use alongside your own judgment.</p>
       </div>
       <div className="grid grid-cols-1 gap-3">
         {tools.map((t) => {
@@ -2250,10 +2265,11 @@ function ShieldHub({ onSelectTool }) {
           return (
             <button
               key={t.id}
+              type="button"
               onClick={() => onSelectTool(t.id)}
-              className="w-full rounded-2xl glass p-4 text-left flex items-center gap-4 hover:bg-white/10 transition-all duration-300 group"
+              className="w-full surface-card surface-card-interactive p-4 text-left flex items-center gap-4 group rounded-2xl"
             >
-              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-xl border border-white/10 bg-white/[0.04] flex items-center justify-center group-hover:scale-105 transition-transform">
                 <Icon className="w-6 h-6 text-purple-400" />
               </div>
               <div className="flex-1">
@@ -2265,6 +2281,95 @@ function ShieldHub({ onSelectTool }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function FloatingChatbot() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([{ role: "assistant", content: "Hi! I'm Nigehbaan AI. How can I help you stay safe today?" }]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, isOpen]);
+
+  const send = async (e) => {
+    e?.preventDefault();
+    if (!input.trim() || loading) return;
+    const userText = input.trim();
+    const next = [...messages, { role: "user", content: userText }];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+    try {
+      const data = await api("/legal/chat", { method: "POST", body: JSON.stringify({ message: userText, history: next.slice(0, -1) }) });
+      setMessages([...next, { role: "assistant", content: data.reply }]);
+    } catch {
+      setMessages([...next, { role: "assistant", content: "Sorry, I'm having trouble connecting. Please try again later." }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
+      {isOpen && (
+        <div className="mb-4 w-[350px] h-[500px] rounded-3xl glass shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/10 flex flex-col overflow-hidden animate-in slide-up zoom-in duration-300">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm leading-tight">Nigehbaan AI</p>
+                <p className="text-[10px] text-white/75 font-medium">Powered by Google Gemini</p>
+              </div>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white transition-colors">
+              <ChevronLeft className="w-5 h-5 rotate-180" />
+            </button>
+          </div>
+          
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#141523]/50">
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role === "user" ? "bg-indigo-600 text-white rounded-br-none" : "bg-white/10 text-slate-200 border border-white/10 rounded-bl-none"}`}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-white/10 border border-white/10 rounded-2xl rounded-bl-none px-4 py-2.5 text-slate-400 text-xs flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" /> Thinking...
+                </div>
+              </div>
+            )}
+          </div>
+
+          <form onSubmit={send} className="p-4 bg-white/5 border-t border-white/5 flex gap-2">
+            <input 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask anything..."
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            <button disabled={!input.trim() || loading} className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white active:scale-95 transition-transform disabled:opacity-50">
+              <Send className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+      )}
+      
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_10px_30px_rgba(99,102,241,0.4)] flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all duration-300"
+      >
+        {isOpen ? <ChevronLeft className="w-8 h-8 rotate-180" /> : <MessageSquare className="w-8 h-8" />}
+      </button>
     </div>
   );
 }
@@ -2534,7 +2639,12 @@ export default function App() {
       <div className="w-full max-w-5xl mx-auto min-h-screen lg:min-h-[92vh] lg:my-4 bg-[#141523] shadow-xl lg:rounded-3xl overflow-hidden flex flex-col relative z-0">
         {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} userProfile={userProfile} onSignOut={handleSignOut} isClerk={clerkSignedIn} stealthMode={settings.stealthMode} /> : null}
         <main className={`flex-1 ${screen === "legal" ? "flex flex-col" : "overflow-y-auto"}`}>{rendered}</main>
-        {!sosActive ? <BottomNav active={screen} onNavigate={handleNavigate} /> : null}
+        {!sosActive ? (
+          <>
+            <BottomNav active={screen} onNavigate={handleNavigate} />
+            <FloatingChatbot />
+          </>
+        ) : null}
         {sosActive ? <SOSScreen onClose={() => setSosActive(false)} contacts={contacts} autoDialPolice={settings.autoDialPolice} cancelPin={settings.cancelPin} /> : null}
       </div>
       {!backendOk ? (
