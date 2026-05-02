@@ -57,3 +57,9 @@ If you deploy with **GitHub Actions** or another host, add the same keys as **en
 | `npm run server` | Express API                        |
 | `npm run dev:full` | API + Vite (recommended)         |
 | `npm run build` | Production frontend bundle        |
+
+## Lint & CI
+
+`npm run lint` should pass (warnings only for a few intentional `useEffect` dependency choices). The Express server is linted with **Node** globals; `.agents/` is excluded.
+
+Local-only **`server/data.json`** (file fallback when Postgres is down) is **gitignored** — it is recreated at runtime when needed.

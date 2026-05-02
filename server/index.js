@@ -1336,7 +1336,7 @@ app.post("/api/legal/draft-fir", rateLimit({ keyPrefix: "legal-draft", windowMs:
     });
     
     res.json({ draft: draft.trim() });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to generate FIR draft. Please try again later." });
   }
 });

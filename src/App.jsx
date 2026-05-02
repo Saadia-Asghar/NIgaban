@@ -14,7 +14,6 @@ import {
   Download,
   Ear,
   EyeOff,
-  FileText,
   Heart,
   Home,
   Image as ImageIcon,
@@ -1465,6 +1464,7 @@ function DistressListener({ onTriggerSOS }) {
 }
 
 function SafeTransit({ contacts, autoDialPolice }) {
+  const hasContacts = (contacts?.length || 0) > 0;
   const [trip, setTrip] = useState(null);
   const [tripMode, setTripMode] = useState("online");
   const [statusMessage, setStatusMessage] = useState("");
@@ -1559,6 +1559,12 @@ function SafeTransit({ contacts, autoDialPolice }) {
         <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
           Nigehbaan tracks your route. If you deviate or miss a check-in, your contacts are alerted automatically.
         </p>
+        {!hasContacts ? (
+          <p className="text-[11px] text-amber-200/90 mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+            No trusted contacts yet — add them in Resources so trip alerts can reach someone you trust.
+          </p>
+        ) : null}
+        <p className="text-[10px] text-slate-500 mt-2">SOS police auto-dial is {autoDialPolice ? "on" : "off"} (Resources → settings).</p>
       </div>
       {!trip ? (
         <button onClick={startTrip} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-4 text-sm font-bold shadow-lg shadow-emerald-900/20 active:scale-95 transition-transform">Start Tracked Trip</button>
@@ -1643,11 +1649,15 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
 
   const stopSOS = async () => {
     if (phase === "countdown") return onClose();
+    if (pin !== cancelPin) {
+      setError("Incorrect PIN");
+      return;
+    }
     try {
       await api("/sos/stop", { method: "POST", body: JSON.stringify({ pin }) });
       onClose();
     } catch {
-      setError("Incorrect PIN");
+      setError("Could not verify PIN with server");
     }
   };
 
