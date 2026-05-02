@@ -1936,6 +1936,10 @@ app.post("/api/help/detect-city", async (req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Backend listening on http://localhost:${port}`);
-});
+export default app;
+
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`Backend listening on http://localhost:${port}`);
+  });
+}
