@@ -188,7 +188,7 @@ function BottomNav({ active, onNavigate, onSOS }) {
             <span className="text-[8px] font-black leading-none mt-0.5">SOS</span>
           </button>
         </div>
-        {tabBtn("community", Activity, "Alert")}
+        {tabBtn("community", Activity, "Community")}
         {tabBtn("more", UserCircle, "Profile")}
       </div>
     </nav>
@@ -634,6 +634,7 @@ function CommunityScreen() {
   const { success, error: toastError } = useToast();
   const [city, setCity] = useState("Lahore");
   const [activePanel, setActivePanel] = useState("feed");
+  const [showModPanel, setShowModPanel] = useState(false);
   const [items, setItems] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [ngos, setNgos] = useState([]);
@@ -911,72 +912,49 @@ function CommunityScreen() {
 
   return (
     <div className="px-4 pt-4 pb-24 space-y-4">
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Community Awareness</h2>
-            <p className="text-xs text-slate-400 mt-1">Current activities, alerts, and verified safety updates.</p>
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <select
             value={city}
             onChange={(e) => setCity(e.target.value)}
-            className="text-xs rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2 py-1 text-slate-300"
+            className="text-sm font-semibold rounded-xl border border-white/15 bg-white/5 backdrop-blur-md px-3 py-2 text-white focus:ring-2 focus:ring-purple-500/40 outline-none"
           >
             {["Lahore", "Karachi", "Islamabad", "Peshawar"].map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
+          <div className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${liveUpdates ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`} />
+            <p className="text-[11px] text-slate-400">{liveUpdates ? "Live" : "Paused"}</p>
+          </div>
         </div>
-      </div>
-
-      <button
-        onClick={() => loadFeed(city)}
-        className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-2.5 text-sm font-semibold"
-      >
-        Refresh activity feed
-      </button>
-      <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-3 py-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${liveUpdates ? "bg-emerald-500" : "bg-stone-400"}`} />
-          <p className="text-xs text-slate-300">
-            {liveUpdates ? "Real-time updates ON" : "Real-time updates OFF"}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
           {lastLiveSync ? (
-            <p className="text-[10px] text-slate-400">Last sync: {new Date(lastLiveSync).toLocaleTimeString()}</p>
+            <p className="text-[10px] text-slate-500">Synced {new Date(lastLiveSync).toLocaleTimeString()}</p>
           ) : null}
-          <button
-            onClick={() => setLiveUpdates((v) => !v)}
-            className="text-xs font-semibold text-purple-400"
-          >
+          <button onClick={() => loadFeed(city)} className="text-[11px] font-semibold text-purple-400 hover:text-purple-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">Refresh</button>
+          <button onClick={() => setLiveUpdates((v) => !v)} className="text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
             {liveUpdates ? "Pause" : "Resume"}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-2">
-        <button
-          type="button"
-          onClick={() => setActivePanel("feed")}
-          className={`rounded-xl py-2 text-[11px] font-semibold leading-tight ${activePanel === "feed" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
-        >
-          Feed
-        </button>
-        <button
-          type="button"
-          onClick={() => setActivePanel("map")}
-          className={`rounded-xl py-2 text-[11px] font-semibold leading-tight ${activePanel === "map" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
-        >
-          Map
-        </button>
-        <button
-          type="button"
-          onClick={() => setActivePanel("chat")}
-          className={`rounded-xl py-2 text-[11px] font-semibold leading-tight ${activePanel === "chat" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
-        >
-          Chat
-        </button>
+      <div className="grid grid-cols-4 gap-1.5 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-2">
+        {[
+          { id: "feed", label: "Feed" },
+          { id: "map", label: "Map" },
+          { id: "chat", label: "Chat" },
+          { id: "ngos", label: "NGOs" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActivePanel(tab.id)}
+            className={`rounded-xl py-2 text-[11px] font-semibold leading-tight transition-all ${activePanel === tab.id ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200"}`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activePanel === "map" ? (
@@ -1004,24 +982,40 @@ function CommunityScreen() {
         </div>
       ) : null}
 
-      <div className="rounded-2xl glass p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-white">Nearby NGOs ({city})</p>
-          <button onClick={() => loadNgos(city)} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh NGOs</button>
-        </div>
-        {ngoLoading ? <p className="text-xs text-slate-400">Loading nearby NGOs...</p> : null}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {ngos.map((ngo) => (
-            <div key={`${ngo.name}-${ngo.phone}`} className="rounded-xl glass p-3 hover:bg-white/10 transition-colors group">
-              <p className="text-sm font-semibold text-white group-hover:text-purple-200 transition-colors">{ngo.name}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{ngo.focus}</p>
-              <p className="text-[11px] text-slate-400 mt-1">{ngo.address}</p>
-              <a href={`tel:${ngo.phone}`} className="text-xs font-semibold text-purple-400 mt-1 inline-block hover:text-purple-300 transition-colors">{ngo.phone}</a>
+      {activePanel === "ngos" ? (
+        <div className="rounded-2xl glass p-4 space-y-3 animate-in fade-in">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-white">Support organisations — {city}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Women's rights NGOs, legal aid, and shelters near you.</p>
             </div>
-          ))}
+            <button onClick={() => loadNgos(city)} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0">Refresh</button>
+          </div>
+          {ngoLoading ? (
+            <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading organisations…
+            </div>
+          ) : null}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {ngos.map((ngo) => (
+              <div key={`${ngo.name}-${ngo.phone}`} className="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/8 hover:border-purple-500/20 transition-all group">
+                <p className="text-sm font-semibold text-white group-hover:text-purple-200 transition-colors">{ngo.name}</p>
+                <p className="text-[11px] text-purple-400 mt-0.5 font-medium">{ngo.focus}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{ngo.address}</p>
+                <a href={`tel:${ngo.phone}`} className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/30 rounded-full px-3 py-1 transition-colors">
+                  <Phone className="w-3 h-3" />{ngo.phone}
+                </a>
+              </div>
+            ))}
+          </div>
+          {!ngoLoading && ngos.length === 0 ? (
+            <div className="text-center py-8 space-y-2">
+              <Building2 className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="text-sm text-slate-500">No organisations found for {city}. Try another city.</p>
+            </div>
+          ) : null}
         </div>
-        {!ngoLoading && ngos.length === 0 ? <p className="text-xs text-slate-400">No NGOs found for this city.</p> : null}
-      </div>
+      ) : null}
 
       {activePanel === "chat" ? (
         <div className="space-y-3 animate-in fade-in">
@@ -1281,10 +1275,18 @@ function CommunityScreen() {
         ) : null}
       </div> : null}
 
-      <div className="rounded-2xl glass p-4 space-y-3 border border-amber-500/20">
-        <p className="text-xs font-semibold text-amber-200">Moderator access (hackathon)</p>
+      <div className="rounded-2xl border border-white/10 bg-white/5">
+        <button
+          type="button"
+          onClick={() => setShowModPanel(v => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          <span>Moderator panel</span>
+          <ChevronRight className={`w-4 h-4 transition-transform ${showModPanel ? "rotate-90" : ""}`} />
+        </button>
+        {showModPanel ? <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
         <p className="text-[10px] text-slate-400 leading-relaxed">
-          Paste the server <span className="text-slate-300">MODERATOR_BOOTSTRAP_KEY</span> so review calls authenticate. Key is stored only in this browser (localStorage).
+          Paste your <span className="text-slate-300">MODERATOR_BOOTSTRAP_KEY</span> to authenticate moderation actions. Stored in this browser only.
         </p>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
@@ -1328,36 +1330,38 @@ function CommunityScreen() {
         </div>
       </div>
 
-      <div className="rounded-2xl glass p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-white">Moderator queue</p>
-          <button type="button" onClick={loadPendingReports} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh queue</button>
-        </div>
-        {moderationLoading ? (
-          <p className="text-xs text-slate-400">Loading pending reports...</p>
-        ) : null}
-        {!moderationLoading && pendingReports.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-2 italic">No pending reports.</p>
-        ) : null}
-        <div className="space-y-2">
-          {pendingReports.map((report) => (
-            <div key={report.id} className="rounded-xl glass-dark p-3 group animate-in slide-up">
-              <p className="text-xs text-slate-400">{report.city} • {report.category}</p>
-              <p className="text-sm font-semibold text-white group-hover:text-purple-300 transition-colors">{report.title}</p>
-              <p className="text-xs text-slate-400 mt-1">{report.description}</p>
-              {report.aiSummary ? (
-                <p className="text-[11px] text-purple-200/90 mt-2 leading-snug border-t border-white/10 pt-2">
-                  <span className="font-semibold text-purple-300">AI summary: </span>
-                  {report.aiSummary}
-                </p>
-              ) : null}
-              <div className="mt-2 flex gap-2">
-                <button type="button" onClick={() => moderateReport(report.id, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 transition-colors">Approve</button>
-                <button type="button" onClick={() => moderateReport(report.id, "reject")} className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 transition-colors">Reject</button>
+        <div className="rounded-2xl glass p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-white">Review queue</p>
+            <button type="button" onClick={loadPendingReports} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh</button>
+          </div>
+          {moderationLoading ? (
+            <p className="text-xs text-slate-400">Loading pending reports...</p>
+          ) : null}
+          {!moderationLoading && pendingReports.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-3 italic">No pending reports.</p>
+          ) : null}
+          <div className="space-y-2">
+            {pendingReports.map((report) => (
+              <div key={report.id} className="rounded-xl glass-dark p-3 group animate-in slide-up">
+                <p className="text-xs text-slate-400">{report.city} • {report.category}</p>
+                <p className="text-sm font-semibold text-white group-hover:text-purple-300 transition-colors">{report.title}</p>
+                <p className="text-xs text-slate-400 mt-1">{report.description}</p>
+                {report.aiSummary ? (
+                  <p className="text-[11px] text-purple-200/90 mt-2 leading-snug border-t border-white/10 pt-2">
+                    <span className="font-semibold text-purple-300">AI summary: </span>
+                    {report.aiSummary}
+                  </p>
+                ) : null}
+                <div className="mt-2 flex gap-2">
+                  <button type="button" onClick={() => moderateReport(report.id, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 transition-colors">Approve</button>
+                  <button type="button" onClick={() => moderateReport(report.id, "reject")} className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 transition-colors">Reject</button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+        </div> : null}
       </div>
     </div>
   );
@@ -1385,6 +1389,8 @@ function LegalChat() {
   });
   const [consultStatus, setConsultStatus] = useState("");
   const [consultLoading, setConsultLoading] = useState(false);
+  const [showHelpPanel, setShowHelpPanel] = useState(false);
+  const [showConsultForm, setShowConsultForm] = useState(false);
   const scrollRef = useRef(null);
   
   const [firDraft, setFirDraft] = useState("");
@@ -1541,11 +1547,26 @@ function LegalChat() {
 
   return (
     <div className="flex flex-col h-full bg-[#141523] text-white animate-in fade-in">
-      <div className="glass-dark border-b-0 px-4 py-3 flex items-center justify-between">
-        <p className="font-semibold text-white">Legal Aid Chat</p>
-        <button onClick={handleGenerateDraft} className="text-xs rounded-full glass px-3 py-1.5 text-purple-300 font-semibold hover:bg-white/10 transition-colors">Draft FIR</button>
+      <div className="glass-dark border-b border-white/8 px-4 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <Scale className="w-4 h-4 text-purple-400" />
+          <p className="font-semibold text-white text-sm">Legal Aid</p>
+          <span className="text-[9px] text-slate-500 bg-white/5 border border-white/10 rounded-full px-2 py-0.5 font-semibold uppercase tracking-wide">AI — not legal advice</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowHelpPanel(v => !v)}
+            className={`text-xs rounded-full px-3 py-1.5 font-semibold transition-colors ${showHelpPanel ? "bg-purple-600/30 text-purple-200 border border-purple-500/30" : "glass text-purple-300 hover:bg-white/10"}`}
+          >
+            Nearby help
+          </button>
+          <button onClick={handleGenerateDraft} className="text-xs rounded-full glass px-3 py-1.5 text-purple-300 font-semibold hover:bg-white/10 transition-colors">Draft FIR</button>
+        </div>
       </div>
-      <div className="px-4 py-3 glass border-b-0 space-y-2">
+
+      {showHelpPanel ? (
+      <div className="px-4 py-3 border-b border-white/8 bg-white/[0.02] space-y-2 shrink-0 animate-in slide-up duration-200">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs font-semibold text-purple-300 uppercase tracking-wide">Nearby Police & Help</p>
           <div className="flex items-center gap-2">
@@ -1598,74 +1619,8 @@ function LegalChat() {
           </div>
         )}
       </div>
-      <div className="px-4 py-3 glass border-b-0">
-        <form onSubmit={requestConsult} className="rounded-xl glass-dark p-3 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">Request Legal Consult</p>
-            <label className="text-[10px] text-slate-400 flex items-center gap-1.5 cursor-pointer hover:text-slate-300 transition-colors">
-              <input
-                type="checkbox"
-                checked={consultForm.urgent}
-                onChange={(e) => setConsultForm((prev) => ({ ...prev, urgent: e.target.checked }))}
-                className="accent-pink-500"
-              />
-              Urgent
-            </label>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input
-              value={consultForm.name}
-              onChange={(e) => setConsultForm((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Your name"
-              className="rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-            <input
-              value={consultForm.phone}
-              onChange={(e) => setConsultForm((prev) => ({ ...prev, phone: e.target.value }))}
-              placeholder="Phone"
-              className="rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input
-              value={consultForm.city}
-              onChange={(e) => setConsultForm((prev) => ({ ...prev, city: e.target.value }))}
-              placeholder="City"
-              className="rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-            <select
-              value={consultForm.issueType}
-              onChange={(e) => setConsultForm((prev) => ({ ...prev, issueType: e.target.value }))}
-              className="rounded-lg glass px-2.5 py-1.5 text-xs text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
-            >
-              {["Harassment", "Cyber Abuse", "Blackmail", "Domestic Violence", "FIR Filing", "Other"].map((issue) => (
-                <option key={issue} value={issue} className="bg-[#1e1b4b] text-white">{issue}</option>
-              ))}
-            </select>
-            <input
-              value={consultForm.preferredTime}
-              onChange={(e) => setConsultForm((prev) => ({ ...prev, preferredTime: e.target.value }))}
-              placeholder="Preferred time"
-              className="rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
-            />
-          </div>
-          <textarea
-            value={consultForm.description}
-            onChange={(e) => setConsultForm((prev) => ({ ...prev, description: e.target.value }))}
-            rows={2}
-            placeholder="Briefly explain your issue..."
-            className="w-full rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
-          />
-          {consultStatus ? <p className="text-[11px] text-purple-400">{consultStatus}</p> : null}
-          <button
-            type="submit"
-            disabled={consultLoading}
-            className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white py-2 text-xs font-semibold disabled:opacity-60 transition-transform active:scale-95"
-          >
-            {consultLoading ? "Submitting..." : "Request consult"}
-          </button>
-        </form>
-      </div>
+      ) : null}
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -1683,22 +1638,62 @@ function LegalChat() {
           </div>
         ) : null}
       </div>
-      <div className="bg-white/5 backdrop-blur-md border-t border-white/10 px-4 py-3 flex gap-2 items-end">
-        <textarea 
-          value={input} 
-          onChange={(e) => setInput(e.target.value)} 
-          rows={1} 
-          className="flex-1 rounded-2xl bg-white/10 border border-white/10 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-pink-500/50 text-white placeholder-slate-400 resize-none max-h-32" 
-          placeholder="Describe incident..." 
-        />
-        <button 
-          onClick={send} 
-          disabled={loading || !input.trim()} 
-          className="w-10 h-10 mb-0.5 shrink-0 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:shadow-none flex items-center justify-center transition-transform active:scale-95"
+      <div className="bg-white/5 backdrop-blur-md border-t border-white/8 px-4 py-3 space-y-2 shrink-0">
+        <div className="flex gap-2 items-end">
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            rows={1}
+            className="flex-1 rounded-2xl bg-white/10 border border-white/10 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-pink-500/50 text-white placeholder-slate-400 resize-none max-h-32"
+            placeholder="Describe what happened…"
+          />
+          <button
+            onClick={send}
+            disabled={loading || !input.trim()}
+            className="w-10 h-10 mb-0.5 shrink-0 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:shadow-none flex items-center justify-center transition-transform active:scale-95"
+          >
+            <Send className="w-4 h-4 ml-0.5" />
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowConsultForm(v => !v)}
+          className="w-full text-[11px] font-semibold text-purple-400 hover:text-purple-300 transition-colors py-1 flex items-center justify-center gap-1.5"
         >
-          <Send className="w-4 h-4 ml-0.5" />
+          <Scale className="w-3 h-3" />
+          {showConsultForm ? "Hide consultation form" : "Request a real lawyer consultation"}
         </button>
       </div>
+      {showConsultForm ? (
+        <div className="px-4 pb-4 border-t border-white/8 bg-white/[0.02] space-y-3 animate-in slide-up duration-200 shrink-0 overflow-y-auto max-h-80">
+          <form onSubmit={requestConsult} className="pt-3 space-y-2">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <p className="text-xs font-semibold text-purple-300">Request Legal Consult</p>
+              <label className="text-[10px] text-slate-400 flex items-center gap-1.5 cursor-pointer">
+                <input type="checkbox" checked={consultForm.urgent} onChange={(e) => setConsultForm((prev) => ({ ...prev, urgent: e.target.checked }))} className="accent-pink-500" />
+                Urgent
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input value={consultForm.name} onChange={(e) => setConsultForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Your name" className="rounded-lg glass-dark px-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:ring-1 focus:ring-purple-500/50" />
+              <input value={consultForm.phone} onChange={(e) => setConsultForm((prev) => ({ ...prev, phone: e.target.value }))} placeholder="Phone (+92…)" className="rounded-lg glass-dark px-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:ring-1 focus:ring-purple-500/50" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input value={consultForm.city} onChange={(e) => setConsultForm((prev) => ({ ...prev, city: e.target.value }))} placeholder="City" className="rounded-lg glass-dark px-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:ring-1 focus:ring-purple-500/50" />
+              <select value={consultForm.issueType} onChange={(e) => setConsultForm((prev) => ({ ...prev, issueType: e.target.value }))} className="rounded-lg glass-dark px-2.5 py-2 text-xs text-slate-300 outline-none focus:ring-1 focus:ring-purple-500/50">
+                {["Harassment", "Cyber Abuse", "Blackmail", "Domestic Violence", "FIR Filing", "Other"].map((issue) => (
+                  <option key={issue} value={issue} className="bg-[#1e1b4b]">{issue}</option>
+                ))}
+              </select>
+            </div>
+            <textarea value={consultForm.description} onChange={(e) => setConsultForm((prev) => ({ ...prev, description: e.target.value }))} rows={2} placeholder="Briefly explain your situation…" className="w-full rounded-lg glass-dark px-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:ring-1 focus:ring-purple-500/50 resize-none" />
+            {consultStatus ? <p className="text-[11px] text-purple-400">{consultStatus}</p> : null}
+            <button type="submit" disabled={consultLoading} className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 text-xs font-semibold disabled:opacity-60 active:scale-95 transition-transform">
+              {consultLoading ? "Submitting…" : "Request consultation"}
+            </button>
+          </form>
+        </div>
+      ) : null}
       {showDraft ? (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center sm:justify-center p-4">
           <div className="w-full max-w-md bg-[#1a1b2e] border border-white/10 shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -2107,9 +2102,6 @@ function DistressListener({ onTriggerSOS }) {
         ) : (
           <button onClick={stopListening} className="w-full rounded-xl glass text-slate-300 py-3 text-sm font-semibold hover:bg-white/10 transition-colors">Stop Monitoring</button>
         )}
-        {listening && !detected ? (
-          <button onClick={() => setDetected(true)} className="w-full rounded-xl glass-dark text-purple-300 py-3 text-sm font-semibold hover:bg-white/5 transition-colors">Simulate Detection</button>
-        ) : null}
         {detected ? (
           <button onClick={onTriggerSOS} className="w-full rounded-xl bg-red-600 text-white py-3 text-sm font-semibold animate-pulse">Trigger SOS Now</button>
         ) : null}
@@ -2121,6 +2113,7 @@ function DistressListener({ onTriggerSOS }) {
 function SafeTransit({ contacts, autoDialPolice }) {
   const hasContacts = (contacts?.length || 0) > 0;
   const [trip, setTrip] = useState(null);
+  const [destination, setDestination] = useState("");
   const [tripMode, setTripMode] = useState("online");
   const [statusMessage, setStatusMessage] = useState("");
   const [checkInText, setCheckInText] = useState("");
@@ -2168,8 +2161,9 @@ function SafeTransit({ contacts, autoDialPolice }) {
 
   const startTrip = async () => {
     setStatusMessage("");
+    const dest = destination.trim() || "Destination";
     try {
-      const data = await api("/transit/start", { method: "POST", body: JSON.stringify({ destination: "University Gate" }) });
+      const data = await api("/transit/start", { method: "POST", body: JSON.stringify({ destination: dest }) });
       setTrip(data.trip);
       setTripMode("online");
       setStatusMessage("Trip started with backend tracking.");
@@ -2177,12 +2171,11 @@ function SafeTransit({ contacts, autoDialPolice }) {
     } catch {
       const localTrip = {
         id: `local-${Date.now()}`,
-        destination: "University Gate",
+        destination: dest,
         startedAt: new Date().toISOString(),
         status: "active",
         events: [
-          "Local trip mode started",
-          "Backend tracking unavailable, using manual check-ins",
+          "Local trip started — manual check-ins active.",
         ],
       };
       setTrip(localTrip);
@@ -2244,16 +2237,24 @@ function SafeTransit({ contacts, autoDialPolice }) {
         </p>
         {!hasContacts ? (
           <p className="text-[11px] text-amber-200/90 mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
-            No trusted contacts yet — add them in Resources so trip alerts can reach someone you trust.
+            No trusted contacts yet — add them in Profile → Safety Circle so trip alerts can reach someone you trust.
           </p>
         ) : null}
-        <p className="text-[10px] text-slate-500 mt-2">SOS police auto-dial is {autoDialPolice ? "on" : "off"} (Resources → settings).</p>
+        <p className="text-[10px] text-slate-500 mt-2">Police auto-dial on SOS is {autoDialPolice ? "on" : "off"} (Profile → settings).</p>
       </div>
       {!trip ? (
-        <button onClick={startTrip} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-4 text-sm font-bold shadow-lg shadow-emerald-900/20 active:scale-95 transition-transform">Start Tracked Trip</button>
-      ) : (
-        <button onClick={simulateDeviation} className="w-full rounded-xl glass-dark text-amber-400 py-3 text-xs font-semibold hover:bg-white/5 transition-colors">Simulate Deviation Alert</button>
-      )}
+        <div className="space-y-3">
+          <input
+            value={destination}
+            onChange={(e) => setDestination(e.target.value)}
+            placeholder="Where are you going? (e.g. Gulberg Metro)"
+            className="w-full rounded-2xl glass-dark px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/40 outline-none"
+          />
+          <button onClick={startTrip} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-4 text-sm font-bold shadow-lg shadow-emerald-900/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
+            <MapPin className="w-4 h-4" /> Start Tracked Trip
+          </button>
+        </div>
+      ) : null}
       {trip ? (
         <div className="rounded-2xl glass p-4 space-y-4">
           <div className="flex items-center justify-between">
@@ -2507,16 +2508,16 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
   const [fakeCallOpen, setFakeCallOpen] = useState(false);
   const [name, setName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [phone, setPhone] = useState("+923001112233");
-  const [deviceId, setDeviceId] = useState("demo-device");
+  const [phone, setPhone] = useState("");
+  const [deviceId, setDeviceId] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [authMsg, setAuthMsg] = useState("");
   const [session, setSession] = useState(null);
   const [evidenceForm, setEvidenceForm] = useState({
-    incidentId: "inc-demo-1",
-    title: "Screenshot evidence",
+    incidentId: "",
+    title: "",
     type: "text",
-    content: "Harassment message screenshot details...",
+    content: "",
   });
   const [evidenceMsg, setEvidenceMsg] = useState("");
   const [consultRequests, setConsultRequests] = useState([]);
@@ -2851,26 +2852,33 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
           <Plus className="w-3.5 h-3.5" />Add to safety circle
         </button>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
-        <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Account Profile</p>
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-pink-500/15 flex items-center justify-center shrink-0">
+            <UserCircle className="w-4 h-4 text-pink-400" />
+          </div>
+          <p className="text-sm font-semibold text-white">Your account</p>
+        </div>
         <AuthHub />
-      </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
-        <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Auth & Identity (OTP)</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (+92...)" className="rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
-          <input value={deviceId} onChange={(e) => setDeviceId(e.target.value)} placeholder="Device ID" className="rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
-        </div>
-        <div className="flex gap-2">
-          <button onClick={requestOtp} className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold">Request OTP</button>
-          <input value={otpCode} onChange={(e) => setOtpCode(e.target.value)} placeholder="Enter OTP" className="flex-1 rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
-          <button onClick={verifyOtp} className="rounded-lg bg-emerald-700 text-white px-3 py-2 text-xs font-semibold">Verify</button>
-        </div>
-        <div className="flex items-center justify-between">
-          <button onClick={checkSession} className="text-xs font-semibold text-purple-400">Check session</button>
-          {session ? <span className="text-[11px] text-emerald-700 font-semibold">Logged in</span> : <span className="text-[11px] text-slate-400">Guest</span>}
-        </div>
-        {authMsg ? <p className="text-xs text-slate-400">{authMsg}</p> : null}
+        {session ? (
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Session active</span>
+            <button onClick={checkSession} className="text-[10px] font-semibold text-slate-500 hover:text-purple-400 transition-colors">Refresh</button>
+          </div>
+        ) : (
+          <div className="border-t border-white/5 pt-3 space-y-2">
+            <p className="text-[11px] text-slate-500">Phone verification (optional — for OTP-based login)</p>
+            <div className="flex gap-2">
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (+92…)" className="flex-1 rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
+              <button onClick={requestOtp} className="shrink-0 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-2 text-xs font-semibold">Send OTP</button>
+            </div>
+            <div className="flex gap-2">
+              <input value={otpCode} onChange={(e) => setOtpCode(e.target.value)} placeholder="Enter code" className="flex-1 rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
+              <button onClick={verifyOtp} className="shrink-0 rounded-lg bg-emerald-700 text-white px-3 py-2 text-xs font-semibold">Verify</button>
+            </div>
+            {authMsg ? <p className="text-xs text-slate-400">{authMsg}</p> : null}
+          </div>
+        )}
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-4">
         <div className="flex items-center justify-between">
