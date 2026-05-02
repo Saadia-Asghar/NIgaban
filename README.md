@@ -15,7 +15,9 @@ npm run dev:full
 
 ## Auth setup
 
-1. **Clerk** (dashboard): Create an application; enable **Email** and **Google**; copy the **Publishable** key into `VITE_CLERK_PUBLISHABLE_KEY` and the **Secret** key into `CLERK_SECRET_KEY` (server only, never expose in Vite).
+1. **Clerk** (dashboard): Create an application; enable **Email** and **Google**. Under **Developers → API keys**, copy keys into **`.env`** (never commit `.env`):
+   - **Publishable key** → `VITE_CLERK_PUBLISHABLE_KEY` (this app is **Vite**, not Next.js: use `VITE_…`, not `NEXT_PUBLIC_…`).
+   - **Secret key** → `CLERK_SECRET_KEY` (required for `/api/auth/clerk-sync` and JWT auth on the Express server). If you see **“Account sync: Server missing CLERK_SECRET_KEY”**, the server process does not have this variable—add it to `.env` in **`nigehbaan-app`**, restart `npm run dev:full`, and confirm with `curl http://localhost:8787/api/auth/status` (`clerkSecretConfigured` should be `true`).
 2. **Optional** `CLERK_AUTHORIZED_PARTIES`: comma-separated origins (e.g. `http://localhost:5173`) for stricter JWT checks. Leave empty for local experiments.
 3. **Supabase** (dashboard): Project URL + anon key → `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Enable **Google** if you use Supabase Google sign-in; set **Redirect URLs** to match your site.
 4. **Database**: Set `SUPABASE_DB_URL` (or `DATABASE_URL`) so the server can run. Apply SQL under `supabase/migrations/` (includes `clerk_profiles` for Clerk user sync).
