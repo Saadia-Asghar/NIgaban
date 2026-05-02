@@ -1488,6 +1488,8 @@ app.post("/api/ai/analyze-image", rateLimit({ keyPrefix: "ai-vision", windowMs: 
     systemPrompt = "You are an AI Deepfake and Image Manipulation Detector. Analyze the provided image for signs of AI generation, inconsistencies in lighting, skin texture, background artifacts, or metadata anomalies. Provide a probability score and a detailed explanation of why you think it is or is not AI-generated. Return strict JSON with fields: { classification: 'Real'|'AI-Generated'|'Suspicious', confidence_score: number, anomalies: string[], explanation: string }";
   } else if (toolType === "dm") {
     systemPrompt = "You are an AI Harassment Scanner. Analyze this screenshot of a chat/message for threats, harassment, stalking, or abusive behavior under the PECA (Prevention of Electronic Crimes Act) framework of Pakistan. Return strict JSON with fields: { classification: string, severity: number, peca_section: string, peca_explanation: string, evidence_value: string, recommended_action: string, summary: string }";
+  } else if (toolType === "voice") {
+    systemPrompt = "You are an AI Voice Clone and Deepfake Audio Detector. Analyze the provided audio/spectrogram for signs of synthetic generation, robotic artifacts, or inconsistent pitch patterns. Return strict JSON with fields: { classification: 'Real'|'Synthetic'|'Suspicious', confidence_score: number, anomalies: string[], explanation: string }";
   } else {
     systemPrompt = "Analyze this image for any safety concerns, threats, or useful context for a women's safety app. Return strict JSON with a summary of findings.";
   }

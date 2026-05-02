@@ -36,18 +36,22 @@ import {
 const LEGAL_SYSTEM_PROMPT = `You are the Legal Aid Assistant for Nigehbaan...`;
 const DM_SCAN_SYSTEM_PROMPT = `Return only JSON with classification, severity, peca_section, peca_explanation, evidence_value, recommended_action, summary.`;
 
-function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut, isClerk }) {
+function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut, isClerk, stealthMode }) {
+  const displayTitle = stealthMode ? "Personal Notes" : title || "Nigehbaan";
+  const displaySubtitle = stealthMode ? "Drafts · your notes" : "نگہبان · your guardian";
   return (
     <header className="sticky top-0 z-20 glass-dark px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         {showBack ? (
           <button onClick={onBack} className="rounded-full p-1.5 hover:bg-white/10 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
         ) : (
-          <div className="w-9 h-9 rounded-full bg-violet-800 text-white flex items-center justify-center font-bold logo-glow">ن</div>
+          <div className={`w-9 h-9 rounded-full ${stealthMode ? "bg-slate-700" : "bg-violet-800"} text-white flex items-center justify-center font-bold logo-glow`}>
+            {stealthMode ? <FileText className="w-5 h-5" /> : "ن"}
+          </div>
         )}
         <div>
-          <h1 className="text-lg font-semibold text-white">{title || "Nigehbaan"}</h1>
-          {!title ? <p className="text-[10px] text-slate-400">نگہبان · your guardian</p> : null}
+          <h1 className="text-lg font-semibold text-white">{displayTitle}</h1>
+          {!title ? <p className="text-[10px] text-slate-400">{displaySubtitle}</p> : null}
         </div>
       </div>
       <div className="flex items-center gap-3">
@@ -1601,6 +1605,100 @@ function DeepfakeDetector() {
   );
 }
 
+function VoiceDetector() {
+  const [fileBase64, setFileBase64] = useState(null);
+  const [mimeType, setMimeType] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setFileBase64(event.target.result.split(",")[1]);
+      setMimeType(file.type);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const analyze = async () => {
+    if (!fileBase64 || loading) return;
+    setLoading(true);
+    try {
+      const data = await api("/api/ai/analyze-image", { 
+        method: "POST", 
+        body: JSON.stringify({ 
+          imageBase64: fileBase64, 
+          imageMimeType: mimeType,
+          toolType: "voice"
+        }) 
+      });
+      setResult(data.result);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
+      <h2 className="text-xl font-semibold text-white">Voice Clone Detector</h2>
+      <div className="rounded-2xl glass p-6 text-center space-y-4">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-full max-w-xs h-32 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative">
+            {fileBase64 ? (
+              <div className="flex flex-col items-center gap-2 text-purple-400">
+                <Volume2 className="w-8 h-8" />
+                <p className="text-xs font-semibold">Audio Ready</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 text-slate-500">
+                <Volume2 className="w-10 h-10 opacity-20" />
+                <p className="text-[10px] uppercase tracking-widest font-bold">Upload Audio Sample</p>
+              </div>
+            )}
+            <input 
+              type="file" 
+              accept="audio/*" 
+              onChange={handleFileChange} 
+              className="absolute inset-0 opacity-0 cursor-pointer" 
+            />
+          </div>
+          <p className="text-xs text-slate-400">Upload a recording to check for AI cloning or synthetic robotic patterns.</p>
+        </div>
+        
+        <button 
+          onClick={analyze} 
+          disabled={!fileBase64 || loading}
+          className="w-full rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 text-sm font-bold shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+        >
+          {loading ? "Analyzing Audio with Gemini..." : "Run AI Voice Integrity Check"}
+        </button>
+
+        {result && (
+          <div className="rounded-2xl glass-dark p-4 text-left space-y-3 animate-in slide-up">
+            <div className="flex items-center justify-between">
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${result.classification === "Synthetic" ? "bg-red-500/20 text-red-400" : result.classification === "Suspicious" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
+                {result.classification}
+              </span>
+              <span className="text-[10px] text-slate-400">Confidence: {result.confidence_score}%</span>
+            </div>
+            <p className="text-sm text-slate-200">{result.explanation}</p>
+            {result.anomalies?.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Detected Artifacts</p>
+                <ul className="text-xs text-slate-400 list-disc list-inside">
+                  {result.anomalies.map((a, i) => <li key={i}>{a}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SimpleDetector({ title, button, doneText }) {
   const [done, setDone] = useState(false);
   return (
@@ -1642,7 +1740,7 @@ function DistressListener({ onTriggerSOS }) {
       const keywords = ["help", "bachao", "save me", "emergency", "police", "danger"];
       if (keywords.some(k => transcript.includes(k))) {
         setDetected(true);
-        // We trigger SOS automatically after a short delay unless canceled
+        onTriggerSOS();
       }
     };
 
@@ -2444,7 +2542,7 @@ export default function App() {
     if (screen === "shield") {
       if (shieldTool === "dm") return <DMScanner />;
       if (shieldTool === "deepfake") return <DeepfakeDetector />;
-      if (shieldTool === "voice") return <SimpleDetector title="Voice Clone Detector" button="Analyze sample call" doneText="Synthetic voice likely (87.1%)" />;
+      if (shieldTool === "voice") return <VoiceDetector />;
       if (shieldTool === "distress") return <DistressListener onTriggerSOS={() => setSosActive(true)} />;
       return <ShieldHub onSelectTool={setShieldTool} />;
     }
@@ -2482,7 +2580,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#141523] text-white">
       <div className="w-full max-w-5xl mx-auto min-h-screen lg:min-h-[92vh] lg:my-4 bg-[#141523] shadow-xl lg:rounded-3xl overflow-hidden flex flex-col relative z-0">
-        {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} userProfile={userProfile} onSignOut={handleSignOut} isClerk={clerkSignedIn} /> : null}
+        {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} userProfile={userProfile} onSignOut={handleSignOut} isClerk={clerkSignedIn} stealthMode={settings.stealthMode} /> : null}
         <main className={`flex-1 ${screen === "legal" ? "flex flex-col" : "overflow-y-auto"}`}>{rendered}</main>
         {!sosActive ? <BottomNav active={screen} onNavigate={handleNavigate} /> : null}
         {sosActive ? <SOSScreen onClose={() => setSosActive(false)} contacts={contacts} autoDialPolice={settings.autoDialPolice} cancelPin={settings.cancelPin} /> : null}
