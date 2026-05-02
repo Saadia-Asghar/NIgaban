@@ -1,25 +1,41 @@
 {
-  "name": "NIgaban",
+  "name": "NIgaban — نگہبان",
   "short_name": "نگہبان",
-  "description": "Women's safety companion: SOS, maps, trusted circle, and discreet tools.",
+  "description": "Pakistan's first AI-powered legal safety companion for women — SOS, maps, trusted circle, legal guide.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#5b21b6",
   "background_color": "#07080f",
+  "lang": "en",
+  "categories": ["utilities", "lifestyle", "social"],
+  "shortcuts": [
+    {
+      "name": "SOS Emergency",
+      "short_name": "SOS",
+      "description": "Trigger emergency SOS",
+      "url": "/?sos=1"
+    },
+    {
+      "name": "Hifazat Legal Guide",
+      "short_name": "Hifazat",
+      "description": "Get legal guidance",
+      "url": "/?screen=hifazat"
+    }
+  ],
   "icons": [
     {
       "src": "/favicon.svg",
-      "sizes": "192x192",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/favicon.svg",
-      "sizes": "512x512",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ]
 }

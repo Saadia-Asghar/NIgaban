@@ -4,6 +4,7 @@ import { Download, Mic, Square } from "lucide-react";
 export default function VoiceNoteRecorder() {
   const [recording, setRecording] = useState(false);
   const [blobUrl, setBlobUrl] = useState("");
+  const [filename, setFilename] = useState("nigehbaan-voice-note.webm");
   const [seconds, setSeconds] = useState(0);
   const mediaRef = useRef(null);
   const chunksRef = useRef([]);
@@ -30,6 +31,7 @@ export default function VoiceNoteRecorder() {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
         if (blobUrl) URL.revokeObjectURL(blobUrl);
+        setFilename(`nigehbaan-voice-note-${Date.now()}.webm`);
         setBlobUrl(URL.createObjectURL(blob));
         chunksRef.current = [];
       };
@@ -80,7 +82,7 @@ export default function VoiceNoteRecorder() {
         {blobUrl ? (
           <a
             href={blobUrl}
-            download={`nigehbaan-voice-note-${Date.now()}.webm`}
+            download={filename}
             className="inline-flex items-center gap-2 rounded-xl border border-white/20 px-4 py-2.5 text-sm font-semibold text-slate-200 hover:bg-white/10"
           >
             <Download className="w-4 h-4" /> Download

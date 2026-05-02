@@ -100,11 +100,7 @@ export default function HifazatGuide({ variant = "fab" }) {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
   const messagesRef = useRef(null);
-  const [messages, setMessages] = useState(() => {
-    const m = loadSessionMessages() || [];
-    messagesRef.current = m;
-    return m;
-  });
+  const [messages, setMessages] = useState(() => loadSessionMessages() || []);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -129,13 +125,13 @@ export default function HifazatGuide({ variant = "fab" }) {
       setOpen(true);
       return;
     }
-    let first = false;
+    let isFirst;
     try {
-      first = localStorage.getItem(AUTO_OPEN_KEY) !== "true";
+      isFirst = localStorage.getItem(AUTO_OPEN_KEY) !== "true";
     } catch {
-      first = true;
+      isFirst = true;
     }
-    if (first) {
+    if (isFirst) {
       try {
         localStorage.setItem(AUTO_OPEN_KEY, "true");
       } catch {

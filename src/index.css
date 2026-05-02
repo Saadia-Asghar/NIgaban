@@ -137,11 +137,91 @@
    color: #e2e8f0; 
  } 
  
- /* ===== Input autofill ===== */ 
- input:-webkit-autofill, 
- input:-webkit-autofill:hover, 
- input:-webkit-autofill:focus { 
-   -webkit-text-fill-color: #e2e8f0; 
-   -webkit-box-shadow: 0 0 0px 1000px #1a1b2e inset; 
-   transition: background-color 5000s ease-in-out 0s; 
+ /* ===== Input autofill ===== */
+ input:-webkit-autofill,
+ input:-webkit-autofill:hover,
+ input:-webkit-autofill:focus {
+   -webkit-text-fill-color: #e2e8f0;
+   -webkit-box-shadow: 0 0 0px 1000px #1a1b2e inset;
+   transition: background-color 5000s ease-in-out 0s;
  }
+
+/* ===== Form input base styles (base layer — utilities override) ===== */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  textarea,
+  select {
+    background-color: rgba(20, 21, 35, 0.7);
+    color: #e2e8f0;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgba(148, 163, 184, 0.5);
+  }
+}
+
+/* ===== Toggle switch ===== */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.toggle-track::before {
+  content: "";
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  top: 3px;
+  background: #94a3b8;
+  border-radius: 50%;
+  transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.toggle-switch input:checked + .toggle-track {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  border-color: transparent;
+}
+
+.toggle-switch input:checked + .toggle-track::before {
+  transform: translateX(18px);
+  background: white;
+}
+
+/* ===== Scrollbar hide on mobile navs ===== */
+.scrollbar-thin::-webkit-scrollbar { height: 0; width: 0; }
+.scrollbar-thin { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* ===== Skeleton loader ===== */
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 37%, rgba(255,255,255,0.04) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+  border-radius: 0.5rem;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}

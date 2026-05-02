@@ -8,7 +8,7 @@ export default defineConfig([
   globalIgnores(['dist', '.agents/**']),
   {
     files: ['**/*.{js,jsx}'],
-    ignores: ['api/**'],
+    ignores: ['api/**', 'vite.config.js', 'eslint.config.js'],
     extends: [
       js.configs.recommended,
       reactHooks.configs.flat.recommended,
@@ -19,19 +19,19 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     rules: {
-      // App loads data in effects on purpose; v7 rule rejects normal data-fetch patterns.
       'react-hooks/set-state-in-effect': 'off',
-      'no-unused-vars': 'warn', // Downgrade to warning to prevent build blocks during development
+      'no-unused-vars': 'warn',
+      'react-refresh/only-export-components': 'warn',
     },
   },
   {
-    files: ['api/**/*.js'],
+    files: ['api/**/*.js', 'vite.config.js', 'eslint.config.js'],
     extends: [js.configs.recommended],
     languageOptions: {
       globals: globals.node,
     },
     rules: {
       'no-unused-vars': 'warn',
-    }
+    },
   },
 ])

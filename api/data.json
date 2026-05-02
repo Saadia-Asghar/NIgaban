@@ -1,0 +1,21 @@
+{
+  "settings": {
+    "stealthMode": false,
+    "autoDialPolice": true,
+    "cancelPin": "1234"
+  },
+  "contacts": [
+    { "id": "c1", "name": "Ammi", "phone": "+923001112233" },
+    { "id": "c2", "name": "Maham", "phone": "+923002223344" }
+  ],
+  "trips": [],
+  "sosLogs": [],
+  "communityReports": [],
+  "legalQueue": [],
+  "legalConsultRequests": [],
+  "evidenceVault": [],
+  "evidenceTimeline": [],
+  "activityLogs": [],
+  "communityChatMessages": [],
+  "safetyTimeline": []
+}

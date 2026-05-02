@@ -150,7 +150,6 @@ export default function SafeZonesMap({ city, pins, routePath = null, mapLayerMod
         const b = new window.google.maps.LatLngBounds();
         path.forEach((p) => b.extend({ lat: Number(p.lat), lng: Number(p.lng) }));
         map.fitBounds(b, 48);
-        didFitBounds = true;
       } else if (!didFitBounds) {
         map.setCenter(center);
         map.setZoom(12);

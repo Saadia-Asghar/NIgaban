@@ -2689,12 +2689,27 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
         <p className="text-[10px] text-slate-500 leading-relaxed">
           Saves up to three numbers. Opens your SMS app with a distress line and a live Google Maps link (no server SMS). Some phones only fill the first recipient — resend if needed.
         </p>
-        {contacts.map((contact) => <div key={contact.id} className="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2"><span className="text-sm">{contact.name}</span><button onClick={() => removeContact(contact.id)} className="text-xs font-semibold text-rose-700">Remove</button></div>)}
+        {contacts.map((contact) => (
+          <div key={contact.id} className="flex items-center justify-between bg-white/10 rounded-xl px-3 py-2.5 border border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-purple-500/20 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-purple-300">{(contact.name || "?")[0].toUpperCase()}</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{contact.name}</p>
+                <p className="text-[10px] text-slate-400">{contact.phone}</p>
+              </div>
+            </div>
+            <button onClick={() => removeContact(contact.id)} className="text-[10px] font-bold text-rose-400 hover:text-rose-300 px-2 py-1 rounded-lg hover:bg-rose-500/10 transition-colors">Remove</button>
+          </div>
+        ))}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="rounded-lg border border-white/10 px-3 py-2 text-sm" />
-          <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="Phone (+92…)" className="rounded-lg border border-white/10 px-3 py-2 text-sm" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Contact name" className="rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
+          <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="Phone (+92…)" className="rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
         </div>
-        <button type="button" onClick={addContact} className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold">Add contact</button>
+        <button type="button" onClick={addContact} className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2">
+          <Plus className="w-3.5 h-3.5" />Add to safety circle
+        </button>
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
         <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Account Profile</p>
@@ -2703,12 +2718,12 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
         <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Auth & Identity (OTP)</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (+92...)" className="rounded-lg border border-white/10 px-3 py-2 text-sm" />
-          <input value={deviceId} onChange={(e) => setDeviceId(e.target.value)} placeholder="Device ID" className="rounded-lg border border-white/10 px-3 py-2 text-sm" />
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (+92...)" className="rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
+          <input value={deviceId} onChange={(e) => setDeviceId(e.target.value)} placeholder="Device ID" className="rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
         </div>
         <div className="flex gap-2">
           <button onClick={requestOtp} className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold">Request OTP</button>
-          <input value={otpCode} onChange={(e) => setOtpCode(e.target.value)} placeholder="Enter OTP" className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-sm" />
+          <input value={otpCode} onChange={(e) => setOtpCode(e.target.value)} placeholder="Enter OTP" className="flex-1 rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
           <button onClick={verifyOtp} className="rounded-lg bg-emerald-700 text-white px-3 py-2 text-xs font-semibold">Verify</button>
         </div>
         <div className="flex items-center justify-between">
@@ -2783,11 +2798,53 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
           )}
         </div>
       </div>
-      <div className="rounded-2xl bg-white/10 border border-white/10 p-3 space-y-2">
-        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Settings</p>
-        <div className="flex items-center gap-3"><EyeOff className="w-4 h-4" /><p className="flex-1 text-sm">Stealth mode</p><input type="checkbox" checked={settings.stealthMode} onChange={(e) => updateSetting({ stealthMode: e.target.checked })} /></div>
-        <div className="flex items-center gap-3"><Phone className="w-4 h-4" /><p className="flex-1 text-sm">Auto-dial police</p><input type="checkbox" checked={settings.autoDialPolice} onChange={(e) => updateSetting({ autoDialPolice: e.target.checked })} /></div>
-        <div className="flex items-center gap-3"><Lock className="w-4 h-4" /><p className="flex-1 text-sm">SOS cancel PIN</p><input value={settings.cancelPin} onChange={(e) => updateSetting({ cancelPin: e.target.value.replace(/\D/g, "").slice(0, 4) })} className="w-16 rounded border border-white/20 px-2 py-1 text-xs" /></div>
+      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-4 space-y-4">
+        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">App Settings</p>
+        <div className="flex items-center gap-3 py-1">
+          <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">
+            <EyeOff className="w-4 h-4 text-purple-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">Stealth mode</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">App disguises itself as "Personal Notes"</p>
+          </div>
+          <label className="toggle-switch">
+            <input type="checkbox" checked={settings.stealthMode} onChange={(e) => updateSetting({ stealthMode: e.target.checked })} />
+            <span className="toggle-track" />
+          </label>
+        </div>
+        <div className="h-px bg-white/5" />
+        <div className="flex items-center gap-3 py-1">
+          <div className="w-8 h-8 rounded-lg bg-rose-500/15 flex items-center justify-center shrink-0">
+            <Phone className="w-4 h-4 text-rose-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">Auto-dial police</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Open emergency dial on SOS trigger</p>
+          </div>
+          <label className="toggle-switch">
+            <input type="checkbox" checked={settings.autoDialPolice} onChange={(e) => updateSetting({ autoDialPolice: e.target.checked })} />
+            <span className="toggle-track" />
+          </label>
+        </div>
+        <div className="h-px bg-white/5" />
+        <div className="flex items-center gap-3 py-1">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-white">SOS cancel PIN</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">4-digit PIN to cancel false alarms</p>
+          </div>
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            value={settings.cancelPin}
+            onChange={(e) => updateSetting({ cancelPin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+            className="w-16 rounded-lg bg-white/10 border border-white/20 px-2 py-1.5 text-sm text-center text-white font-mono tracking-widest focus:ring-1 focus:ring-purple-400 focus:border-purple-400"
+          />
+        </div>
       </div>
     </div>
   );

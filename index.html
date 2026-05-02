@@ -6,12 +6,29 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#5b21b6" />
+    <meta name="color-scheme" content="dark" />
+    <!-- PWA / iOS -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="نگہبان" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+    <!-- SEO / Social -->
     <meta name="description" content="Pakistan's first AI-powered legal safety companion for women — know your rights, trigger help, leave no trace. NIgaban (نگہبان)." />
+    <meta property="og:title" content="NIgaban — نگہبان" />
+    <meta property="og:description" content="Pakistan's first AI-powered legal safety companion for women." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="NIgaban — نگہبان" />
+    <meta name="twitter:description" content="Pakistan's first AI-powered legal safety companion for women." />
     <title>NIgaban — نگہبان</title>
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <!-- Inline critical style to prevent flash -->
+    <style>
+      html, body { margin: 0; background: #07080f; color: #e2e8f0; }
+      #root { min-height: 100dvh; }
+    </style>
   </head>
   <body>
     <div id="root"></div>
