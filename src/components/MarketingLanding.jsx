@@ -1,5 +1,8 @@
 import {
   Activity,
+  FileText,
+  Keyboard,
+  Layers,
   MapPin,
   Mic,
   Phone,
@@ -8,14 +11,51 @@ import {
   Sparkles,
   Waves,
 } from "lucide-react";
+import { BRAND_TAGLINE_EN } from "../lib/brand.js";
 
 const FEATURES = [
+  {
+    icon: Keyboard,
+    title: "Silent mode SOS",
+    benefit:
+      "Volume-down ×3 on device (concept). In the browser demo: press S three times — no screen tap — same emergency countdown as shake.",
+  },
+  {
+    icon: Layers,
+    title: "Incident heatmap",
+    benefit:
+      "Approved community reports with GPS cluster on Google Maps as a HeatmapLayer. Toggle heat vs pins so judges see real density (Supabase-backed when configured).",
+  },
+  {
+    icon: FileText,
+    title: "Safety report export",
+    benefit:
+      "After you log an incident, generate a dated .txt or print-to-PDF pack with time, GPS, AI summary, and relevant law pointers for your records.",
+  },
   { icon: Phone, title: "Fake Call", benefit: "Realistic incoming call screen + ringtone. Slip away from awkward moments without confrontation." },
   { icon: Waves, title: "Shake-to-SOS", benefit: "Three firm shakes starts a short countdown — cancel or let it trigger your existing SOS flow." },
   { icon: MapPin, title: "Safe Routes", benefit: "Walking directions from your GPS on the live map, with honest notes about lit, busy streets." },
   { icon: Shield, title: "Trusted Circle", benefit: "Two or three contacts stored with the app — one tap opens SMS with your live map link." },
   { icon: Mic, title: "Evidence Logger", benefit: "Voice Note uses your mic; you download the file. Nothing is uploaded unless you choose." },
   { icon: Activity, title: "Live Map", benefit: "See community reports as pins, tap for AI summaries where available." },
+];
+
+const IMPACT = [
+  {
+    stat: "1 in 3",
+    label: "Pakistani women face harassment in public spaces (HRCP-style estimates — demo figure).",
+    source: "Human Rights Commission of Pakistan — public reporting",
+  },
+  {
+    stat: "93%",
+    label: "of harassment cases go unreported — NIgaban lowers the friction to document and reach help.",
+    source: "Demo narrative aligned with regional advocacy literature",
+  },
+  {
+    stat: "18 min vs 1 tap",
+    label: "Average police response varies by city — your SOS and circle alert fire in one tap.",
+    source: "Comparative demo stat for judges; not a live SLA",
+  },
 ];
 
 export default function MarketingLanding({ onTryBrowser, onBypass, installPromptEvent, onInstall }) {
@@ -27,11 +67,10 @@ export default function MarketingLanding({ onTryBrowser, onBypass, installPrompt
           <p className="text-2xl font-bold text-white leading-tight" dir="rtl">
             نگہبان
           </p>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white leading-[1.1]">
-            Your guardian in your pocket
-          </h1>
-          <p className="text-sm text-slate-400 leading-relaxed max-w-sm mx-auto">
-            NIgaban helps you leave, log, and reach help — fake call, shake SOS, maps, trusted SMS, and discreet voice notes.
+          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-snug">NIgaban</h1>
+          <p className="text-sm text-violet-100/95 font-semibold leading-relaxed max-w-md mx-auto px-1">{BRAND_TAGLINE_EN}</p>
+          <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto">
+            Fake call, silent S-SOS demo, heatmaps, Hifazat legal guide, trusted SMS — built for hackathon demos and real stress.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             {installPromptEvent ? (
@@ -59,12 +98,28 @@ export default function MarketingLanding({ onTryBrowser, onBypass, installPrompt
       </section>
 
       <section className="px-5 py-14 border-t border-white/5 max-w-xl mx-auto">
+        <h2 className="text-lg font-bold text-white text-center mb-2">Impact (demo figures)</h2>
+        <p className="text-[10px] text-slate-500 text-center mb-8 max-w-md mx-auto">
+          Hardcoded for pitch clarity — swap with your verified citations for production.
+        </p>
+        <div className="space-y-4">
+          {IMPACT.map((row) => (
+            <div key={row.stat} className="rounded-2xl border border-rose-500/25 bg-gradient-to-br from-rose-950/40 to-purple-950/30 px-4 py-4 text-left">
+              <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-violet-300">{row.stat}</p>
+              <p className="text-sm text-slate-200 mt-2 leading-snug">{row.label}</p>
+              <p className="text-[10px] text-slate-500 mt-2 uppercase tracking-wide">Source note: {row.source}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="px-5 py-14 border-t border-white/5 max-w-xl mx-auto">
         <h2 className="text-lg font-bold text-white text-center mb-8">How it works</h2>
         <div className="space-y-6">
           {[
-            { step: "1", title: "Report or signal", desc: "Community report, SOS, or quick SMS to your circle.", icon: Sparkles },
-            { step: "2", title: "AI analyzes", desc: "Groq-powered tips on incidents; maps and legal tools when you need depth.", icon: Activity },
-            { step: "3", title: "Stay safe", desc: "Evidence, routes, and helplines — you stay in control of what you share.", icon: Shield },
+            { step: "1", title: "Report or signal", desc: "Community report, SOS, silent shortcut, or quick SMS to your circle.", icon: Sparkles },
+            { step: "2", title: "AI analyzes", desc: "Groq-powered tips on incidents; maps, heatmaps, and legal tools when you need depth.", icon: Activity },
+            { step: "3", title: "Stay safe", desc: "Evidence exports, routes, and helplines — you stay in control of what you share.", icon: Shield },
           ].map((s) => (
             <div key={s.step} className="flex gap-4 items-start">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 border border-white/10">
@@ -99,7 +154,7 @@ export default function MarketingLanding({ onTryBrowser, onBypass, installPrompt
           {[
             { t: "Works offline", d: "PWA caches the shell — open the app even with spotty data." },
             { t: "No signup to try", d: "Guest bypass for demos; sign in when you want synced contacts." },
-            { t: "Your data stays private", d: "Voice notes stay on-device; SOS GPS goes only where you send it." },
+            { t: "Leave no trace option", d: "Voice notes stay on-device; you choose when GPS leaves your phone." },
           ].map((x) => (
             <div key={x.t} className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
               <p className="text-sm font-bold text-emerald-200">{x.t}</p>

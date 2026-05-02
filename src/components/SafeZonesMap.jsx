@@ -15,11 +15,16 @@ function markerColor(level) {
   return "#94a3b8";
 }
 
-export default function SafeZonesMap({ city, pins, routePath = null }) {
+/**
+ * @param {"pins" | "heatmap"} mapLayerMode
+ * @param {{ lat: number, lng: number, weight?: number }[]} heatmapPoints
+ */
+export default function SafeZonesMap({ city, pins, routePath = null, mapLayerMode = "pins", heatmapPoints = [] }) {
   const elRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const polyRef = useRef(null);
+  const heatmapRef = useRef(null);
   const [mapError, setMapError] = useState("");
   const [mapLoading, setMapLoading] = useState(true);
 
@@ -45,48 +50,92 @@ export default function SafeZonesMap({ city, pins, routePath = null }) {
         });
       }
       const map = mapRef.current;
+      let didFitBounds = false;
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];
       if (polyRef.current) {
         polyRef.current.setMap(null);
         polyRef.current = null;
       }
+      if (heatmapRef.current) {
+        heatmapRef.current.setMap(null);
+        heatmapRef.current = null;
+      }
 
       const list = Array.isArray(pins) ? pins : [];
-      list.forEach((pin, idx) => {
-        let lat = typeof pin.lat === "number" ? pin.lat : null;
-        let lng = typeof pin.lng === "number" ? pin.lng : null;
-        if (lat == null || lng == null) {
-          const jitter = (i) => (i % 7) * 0.004 - 0.012;
-          lat = center.lat + jitter(idx);
-          lng = center.lng + jitter(idx + 2);
-        }
-        const m = new window.google.maps.Marker({
-          map,
-          position: { lat, lng },
-          title: pin.title || "Incident",
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: markerColor(pin.level),
-            fillOpacity: 0.92,
-            strokeColor: "#0f172a",
-            strokeWeight: 2,
-          },
-        });
-        const iw = new window.google.maps.InfoWindow({
-          content: `<div style="max-width:220px;font-family:system-ui,sans-serif;font-size:12px;color:#0f172a">
+      const showPins = mapLayerMode !== "heatmap";
+
+      if (showPins) {
+        list.forEach((pin, idx) => {
+          let lat = typeof pin.lat === "number" ? pin.lat : null;
+          let lng = typeof pin.lng === "number" ? pin.lng : null;
+          if (lat == null || lng == null) {
+            const jitter = (i) => (i % 7) * 0.004 - 0.012;
+            lat = center.lat + jitter(idx);
+            lng = center.lng + jitter(idx + 2);
+          }
+          const m = new window.google.maps.Marker({
+            map,
+            position: { lat, lng },
+            title: pin.title || "Incident",
+            icon: {
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: markerColor(pin.level),
+              fillOpacity: 0.92,
+              strokeColor: "#0f172a",
+              strokeWeight: 2,
+            },
+          });
+          const iw = new window.google.maps.InfoWindow({
+            content: `<div style="max-width:220px;font-family:system-ui,sans-serif;font-size:12px;color:#0f172a">
             <strong>${escapeHtml(pin.title || "Report")}</strong><br/>
             <span style="opacity:.85">${escapeHtml(pin.timeLabel || "")}</span><br/>
             <p style="margin:6px 0 0;line-height:1.35">${escapeHtml((pin.description || "").slice(0, 220))}</p>
             ${pin.aiSummary ? `<p style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;font-size:11px"><em>AI:</em> ${escapeHtml(pin.aiSummary.slice(0, 280))}${pin.aiSummary.length > 280 ? "…" : ""}</p>` : ""}
           </div>`,
+          });
+          m.addListener("click", () => {
+            iw.open({ map, anchor: m });
+          });
+          markersRef.current.push(m);
         });
-        m.addListener("click", () => {
-          iw.open({ map, anchor: m });
-        });
-        markersRef.current.push(m);
-      });
+      } else if (window.google.maps.visualization?.HeatmapLayer) {
+        const hp = Array.isArray(heatmapPoints) ? heatmapPoints : [];
+        const weighted = hp
+          .filter((p) => typeof p.lat === "number" && typeof p.lng === "number")
+          .map((p) => ({
+            location: new window.google.maps.LatLng(p.lat, p.lng),
+            weight: typeof p.weight === "number" ? p.weight : 1,
+          }));
+        if (weighted.length > 0) {
+          heatmapRef.current = new window.google.maps.visualization.HeatmapLayer({
+            data: weighted,
+            map,
+            radius: 36,
+            opacity: 0.88,
+            gradient: [
+              "rgba(0, 255, 255, 0)",
+              "rgba(0, 255, 255, 1)",
+              "rgba(0, 191, 255, 1)",
+              "rgba(0, 127, 255, 1)",
+              "rgba(0, 0, 255, 1)",
+              "rgba(0, 0, 223, 1)",
+              "rgba(0, 0, 191, 1)",
+              "rgba(0, 0, 159, 1)",
+              "rgba(0, 0, 127, 1)",
+              "rgba(63, 0, 91, 1)",
+              "rgba(127, 0, 63, 1)",
+              "rgba(191, 0, 31, 1)",
+              "rgba(255, 0, 0, 1)",
+            ],
+          });
+          const b = new window.google.maps.LatLngBounds();
+          weighted.forEach((w) => b.extend(w.location));
+          map.fitBounds(b, 56);
+          didFitBounds = true;
+        }
+      }
 
       const path = Array.isArray(routePath) ? routePath : [];
       if (path.length > 1) {
@@ -101,10 +150,12 @@ export default function SafeZonesMap({ city, pins, routePath = null }) {
         const b = new window.google.maps.LatLngBounds();
         path.forEach((p) => b.extend({ lat: Number(p.lat), lng: Number(p.lng) }));
         map.fitBounds(b, 48);
-      } else {
+        didFitBounds = true;
+      } else if (!didFitBounds) {
         map.setCenter(center);
         map.setZoom(12);
       }
+
       setMapLoading(false);
       setMapError("");
     };
@@ -119,7 +170,7 @@ export default function SafeZonesMap({ city, pins, routePath = null }) {
       script = document.createElement("script");
       script.dataset.nigehbaanMaps = "1";
       script.async = true;
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=visualization`;
       script.onload = () => init();
       script.onerror = () => {
         setMapError("Google Maps failed to load. Check the browser key and referrer restrictions.");
@@ -130,13 +181,15 @@ export default function SafeZonesMap({ city, pins, routePath = null }) {
       script.addEventListener("load", () => init(), { once: true });
     }
     return undefined;
-  }, [city, pins, routePath]);
+  }, [city, pins, routePath, mapLayerMode, heatmapPoints]);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
       <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
         <MapPin className="w-4 h-4 text-purple-400 shrink-0" />
-        <p className="text-xs font-semibold text-white">Safe zones map · {city}</p>
+        <p className="text-xs font-semibold text-white">
+          {mapLayerMode === "heatmap" ? "Incident heatmap" : "Pin view"} · {city}
+        </p>
         {mapLoading ? <Loader2 className="w-4 h-4 animate-spin text-purple-400 ml-auto" /> : null}
       </div>
       {mapError ? (
@@ -145,7 +198,9 @@ export default function SafeZonesMap({ city, pins, routePath = null }) {
         <div ref={elRef} className="h-[min(55vh,420px)] w-full bg-slate-900/80" />
       )}
       <p className="text-[10px] text-slate-500 px-3 py-2 border-t border-white/5">
-        Pins without GPS use an approximate city placement for demo. Verified reports with coordinates appear at true locations.
+        {mapLayerMode === "heatmap"
+          ? "Density shows approved community reports with GPS. Fewer GPS points mean a sparser heatmap — encourage attaching location when reporting."
+          : "Pins without GPS use an approximate city placement for demo. Verified reports with coordinates appear at true locations."}
       </p>
     </div>
   );

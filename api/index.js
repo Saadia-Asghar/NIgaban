@@ -2002,6 +2002,23 @@ app.get("/api/community/feed", async (req, res) => {
   res.json({ city, feed });
 });
 
+/** Geo points for map heatmap (approved reports with coordinates). Backed by same store as /feed (Supabase when configured). */
+app.get("/api/community/incidents-geo", async (req, res) => {
+  const city = String(req.query.city || "").trim();
+  const data = await readData();
+  let reports = (data.communityReports || []).filter(
+    (r) => r.status === "approved" && typeof r.lat === "number" && typeof r.lon === "number",
+  );
+  if (city) reports = reports.filter((r) => r.city === city);
+  const points = reports.map((r) => ({
+    lat: r.lat,
+    lng: r.lon,
+    weight: r.level === "high" ? 4 : r.level === "watch" ? 2.5 : 1,
+    title: r.title || "",
+  }));
+  res.json({ city: city || "all", count: points.length, points });
+});
+
 app.post("/api/community/report", rateLimit({ keyPrefix: "community-report", windowMs: 60 * 1000, max: 8 }), async (req, res) => {
   const city = String(req.body?.city || "").trim();
   const category = String(req.body?.category || "").trim();

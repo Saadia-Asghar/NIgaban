@@ -1,18 +1,19 @@
 import { useCallback, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Shield } from "lucide-react";
+import { BRAND_TAGLINE_EN } from "../lib/brand.js";
 
 const CARDS = [
   {
-    title: "You are not alone",
-    body: "NIgaban is your guardian — tools for SOS, trusted contacts, and evidence when you need them.",
+    title: "Pakistan’s first AI legal safety companion",
+    body: BRAND_TAGLINE_EN,
   },
   {
-    title: "Shake to SOS",
-    body: "Shake your phone three times to start a short countdown — cancel or let it trigger your emergency flow.",
+    title: "Silent SOS (demo)",
+    body: "Press the S key three times in the browser — no mouse — same emergency countdown as shake. On phones we target volume-down ×3 without unlocking the screen.",
   },
   {
-    title: "Meet Hifazat",
-    body: "Talk to Hifazat — she knows your rights under Pakistani law and stays brief when stress is high.",
+    title: "Heatmaps & evidence",
+    body: "See incident density on the map, then export a dated safety report after you log an incident — for your records and next steps.",
   },
 ];
 
@@ -52,7 +53,7 @@ export default function FirstVisitWelcome({ onComplete }) {
         <p className="text-sm text-violet-200/90 font-medium" dir="rtl">
           نگہبان
         </p>
-        <p className="text-xs text-slate-400 max-w-xs leading-relaxed">Your guardian in your pocket — safety, law, and community in one calm place.</p>
+        <p className="text-[11px] text-slate-300 max-w-sm leading-relaxed px-1">{BRAND_TAGLINE_EN}</p>
       </div>
 
       <div
@@ -81,12 +82,12 @@ export default function FirstVisitWelcome({ onComplete }) {
             {CARDS.map((c, i) => (
               <div
                 key={i}
-                className="shrink-0 px-6 py-10 space-y-3 text-center"
+                className="shrink-0 px-5 py-8 space-y-3 text-center"
                 style={{ width: `${100 / CARDS.length}%` }}
               >
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-purple-300/90">Card {i + 1} / {CARDS.length}</p>
-                <h2 className="text-xl font-bold text-white leading-snug">{c.title}</h2>
-                <p className="text-sm text-slate-300 leading-relaxed">{c.body}</p>
+                <h2 className="text-lg font-bold text-white leading-snug">{c.title}</h2>
+                <p className="text-xs text-slate-300 leading-relaxed text-left">{c.body}</p>
               </div>
             ))}
           </div>
