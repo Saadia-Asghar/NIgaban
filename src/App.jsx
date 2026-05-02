@@ -1930,9 +1930,9 @@ function ShieldHub({ onSelectTool }) {
 }
 
 export default function App() {
-  const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn, user: clerkUser } = useUser();
+  const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn, getToken } = useAuth();
+  const { user: clerkUser } = useUser();
   const { signOut: clerkSignOut } = useClerk();
-  const { getToken } = useAuth();
 
   useEffect(() => {
     configureApiAuth({ getToken });
@@ -1960,20 +1960,36 @@ export default function App() {
       setSupabaseAuthReady(true);
       return undefined;
     }
+    let cancelled = false;
+    const bootTimeout = window.setTimeout(() => {
+      if (!cancelled) setSupabaseAuthReady(true);
+    }, 6_000);
+
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => {
-        setSupabaseSession(session);
+        if (!cancelled) setSupabaseSession(session);
+      })
+      .catch(() => {
+        if (!cancelled) setSupabaseSession(null);
       })
       .finally(() => {
-        setSupabaseAuthReady(true);
+        if (!cancelled) {
+          window.clearTimeout(bootTimeout);
+          setSupabaseAuthReady(true);
+        }
       });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSupabaseSession(session);
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(bootTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -2143,8 +2159,12 @@ export default function App() {
   const authShellLoading = !clerkLoaded || !supabaseAuthReady;
   if (authShellLoading && !devBypass) {
     return (
-      <div className="min-h-screen bg-[#141523] flex items-center justify-center">
+      <div className="min-h-screen bg-[#141523] flex flex-col items-center justify-center px-6 text-center">
         <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+        <p className="mt-4 text-xs text-slate-500 max-w-sm">
+          Loading sign-in… If this never finishes, check <span className="text-slate-400">VITE_CLERK_PUBLISHABLE_KEY</span>, Supabase URL/keys, and network. Run{" "}
+          <span className="font-mono text-slate-400">npm run dev:full</span> so the API is up.
+        </p>
       </div>
     );
   }
