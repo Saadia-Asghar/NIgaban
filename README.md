@@ -24,6 +24,8 @@ npm run dev:full
 
 After sign-in or sign-up with Clerk, the app calls `POST /api/auth/clerk-sync` with the Clerk session token. The server verifies the JWT and upserts a row in `public.clerk_profiles` (same database as Supabase). This keeps a mirror of Clerk users in Postgres for your own queries and RLS you may add later.
 
+All frontend `fetch("/api/...")` helpers send **`Authorization: Bearer <Clerk session JWT>`** when you are signed in with Clerk (and fall back to the legacy OTP token when present). Protected routes (`/api/auth/me`, `/api/auth/verify-identity`, moderation) resolve that JWT on the server with `CLERK_SECRET_KEY`, so **Clerk authentication is tied to the same Express + Postgres stack** as the rest of the app.
+
 ### GitHub / Cursor “authority” vs this app
 
 Authorizing **Supabase** or **Clerk** in GitHub or in **Cursor** (MCP / integrations) only helps those products talk to those platforms from the IDE or GitHub features. **It does not set environment variables for Nigehbaan.**

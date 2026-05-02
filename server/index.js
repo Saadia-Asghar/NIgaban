@@ -888,19 +888,83 @@ function getAuthToken(req) {
   return header.slice(7).trim();
 }
 
-async function requireAuth(req, res, next) {
-  const token = getAuthToken(req);
-  let session = null;
-  if (token && dbPool) {
+function looksLikeJwt(token) {
+  return typeof token === "string" && token.startsWith("ey") && token.split(".").length >= 3;
+}
+
+function getClerkSecretKey() {
+  return String(process.env.CLERK_SECRET_KEY || "").trim();
+}
+
+function clerkVerifyTokenOptions() {
+  const secretKey = getClerkSecretKey();
+  if (!secretKey) return null;
+  const parties = String(process.env.CLERK_AUTHORIZED_PARTIES || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return {
+    secretKey,
+    ...(parties.length ? { authorizedParties: parties } : {}),
+  };
+}
+
+async function verifyClerkJwtToUserId(token) {
+  const opts = clerkVerifyTokenOptions();
+  if (!opts) throw new Error("Clerk not configured");
+  const payload = await verifyToken(token, opts);
+  const sub = payload.sub;
+  if (!sub) throw new Error("Missing sub");
+  const clerk = createClerkClient({ secretKey: opts.secretKey });
+  if (sub.startsWith("user_")) return sub;
+  if (sub.startsWith("sess_")) {
+    const session = await clerk.sessions.getSession(sub);
+    return session.userId;
+  }
+  try {
+    await clerk.users.getUser(sub);
+    return sub;
+  } catch {
+    const session = await clerk.sessions.getSession(sub);
+    return session.userId;
+  }
+}
+
+async function getSessionForBearerToken(token) {
+  if (!token) return null;
+  if (looksLikeJwt(token)) {
+    const secretKey = getClerkSecretKey();
+    if (!secretKey) return null;
     try {
-      session = await getDbSessionByToken(token);
+      const userId = await verifyClerkJwtToUserId(token);
+      return {
+        userId,
+        phone: "",
+        roles: ["user"],
+        verifiedWoman: false,
+        verificationMethod: null,
+        createdAt: new Date().toISOString(),
+        authSource: "clerk",
+      };
     } catch {
-      session = null;
+      return null;
     }
   }
-  if (!session && token) {
-    session = sessionStore.get(token) || null;
+  if (dbPool) {
+    try {
+      const rowSession = await getDbSessionByToken(token);
+      if (rowSession) return { ...rowSession, authSource: "otp" };
+    } catch {
+      // ignore
+    }
   }
+  const mem = sessionStore.get(token);
+  return mem ? { ...mem, authSource: "otp-mem" } : null;
+}
+
+async function requireAuth(req, res, next) {
+  const token = getAuthToken(req);
+  const session = await getSessionForBearerToken(token);
   if (!session) return res.status(401).json({ error: "Unauthorized" });
   req.session = session;
   return next();
@@ -911,14 +975,14 @@ async function requireModerator(req, res, next) {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
   if (!dbPool || dbDisabledReason) {
-    const session = sessionStore.get(token);
+    const session = await getSessionForBearerToken(token);
     if (!session || !(session.roles || []).includes("moderator")) return res.status(403).json({ error: "Moderator access required" });
     req.session = session;
     return next();
   }
 
   try {
-    const session = await getDbSessionByToken(token);
+    const session = await getSessionForBearerToken(token);
     if (!session) return res.status(401).json({ error: "Unauthorized" });
     const profile = await dbPool.query("SELECT role, active FROM moderator_profiles WHERE user_id = $1", [session.userId]);
     if (!profile.rows[0] || !profile.rows[0].active) return res.status(403).json({ error: "Moderator access required" });
@@ -926,7 +990,7 @@ async function requireModerator(req, res, next) {
     return next();
   } catch {
     dbDisabledReason = dbDisabledReason || "DB unavailable during moderator check";
-    const session = sessionStore.get(token);
+    const session = await getSessionForBearerToken(token);
     if (!session || !(session.roles || []).includes("moderator")) return res.status(403).json({ error: "Moderator access required" });
     req.session = session;
     return next();
@@ -1108,11 +1172,6 @@ app.post("/api/auth/clerk-sync", rateLimit({ keyPrefix: "clerk-sync", windowMs: 
   const token = getAuthToken(req);
   if (!token) return res.status(401).json({ ok: false, error: "Missing Authorization bearer token" });
 
-  const parties = String(process.env.CLERK_AUTHORIZED_PARTIES || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
   try {
     await ensureDbReady();
   } catch {
@@ -1120,23 +1179,9 @@ app.post("/api/auth/clerk-sync", rateLimit({ keyPrefix: "clerk-sync", windowMs: 
   }
 
   try {
-    const payload = await verifyToken(token, {
-      secretKey,
-      ...(parties.length ? { authorizedParties: parties } : {}),
-    });
-    const sub = payload.sub;
-    if (!sub) return res.status(401).json({ ok: false, error: "Invalid token payload" });
-
+    const clerkUserId = await verifyClerkJwtToUserId(token);
     const clerk = createClerkClient({ secretKey });
-    let clerkUserId = sub;
-    let user;
-    try {
-      user = await clerk.users.getUser(sub);
-    } catch {
-      const session = await clerk.sessions.getSession(sub);
-      clerkUserId = session.userId;
-      user = await clerk.users.getUser(clerkUserId);
-    }
+    const user = await clerk.users.getUser(clerkUserId);
 
     const email = user.primaryEmailAddress?.emailAddress || "";
     const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.username || "";
@@ -1169,7 +1214,7 @@ app.get("/api/auth/me", requireAuth, (req, res) => {
 app.post("/api/auth/verify-identity", requireAuth, async (req, res) => {
   req.session.verifiedWoman = true;
   req.session.verificationMethod = String(req.body?.method || "manual-review");
-  if (dbPool) {
+  if (dbPool && req.session.authSource !== "clerk") {
     try {
       await dbPool.query(
         `UPDATE auth_users

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useUser, UserButton, useClerk, useAuth } from "@clerk/react";
 import { supabase, supabaseEnabled } from "./lib/authClients";
+import { api, configureApiAuth } from "./lib/api.js";
 import AuthHub from "./components/AuthHub.jsx";
 import {
   AlertCircle,
@@ -34,24 +35,6 @@ import {
 
 const LEGAL_SYSTEM_PROMPT = `You are the Legal Aid Assistant for Nigehbaan...`;
 const DM_SCAN_SYSTEM_PROMPT = `Return only JSON with classification, severity, peca_section, peca_explanation, evidence_value, recommended_action, summary.`;
-
-async function api(path, options = {}) {
-  try {
-    const token = localStorage.getItem("nigehbaan_token") || "";
-    const res = await fetch(`/api${path}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(options.headers || {}),
-      },
-      ...options,
-    });
-    if (!res.ok) throw new Error(`Request failed ${res.status}`);
-    return res.json();
-  } catch {
-    return {};
-  }
-}
 
 function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut, isClerk }) {
   return (
@@ -1949,6 +1932,11 @@ export default function App() {
   const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn, user: clerkUser } = useUser();
   const { signOut: clerkSignOut } = useClerk();
   const { getToken } = useAuth();
+
+  useEffect(() => {
+    configureApiAuth({ getToken });
+    return () => configureApiAuth({ getToken: null });
+  }, [getToken]);
   const [supabaseSession, setSupabaseSession] = useState(null);
   const [supabaseAuthReady, setSupabaseAuthReady] = useState(!supabaseEnabled);
   const [devBypass, setDevBypass] = useState(false);
