@@ -1,4 +1,4 @@
-const CACHE_NAME = "nigehbaan-static-v1";
+const CACHE_NAME = "nigehbaan-static-v2";
 const STATIC_ASSETS = ["/", "/index.html", "/manifest.webmanifest", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -34,7 +34,12 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
           return response;
         })
-        .catch(() => caches.match("/index.html"));
+        .catch(() => {
+          if (event.request.mode === "navigate" || (event.request.destination && event.request.destination === "document")) {
+            return caches.match("/index.html");
+          }
+          return caches.match(event.request);
+        });
     }),
   );
 });

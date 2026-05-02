@@ -3,14 +3,19 @@ import express from "express";
 import cors from "cors";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
 import { createClerkClient, verifyToken } from "@clerk/backend";
 import { Pool } from "pg";
 
 const app = express();
 const DM_SCAN_SYSTEM_PROMPT = `Return only JSON with classification, severity, peca_section, peca_explanation, evidence_value, recommended_action, summary.`;
+const HIFAZAT_SYSTEM_PROMPT = `You are Hifazat, a women's safety legal guide for Pakistan. You know Pakistani law: Anti-Harassment Act 2010, PECA 2016, sections 354/509 PPC. Always respond with: 1) the relevant law, 2) what the woman can do RIGHT NOW, 3) which number to call. Be warm, brief, in simple English or Urdu based on user input. Never victim-blame.`;
 const port = Number(process.env.PORT || 8787);
-const dataPath = path.resolve(process.cwd(), "api", "data.json");
+const __apiDir = path.dirname(fileURLToPath(import.meta.url));
+const bundledDataJsonPath = path.join(__apiDir, "data.json");
+/** Writable path for JSON fallback; Vercel serverless FS is read-only outside /tmp. */
+const dataPath = process.env.VERCEL ? path.join("/tmp", "nigehbaan-data.json") : path.resolve(process.cwd(), "api", "data.json");
 const supabaseDbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
 const useSupabaseDb = Boolean(supabaseDbUrl);
 const dbPool = useSupabaseDb
@@ -150,6 +155,24 @@ function buildInitialData() {
   });
 }
 
+async function ensureBundledJsonSeed() {
+  try {
+    await fs.access(dataPath);
+    return;
+  } catch {
+    // create from bundled api/data.json (Vercel) or fresh defaults
+  }
+  try {
+    await fs.mkdir(path.dirname(dataPath), { recursive: true });
+    const seed = await fs.readFile(bundledDataJsonPath, "utf8");
+    await fs.writeFile(dataPath, seed, "utf8");
+  } catch {
+    const initial = buildInitialData();
+    await fs.mkdir(path.dirname(dataPath), { recursive: true });
+    await fs.writeFile(dataPath, JSON.stringify(initial, null, 2));
+  }
+}
+
 async function isTableEmpty(tableName) {
   const result = await dbPool.query(`SELECT COUNT(*)::int AS count FROM ${tableName}`);
   return result.rows[0].count === 0;
@@ -200,7 +223,7 @@ async function writeDbData(data) {
     await client.query("DELETE FROM sos_logs");
     for (const sos of data.sosLogs || []) {
       await client.query(
-        "INSERT INTO sos_logs (id, started_at, stopped_at, source, active, dispatch_logs) VALUES ($1, $2::timestamptz, $3::timestamptz, $4, $5, $6::jsonb)",
+        "INSERT INTO sos_logs (id, started_at, stopped_at, source, active, dispatch_logs, location) VALUES ($1, $2::timestamptz, $3::timestamptz, $4, $5, $6::jsonb, $7::jsonb)",
         [
           String(sos.id || randomUUID()),
           sos.startedAt || new Date().toISOString(),
@@ -208,6 +231,7 @@ async function writeDbData(data) {
           String(sos.source || "manual"),
           Boolean(sos.active),
           JSON.stringify(Array.isArray(sos.dispatchLogs) ? sos.dispatchLogs : []),
+          JSON.stringify(sos.location && typeof sos.location === "object" ? sos.location : null),
         ],
       );
     }
@@ -217,8 +241,8 @@ async function writeDbData(data) {
       await client.query(
         `INSERT INTO community_reports (
           id, city, category, area, description, anonymous, level, title, tags, verified,
-          status, moderation_reason, moderated_at, time
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::timestamptz, $14::timestamptz)`,
+          status, moderation_reason, moderated_at, time, ai_summary, lat, lon
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::timestamptz, $14::timestamptz, $15, $16, $17)`,
         [
           String(report.id || randomUUID()),
           String(report.city || ""),
@@ -234,6 +258,9 @@ async function writeDbData(data) {
           String(report.moderationReason || ""),
           report.moderatedAt || null,
           report.time || new Date().toISOString(),
+          String(report.aiSummary || ""),
+          typeof report.lat === "number" ? report.lat : null,
+          typeof report.lon === "number" ? report.lon : null,
         ],
       );
     }
@@ -598,6 +625,7 @@ async function ensureDbReady() {
   }
   try {
     await dbReadyPromise;
+    await patchDbSchema();
   } catch (error) {
     dbDisabledReason = error?.message || "DB unavailable";
     throw error;
@@ -659,8 +687,10 @@ async function readData() {
         dbPool.query("SELECT stealth_mode, auto_dial_police, cancel_pin FROM app_settings WHERE id = 1"),
         dbPool.query("SELECT id, name, phone FROM contacts ORDER BY name ASC"),
         dbPool.query(`SELECT id, destination, destination_coords, started_at, status, events, location_history, no_movement_since, distance_trend_up_count, last_distance_to_destination_km FROM trips ORDER BY started_at ASC`),
-        dbPool.query("SELECT id, started_at, stopped_at, source, active, dispatch_logs FROM sos_logs ORDER BY started_at ASC"),
-        dbPool.query("SELECT id, city, category, area, description, anonymous, level, title, tags, verified, status, moderation_reason, moderated_at, time FROM community_reports ORDER BY time ASC"),
+        dbPool.query("SELECT id, started_at, stopped_at, source, active, dispatch_logs, location FROM sos_logs ORDER BY started_at ASC"),
+        dbPool.query(
+          "SELECT id, city, category, area, description, anonymous, level, title, tags, verified, status, moderation_reason, moderated_at, time, ai_summary, lat, lon FROM community_reports ORDER BY time ASC",
+        ),
         dbPool.query("SELECT id, city, mode, text, alias, anonymous, area, category, tags, severity, created_at FROM community_chat_messages ORDER BY created_at ASC"),
         dbPool.query("SELECT id, text, context, created_at FROM safety_timeline ORDER BY created_at ASC"),
         dbPool.query("SELECT id, type, status, user_id, draft, created_at, reviewer_notes FROM legal_queue ORDER BY created_at ASC"),
@@ -697,6 +727,7 @@ async function readData() {
           source: r.source,
           active: Boolean(r.active),
           dispatchLogs: Array.isArray(r.dispatch_logs) ? r.dispatch_logs : [],
+          location: r.location && typeof r.location === "object" ? r.location : null,
         })),
         communityReports: reportsRes.rows.map((r) => ({
           id: r.id,
@@ -713,6 +744,9 @@ async function readData() {
           moderationReason: r.moderation_reason,
           moderatedAt: r.moderated_at ? new Date(r.moderated_at).toISOString() : undefined,
           time: new Date(r.time).toISOString(),
+          aiSummary: r.ai_summary || "",
+          lat: typeof r.lat === "number" ? r.lat : null,
+          lon: typeof r.lon === "number" ? r.lon : null,
         })),
         communityChatMessages: chatRes.rows.map((r) => ({
           id: r.id,
@@ -785,6 +819,7 @@ async function readData() {
   }
 
   try {
+    await ensureBundledJsonSeed();
     const raw = await fs.readFile(dataPath, "utf8");
     return ensureShape(JSON.parse(raw));
   } catch {
@@ -864,6 +899,41 @@ function isVerifiedReport({ category, area, description }) {
 
 function sanitizeUserText(text) {
   return String(text || "").replace(/[<>{}]/g, "").slice(0, 4000);
+}
+
+async function incidentAiSummary(payload) {
+  const system =
+    "You are NIgaban (نگہبان), a women's safety analyst for Pakistan. In 3–5 short sentences: (1) immediate safety tips, (2) risk level (low/medium/high) with one-line justification, (3) concrete next steps (official helplines 15 / 1099 / 1991 when relevant). No victim-blaming. Plain English.";
+  const user = sanitizeUserText(JSON.stringify(payload)).slice(0, 3500);
+  try {
+    const text = await callGroq({
+      systemPrompt: system,
+      messages: [{ role: "user", content: user }],
+      maxTokens: 500,
+    });
+    const out = String(text || "").trim();
+    return (
+      out ||
+      "Move to a public place if you can, tell someone you trust where you are, and call 15 or 1099 if you are in immediate danger."
+    );
+  } catch (e) {
+    console.error("incidentAiSummary:", e?.message || e);
+    return "AI is temporarily unavailable. If you are unsafe, call 15 (police) or 1099 (women's helpline) and move toward crowds and light.";
+  }
+}
+
+async function patchDbSchema() {
+  if (!dbPool) return;
+  try {
+    await dbPool.query(`
+      ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS ai_summary TEXT NOT NULL DEFAULT '';
+      ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+      ALTER TABLE community_reports ADD COLUMN IF NOT EXISTS lon DOUBLE PRECISION;
+      ALTER TABLE sos_logs ADD COLUMN IF NOT EXISTS location JSONB;
+    `);
+  } catch (e) {
+    console.warn("patchDbSchema:", e?.message || e);
+  }
 }
 
 async function callGroq({ systemPrompt, messages, maxTokens = 900 }) {
@@ -1075,6 +1145,17 @@ async function requireModerator(req, res, next) {
   }
 }
 
+/** Hackathon demo: same as moderator routes, but also accept Bearer MODERATOR_BOOTSTRAP_KEY. */
+async function requireModeratorOrBootstrap(req, res, next) {
+  const token = getAuthToken(req);
+  const bootstrap = String(process.env.MODERATOR_BOOTSTRAP_KEY || "").trim();
+  if (bootstrap && token === bootstrap) {
+    req.session = { userId: "bootstrap-moderator", roles: ["moderator"], authSource: "bootstrap-key" };
+    return next();
+  }
+  return requireModerator(req, res, next);
+}
+
 async function sendSmsOptional(to, message) {
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const auth = process.env.TWILIO_AUTH_TOKEN;
@@ -1096,18 +1177,29 @@ async function sendSmsOptional(to, message) {
 }
 
 app.get("/api/health", async (_req, res) => {
-  const data = await readData();
-  res.json({
-    ok: true,
-    service: "nigehbaan-backend",
-    env: process.env.NODE_ENV || "development",
-    stats: {
-      contacts: data.contacts.length,
-      trips: data.trips.length,
-      communityReports: data.communityReports.length,
-      evidenceItems: data.evidenceVault.length,
-    },
-  });
+  try {
+    const data = await readData();
+    res.json({
+      ok: true,
+      status: "ok",
+      timestamp: new Date().toISOString(),
+      service: "nigehbaan-backend",
+      env: process.env.NODE_ENV || "development",
+      stats: {
+        contacts: data.contacts.length,
+        trips: data.trips.length,
+        communityReports: data.communityReports.length,
+        evidenceItems: data.evidenceVault.length,
+      },
+    });
+  } catch (e) {
+    res.status(503).json({
+      ok: false,
+      status: "error",
+      timestamp: new Date().toISOString(),
+      error: e?.message || "health check failed",
+    });
+  }
 });
 
 app.get("/api/auth/status", async (_req, res) => {
@@ -1392,6 +1484,31 @@ app.post("/api/legal/chat", rateLimit({ keyPrefix: "legal-chat", windowMs: 60 * 
   }
 });
 
+/** Hifazat Guide — welcome / legal orientation chat (Groq). */
+app.post("/api/chat", rateLimit({ keyPrefix: "hifazat-chat", windowMs: 60 * 1000, max: 24 }), async (req, res) => {
+  const userMessage = sanitizeUserText(req.body?.message);
+  if (!userMessage) return res.status(400).json({ error: "message is required" });
+  const history = Array.isArray(req.body?.history) ? req.body.history.slice(-12) : [];
+  try {
+    const safeHistory = history.map((m) => ({
+      role: m.role === "assistant" ? "assistant" : "user",
+      content: sanitizeUserText(String(m.content || "")),
+    }));
+    const reply = await callGroq({
+      systemPrompt: `${HIFAZAT_SYSTEM_PROMPT}\n\nNever provide self-harm, illegal, or vigilante instructions. If there is immediate danger, tell her to call 15 (police) or 1099 first.`,
+      messages: [...safeHistory, { role: "user", content: userMessage }],
+      maxTokens: 800,
+    });
+    res.json({ reply: String(reply || "").trim() || "Stay near people and light. Call 15 if you are in danger now.", live: true });
+  } catch {
+    res.json({
+      live: false,
+      reply:
+        "I could not reach the AI server. If you are unsafe now: call 15 (police) or 1099 (women’s helpline). For online harm, FIA Cybercrime is 1991. You are not alone.",
+    });
+  }
+});
+
 app.post("/api/legal/draft-fir", rateLimit({ keyPrefix: "legal-draft", windowMs: 60 * 1000, max: 5 }), async (req, res) => {
   const history = Array.isArray(req.body?.history) ? req.body.history.slice(-20) : [];
   if (history.length === 0) {
@@ -1622,12 +1739,20 @@ app.post("/api/transit/deviation", async (req, res) => {
 
 app.post("/api/sos/start", async (req, res) => {
   const data = await readData();
+  const lat = Number(req.body?.lat);
+  const lon = Number(req.body?.lon);
+  const location =
+    Number.isFinite(lat) && Number.isFinite(lon)
+      ? { lat, lon, capturedAt: new Date().toISOString(), accuracy: req.body?.accuracy != null ? Number(req.body.accuracy) : null }
+      : null;
+
   const event = {
     id: randomUUID(),
     startedAt: new Date().toISOString(),
     source: String(req.body?.source || "manual"),
     active: true,
     dispatchLogs: [],
+    location,
   };
 
   for (const contact of data.contacts) {
@@ -1643,10 +1768,38 @@ app.post("/api/sos/start", async (req, res) => {
     event.dispatchLogs.push({ contactId: contact.id, ...result });
   }
 
+  try {
+    const aiSos = await incidentAiSummary({
+      kind: "sos",
+      lat: location?.lat ?? null,
+      lon: location?.lon ?? null,
+      contactCount: data.contacts.length,
+      autoDialPolice: Boolean(data.settings?.autoDialPolice),
+    });
+    event.dispatchLogs.push({ type: "ai_assessment", at: new Date().toISOString(), text: aiSos });
+  } catch (e) {
+    console.error("sos AI:", e?.message || e);
+    event.dispatchLogs.push({
+      type: "ai_assessment",
+      at: new Date().toISOString(),
+      text: "AI tip unavailable: stay on the line with someone you trust and use helpline 15 or 1099 if in danger.",
+    });
+  }
+
   data.sosLogs.push(event);
   logActivity(data, "sos_started", { eventId: event.id, dispatchCount: event.dispatchLogs.length });
-  await writeData(data);
-  res.json({ event, contacts: data.contacts, autoDialPolice: data.settings.autoDialPolice });
+  try {
+    await writeData(data);
+  } catch (e) {
+    return res.status(503).json({ error: "Could not log SOS", detail: e?.message || String(e) });
+  }
+  res.json({
+    event,
+    contacts: data.contacts,
+    autoDialPolice: data.settings.autoDialPolice,
+    aiTip: event.dispatchLogs.find((l) => l.type === "ai_assessment")?.text || "",
+    location,
+  });
 });
 
 app.post("/api/sos/stop", async (req, res) => {
@@ -1722,6 +1875,32 @@ app.post("/api/evidence/export/:incidentId", async (req, res) => {
   res.json({ packet, signature, format: "json-packet" });
 });
 
+app.get("/api/maps/directions", async (req, res) => {
+  const key = String(process.env.GOOGLE_MAPS_API_KEY || "").trim();
+  if (!key) {
+    return res.status(503).json({ error: "Server GOOGLE_MAPS_API_KEY is not set (Directions proxy)." });
+  }
+  const origin = String(req.query.origin || "").trim();
+  const destination = String(req.query.destination || "").trim();
+  if (!origin || !destination) {
+    return res.status(400).json({ error: "origin and destination query params are required" });
+  }
+  try {
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&mode=walking&key=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data.status !== "OK" || !data.routes?.[0]) {
+      return res.status(400).json({
+        error: data.error_message || data.status || "No route",
+        googleStatus: data.status,
+      });
+    }
+    return res.json({ ok: true, route: data.routes[0] });
+  } catch (e) {
+    return res.status(500).json({ error: e?.message || "Directions request failed" });
+  }
+});
+
 app.get("/api/help/nearby", (req, res) => {
   const city = String(req.query.city || "Lahore");
   const contacts = nearbyHelpByCity[city] || nearbyHelpByCity.Lahore;
@@ -1776,6 +1955,9 @@ app.get("/api/community/feed", async (req, res) => {
       source: report.anonymous ? "Anonymous community member" : "Community member",
       tags: report.tags || [],
       verified: Boolean(report.verified),
+      aiSummary: report.aiSummary || "",
+      lat: typeof report.lat === "number" ? report.lat : null,
+      lng: typeof report.lon === "number" ? report.lon : null,
     }));
 
   const tripFeed = (data.trips || []).slice(-5).map((trip) => ({
@@ -1790,17 +1972,28 @@ app.get("/api/community/feed", async (req, res) => {
     verified: true,
   }));
 
-  const sosFeed = (data.sosLogs || []).slice(-5).map((event) => ({
-    id: `sos-${event.id}`,
-    city,
-    level: event.active ? "high" : "resolved",
-    title: event.active ? "SOS currently active" : "SOS event resolved",
-    description: `Source: ${event.source}`,
-    time: event.startedAt,
-    source: "Emergency system",
-    tags: ["emergency"],
-    verified: true,
-  }));
+  const sosFeed = (data.sosLogs || []).slice(-5).map((event) => {
+    const loc = event.location && typeof event.location === "object" ? event.location : null;
+    const aiLine = Array.isArray(event.dispatchLogs)
+      ? event.dispatchLogs.find((l) => l && l.type === "ai_assessment" && l.text)
+      : null;
+    return {
+      id: `sos-${event.id}`,
+      city,
+      level: event.active ? "high" : "resolved",
+      title: event.active ? "SOS currently active" : "SOS event resolved",
+      description: loc
+        ? `Source: ${event.source} · GPS logged`
+        : `Source: ${event.source}${aiLine?.text ? ` · ${String(aiLine.text).slice(0, 120)}…` : ""}`,
+      time: event.startedAt,
+      source: "Emergency system",
+      tags: ["emergency"],
+      verified: true,
+      aiSummary: aiLine?.text || "",
+      lat: typeof loc?.lat === "number" ? loc.lat : null,
+      lng: typeof loc?.lon === "number" ? loc.lon : null,
+    };
+  });
 
   const feed = [...reportFeed, ...sosFeed, ...tripFeed, ...staticFeed]
     .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
@@ -1815,6 +2008,8 @@ app.post("/api/community/report", rateLimit({ keyPrefix: "community-report", win
   const area = String(req.body?.area || "").trim();
   const description = sanitizeUserText(req.body?.description || "");
   const anonymous = req.body?.anonymous !== false;
+  const lat = Number(req.body?.lat);
+  const lon = Number(req.body?.lon);
   if (!city || !category || !area || !description) {
     return res.status(400).json({ error: "city, category, area, and description are required" });
   }
@@ -1835,11 +2030,34 @@ app.post("/api/community/report", rateLimit({ keyPrefix: "community-report", win
     status: verified ? "approved" : "pending",
     moderationReason: verified ? "Auto-approved by quality threshold" : "Pending moderator review",
     time: new Date().toISOString(),
+    aiSummary: "",
+    lat: Number.isFinite(lat) ? lat : null,
+    lon: Number.isFinite(lon) ? lon : null,
   };
+  let aiInsight = "";
+  try {
+    aiInsight = await incidentAiSummary({
+      kind: "community_report",
+      city,
+      category,
+      area,
+      description: description.slice(0, 1200),
+      lat: report.lat,
+      lon: report.lon,
+    });
+    report.aiSummary = aiInsight;
+  } catch (e) {
+    console.error("community report AI:", e?.message || e);
+    report.aiSummary = "AI summary unavailable; your report was still saved.";
+  }
   data.communityReports.push(report);
   logActivity(data, "community_report_created", { reportId: report.id, status: report.status });
-  await writeData(data);
-  res.json({ report });
+  try {
+    await writeData(data);
+  } catch (e) {
+    return res.status(503).json({ error: "Could not save report", detail: e?.message || String(e) });
+  }
+  res.json({ report, aiInsight });
 });
 
 app.get("/api/community/chat", async (req, res) => {
@@ -1885,6 +2103,8 @@ app.post("/api/community/chat/message", rateLimit({ keyPrefix: "community-chat",
       area: area || "community area",
       description: text,
     });
+    const rLat = Number(req.body?.lat);
+    const rLon = Number(req.body?.lon);
     const report = {
       id: randomUUID(),
       city,
@@ -1899,7 +2119,24 @@ app.post("/api/community/chat/message", rateLimit({ keyPrefix: "community-chat",
       status: verified ? "approved" : "pending",
       moderationReason: verified ? "Auto-approved by quality threshold" : "Pending moderator review",
       time: message.createdAt,
+      aiSummary: "",
+      lat: Number.isFinite(rLat) ? rLat : null,
+      lon: Number.isFinite(rLon) ? rLon : null,
     };
+    try {
+      report.aiSummary = await incidentAiSummary({
+        kind: "chat_incident",
+        city,
+        category: report.category,
+        area: report.area,
+        description: text.slice(0, 1200),
+        lat: report.lat,
+        lon: report.lon,
+      });
+    } catch (e) {
+      console.error("chat incident AI:", e?.message || e);
+      report.aiSummary = "AI summary unavailable.";
+    }
     data.communityReports.push(report);
     logActivity(data, "community_incident_from_chat", {
       reportId: report.id,
@@ -1913,14 +2150,14 @@ app.post("/api/community/chat/message", rateLimit({ keyPrefix: "community-chat",
   res.json({ message });
 });
 
-app.get("/api/moderation/reports", requireModerator, async (req, res) => {
+app.get("/api/moderation/reports", requireModeratorOrBootstrap, async (req, res) => {
   const status = String(req.query.status || "pending");
   const data = await readData();
   const reports = data.communityReports.filter((report) => (status === "all" ? true : report.status === status));
   res.json({ reports });
 });
 
-app.post("/api/moderation/reports/:id/review", requireModerator, async (req, res) => {
+app.post("/api/moderation/reports/:id/review", requireModeratorOrBootstrap, async (req, res) => {
   const action = String(req.body?.action || "").trim(); // approve|reject|takedown
   const reason = String(req.body?.reason || "").trim();
   const data = await readData();

@@ -1,13 +1,13 @@
 {
-  "name": "Nigehbaan Safety App",
-  "short_name": "Nigehbaan",
-  "description": "Women's safety companion for SOS, legal aid, safe transit, and community reporting.",
+  "name": "NIgaban",
+  "short_name": "نگہبان",
+  "description": "Women's safety companion: SOS, maps, trusted circle, and discreet tools.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#5b21b6",
-  "background_color": "#f8fafc",
+  "background_color": "#07080f",
   "icons": [
     {
       "src": "/favicon.svg",

@@ -3,6 +3,13 @@ import { useUser, UserButton, useClerk, useAuth } from "@clerk/react";
 import { supabase, supabaseEnabled } from "./lib/authClients";
 import { api, configureApiAuth } from "./lib/api.js";
 import AuthHub from "./components/AuthHub.jsx";
+import SafeZonesMap from "./components/SafeZonesMap.jsx";
+import SafetyMapScreen from "./components/SafetyMapScreen.jsx";
+import MarketingLanding from "./components/MarketingLanding.jsx";
+import FakeCallOverlay from "./components/FakeCallOverlay.jsx";
+import VoiceNoteRecorder from "./components/VoiceNoteRecorder.jsx";
+import FirstVisitWelcome from "./components/FirstVisitWelcome.jsx";
+import { useToast } from "./lib/toastContext.jsx";
 import {
   Activity,
   AlertCircle,
@@ -32,6 +39,7 @@ import {
   Volume2,
   X,
   Smartphone,
+  UserCircle,
 } from "lucide-react";
 
 const LEGAL_SYSTEM_PROMPT = `You are the Legal Aid Assistant for Nigehbaan...`;
@@ -74,33 +82,47 @@ function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut
   );
 }
 
-function BottomNav({ active, onNavigate }) {
-  const tabs = [
-    { id: "home", icon: Home, label: "Home" },
-    { id: "shield", icon: Shield, label: "Shield" },
-    { id: "legal", icon: Scale, label: "Legal" },
-    { id: "transit", icon: MapPin, label: "Transit" },
-    { id: "more", icon: Plus, label: "More" },
-  ];
+function BottomNav({ active, onNavigate, onSOS }) {
+  const tabBtn = (id, Icon, label) => {
+    const activeTab = active === id;
+    return (
+      <button
+        key={id}
+        type="button"
+        onClick={() => onNavigate(id)}
+        className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl transition-all duration-200 ${
+          activeTab ? "text-purple-300 bg-white/10 shadow-lg shadow-purple-500/10" : "text-slate-400 hover:text-slate-200"
+        }`}
+      >
+        <Icon className="w-5 h-5 shrink-0" />
+        <span className="text-[10px] font-semibold truncate max-w-full px-0.5">{label}</span>
+      </button>
+    );
+  };
   return (
-    <nav className="sticky bottom-0 glass-dark border-t-0 px-2 py-2 flex items-center justify-around">
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const activeTab = active === tab.id;
-        return (
-          <button key={tab.id} onClick={() => onNavigate(tab.id)} className={`px-3 py-1.5 rounded-xl transition-all duration-200 ${activeTab ? "text-purple-300 bg-white/10 shadow-lg shadow-purple-500/10" : "text-slate-400 hover:text-slate-200"}`}>
-            <div className="flex flex-col items-center">
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-semibold">{tab.label}</span>
-            </div>
+    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/10 pt-1 pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+      <div className="max-w-5xl mx-auto flex items-end justify-between gap-0 px-1">
+        {tabBtn("home", Home, "Home")}
+        {tabBtn("map", MapPin, "Map")}
+        <div className="flex flex-col items-center shrink-0 px-1">
+          <button
+            type="button"
+            onClick={onSOS}
+            className="-mt-8 mb-0.5 w-16 h-16 rounded-full bg-gradient-to-br from-rose-600 to-red-700 border-[3px] border-[#141523] shadow-xl shadow-rose-900/45 flex flex-col items-center justify-center text-white active:scale-95 transition-transform"
+            aria-label="Emergency SOS"
+          >
+            <AlertTriangle className="w-6 h-6" />
+            <span className="text-[9px] font-black leading-none">SOS</span>
           </button>
-        );
-      })}
+        </div>
+        {tabBtn("more", UserCircle, "Profile")}
+      </div>
     </nav>
   );
 }
 
-function WelcomeAuthScreen({ onBypass }) {
+function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
+  const authCardRef = useRef(null);
   const slides = [
     {
       title: "Built for women’s safety",
@@ -137,71 +159,67 @@ function WelcomeAuthScreen({ onBypass }) {
   const Icon = slide.icon;
 
   return (
-    <div className="min-h-screen bg-[#0a0b12] flex flex-col md:flex-row overflow-y-auto w-full animate-in fade-in">
-      {/* Left / Top Side: About the App Slideshow */}
-      <div className="w-full md:w-1/2 min-h-[40vh] md:min-h-screen p-8 flex flex-col justify-center items-center relative overflow-hidden border-0 md:border-r border-white/[0.06]">
-        <div className="pointer-events-none absolute inset-0 hero-grid opacity-80" />
-        <div className="pointer-events-none absolute top-1/4 left-1/2 h-72 w-[120%] -translate-x-1/2 rounded-full bg-violet-600/15 blur-[100px]" />
+    <div className="min-h-screen bg-[#0a0b12] w-full animate-in fade-in overflow-y-auto">
+      <MarketingLanding
+        onTryBrowser={() => authCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onBypass={onBypass}
+        installPromptEvent={installPromptEvent}
+        onInstall={onInstall}
+      />
 
-        <div className="absolute top-8 left-8 right-8 md:right-auto z-10 space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 shadow-lg shadow-purple-900/20">
-              <Shield className="h-5 w-5 text-pink-400 logo-glow" />
-            </div>
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-purple-300/90">Safety app</p>
-              <p className="text-lg font-bold tracking-tight text-white">Nigehbaan</p>
-            </div>
+      <div ref={authCardRef} className="scroll-mt-4 border-t border-white/10 bg-gradient-to-b from-[#141523] to-[#0a0b12] px-5 py-12 max-w-lg mx-auto w-full space-y-8">
+        <div className="surface-card surface-card-interactive p-6" key={step}>
+          <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl ${slide.color} shadow-inner`}>
+            <Icon className="h-6 w-6" />
           </div>
-          <p className="text-sm leading-relaxed text-slate-400 max-w-xs">
-            <span className="text-violet-200/95 font-medium" dir="rtl">نگہبان</span>
-            <span className="text-slate-500"> · </span>
-            Urdu for “guardian.” SOS, legal guidance, AI screening, and safe transit in one calm interface.
-          </p>
-        </div>
-
-        <div className="max-w-md w-full space-y-8 animate-in fade-in zoom-in-95 duration-500 z-10 mt-24 md:mt-0" key={step}>
-          <div className="surface-card surface-card-interactive p-8 md:p-10">
-            <div className={`mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl ${slide.color} shadow-inner`}>
-              <Icon className="h-7 w-7" />
-            </div>
-            <h3 className="text-2xl md:text-3xl font-bold tracking-tight text-white mb-4">{slide.title}</h3>
-            <p className="text-base text-slate-300 leading-relaxed">{slide.description}</p>
-            <div className="mt-8 flex items-center gap-2">
-              {slides.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  aria-label={`Slide ${i + 1}`}
-                  onClick={() => setStep(i)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-8 bg-gradient-to-r from-pink-500 to-purple-600" : "w-4 bg-white/15 hover:bg-white/25"}`}
-                />
-              ))}
-            </div>
+          <h3 className="text-xl font-bold tracking-tight text-white mb-2">{slide.title}</h3>
+          <p className="text-sm text-slate-300 leading-relaxed">{slide.description}</p>
+          <div className="mt-5 flex items-center gap-2">
+            {slides.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Slide ${i + 1}`}
+                onClick={() => setStep(i)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-8 bg-gradient-to-r from-pink-500 to-purple-600" : "w-4 bg-white/15 hover:bg-white/25"}`}
+              />
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* Right / Bottom Side: AuthHub */}
-      <div className="w-full md:w-1/2 p-6 md:p-12 flex flex-col justify-center items-center relative min-h-[60vh] md:min-h-screen bg-gradient-to-b from-transparent via-[#141523]/80 to-[#141523]">
-        <div className="w-full max-w-md space-y-8 z-10">
-          <div className="text-center md:text-left space-y-3">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Sign in to Nigehbaan</h1>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Create an account to sync trusted contacts, safety notes, and alerts. Your data stays under your control.
-            </p>
-          </div>
-          <div className="surface-card p-6 md:p-7 animate-in slide-up">
-            <AuthHub />
-            <div className="mt-4 pt-4 border-t border-white/5 flex flex-col items-center gap-2">
-              <p className="text-[11px] text-slate-400">Having trouble signing in?</p>
-              <button 
-                onClick={onBypass} 
-                className="rounded-lg glass px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
-              >
-                Continue as Guest (Dev Bypass)
-              </button>
-            </div>
+        <ul className="text-left space-y-3 text-sm text-slate-300">
+          <li className="flex gap-3">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+            <span>
+              <span className="font-semibold text-white">SOS + GPS log</span> — one countdown, trusted contacts notified, location stored for evidence.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+            <span>
+              <span className="font-semibold text-white">Live map &amp; feed</span> — see hotspots, tap pins for AI summaries from recent reports.
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+            <span>
+              <span className="font-semibold text-white">Groq-powered insights</span> — instant risk tips on reports and emergencies (with helpline pointers).
+            </span>
+          </li>
+        </ul>
+
+        <div className="surface-card p-6 scroll-mt-8">
+          <p className="text-center text-sm font-bold text-white mb-4">Sign in</p>
+          <AuthHub />
+          <div className="mt-4 pt-4 border-t border-white/5 flex flex-col items-center gap-2">
+            <p className="text-[11px] text-slate-400">Having trouble signing in?</p>
+            <button
+              type="button"
+              onClick={onBypass}
+              className="rounded-lg glass px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
+            >
+              Continue as Guest (Dev Bypass)
+            </button>
           </div>
         </div>
       </div>
@@ -236,13 +254,13 @@ function HomeScreen({
 
   const capabilityPillars = [
     { title: "Emergency SOS", detail: "One tap, trusted contacts, optional police dial." },
-    { title: "Gemini legal & scan", detail: "Chat for rights guidance; DM and media checks." },
+    { title: "Groq + legal & scan", detail: "Fast AI for rights guidance; DM and media checks (Gemini vision where used)." },
     { title: "Safe transit", detail: "Check-ins and journey notes you control." },
     { title: "City pulse", detail: "Community reports so you can avoid hot spots." },
   ];
 
   return (
-    <div className="pb-24 animate-in fade-in overflow-x-hidden">
+    <div className="pb-28 animate-in fade-in overflow-x-hidden">
       {/* Hero Section */}
       <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0a0b12] via-[#1a1530] to-[#141523] px-6 pt-12 pb-20 text-center">
         <div className="pointer-events-none absolute inset-0 hero-grid opacity-70" />
@@ -363,7 +381,7 @@ function HomeScreen({
         <div className="text-center space-y-4">
           <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">One app, one calm flow</h2>
           <p className="text-slate-400 text-base max-w-2xl mx-auto leading-relaxed">
-            Core modules use Google Gemini where noted; everything else is plain, fast UI—so you always know what is AI and what is action.
+            Core modules use Groq (Llama 3.3) for chat and incident insights; vision scans may use Gemini—plain UI for everything else.
           </p>
         </div>
         
@@ -504,11 +522,13 @@ function HomeScreen({
           </div>
         </div>
       </div>
+
     </div>
   );
 }
 
 function CommunityScreen() {
+  const { success, error: toastError } = useToast();
   const [city, setCity] = useState("Lahore");
   const [activePanel, setActivePanel] = useState("feed");
   const [items, setItems] = useState([]);
@@ -539,6 +559,8 @@ function CommunityScreen() {
   const [lastLiveSync, setLastLiveSync] = useState(null);
   const [pendingReports, setPendingReports] = useState([]);
   const [moderationLoading, setModerationLoading] = useState(false);
+  const [attachReportLocation, setAttachReportLocation] = useState(false);
+  const [modKeyInput, setModKeyInput] = useState("");
 
   const loadFeed = useMemo(() => async (targetCity) => {
     setLoading(true);
@@ -546,12 +568,13 @@ function CommunityScreen() {
       const data = await api(`/community/feed?city=${encodeURIComponent(targetCity)}`);
       setItems(data.feed || []);
       setLastLiveSync(new Date().toISOString());
-    } catch {
+    } catch (e) {
+      toastError(e?.message || "Could not load community feed.");
       setItems([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toastError]);
 
   const submitReport = async (e) => {
     e.preventDefault();
@@ -561,8 +584,23 @@ function CommunityScreen() {
       return;
     }
     setSubmitting(true);
+    let lat;
+    let lon;
+    if (attachReportLocation && typeof navigator !== "undefined" && navigator.geolocation) {
+      await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            lat = pos.coords.latitude;
+            lon = pos.coords.longitude;
+            resolve();
+          },
+          () => resolve(),
+          { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 },
+        );
+      });
+    }
     try {
-      await api("/community/report", {
+      const res = await api("/community/report", {
         method: "POST",
         body: JSON.stringify({
           city,
@@ -570,13 +608,18 @@ function CommunityScreen() {
           area: form.area.trim(),
           description: form.description.trim(),
           anonymous: form.anonymous,
+          ...(typeof lat === "number" && typeof lon === "number" ? { lat, lon } : {}),
         }),
       });
       setForm({ category: "Harassment", area: "", description: "", anonymous: true });
-      setSubmitMessage("Report submitted. Thank you for helping the community stay informed.");
+      const tip = res?.aiInsight || res?.report?.aiSummary;
+      setSubmitMessage(tip ? `Report saved. AI insight: ${tip.slice(0, 220)}${tip.length > 220 ? "…" : ""}` : "Report submitted. Thank you for helping the community stay informed.");
+      success("Safety report saved.");
       await loadFeed(city);
-    } catch {
-      setSubmitMessage("Unable to submit report right now. Please try again.");
+    } catch (err) {
+      const msg = err?.message || "Unable to submit report right now.";
+      setSubmitMessage(msg);
+      toastError(msg);
     } finally {
       setSubmitting(false);
     }
@@ -637,7 +680,7 @@ function CommunityScreen() {
         loadFeed(city);
       }
       loadPendingReports();
-    }, 8000);
+    }, 30_000);
     return () => clearInterval(intervalId);
   }, [city, activePanel, liveUpdates, loadChat, loadFeed, loadPendingReports]);
 
@@ -654,9 +697,10 @@ function CommunityScreen() {
           reason: action === "approve" ? "Approved by moderator panel" : "Rejected by moderator panel",
         }),
       });
+      success(action === "approve" ? "Report approved." : "Report updated.");
       await Promise.all([loadPendingReports(), loadFeed(city)]);
-    } catch {
-      // ignore transient errors in demo mode
+    } catch (e) {
+      toastError(e?.message || "Moderation failed. Save MODERATOR_BOOTSTRAP_KEY in the box below or sign in as a moderator.");
     }
   };
 
@@ -672,6 +716,21 @@ function CommunityScreen() {
       return;
     }
     setSendingChat(true);
+    let lat;
+    let lon;
+    if (chatForm.mode === "incident" && typeof navigator !== "undefined" && navigator.geolocation) {
+      await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            lat = pos.coords.latitude;
+            lon = pos.coords.longitude;
+            resolve();
+          },
+          () => resolve(),
+          { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+        );
+      });
+    }
     try {
       await api("/community/chat/message", {
         method: "POST",
@@ -683,6 +742,7 @@ function CommunityScreen() {
           anonymous: chatForm.anonymous,
           area: chatForm.area.trim(),
           category: chatForm.category,
+          ...(typeof lat === "number" && typeof lon === "number" ? { lat, lon } : {}),
         }),
       });
       setChatForm((prev) => ({
@@ -696,12 +756,28 @@ function CommunityScreen() {
           : "Message sent to city channel.",
       );
       await Promise.all([loadChat(city), loadFeed(city), loadPendingReports()]);
-    } catch {
-      setChatMessageStatus("Unable to send message right now.");
+    } catch (e) {
+      const msg = e?.message || "Unable to send message right now.";
+      setChatMessageStatus(msg);
+      toastError(msg);
     } finally {
       setSendingChat(false);
     }
   };
+
+  const mapPins = useMemo(
+    () =>
+      (items || []).map((it) => ({
+        lat: typeof it.lat === "number" ? it.lat : null,
+        lng: typeof it.lng === "number" ? it.lng : null,
+        title: it.title,
+        description: it.description,
+        level: it.level,
+        aiSummary: it.aiSummary || "",
+        timeLabel: it.time ? new Date(it.time).toLocaleString() : "",
+      })),
+    [items],
+  );
 
   const levelStyle = (level) => {
     if (level === "high") return "bg-rose-100 text-rose-800 border-rose-200";
@@ -757,20 +833,35 @@ function CommunityScreen() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-2">
+      <div className="grid grid-cols-3 gap-1.5 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-2">
         <button
+          type="button"
           onClick={() => setActivePanel("feed")}
-          className={`rounded-xl py-2 text-xs font-semibold ${activePanel === "feed" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
+          className={`rounded-xl py-2 text-[11px] font-semibold leading-tight ${activePanel === "feed" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
         >
-          Activity Feed
+          Feed
         </button>
         <button
-          onClick={() => setActivePanel("chat")}
-          className={`rounded-xl py-2 text-xs font-semibold ${activePanel === "chat" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
+          type="button"
+          onClick={() => setActivePanel("map")}
+          className={`rounded-xl py-2 text-[11px] font-semibold leading-tight ${activePanel === "map" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
         >
-          City Safety Chat
+          Map
+        </button>
+        <button
+          type="button"
+          onClick={() => setActivePanel("chat")}
+          className={`rounded-xl py-2 text-[11px] font-semibold leading-tight ${activePanel === "chat" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
+        >
+          Chat
         </button>
       </div>
+
+      {activePanel === "map" ? (
+        <div className="animate-in fade-in space-y-2">
+          <SafeZonesMap city={city} pins={mapPins} />
+        </div>
+      ) : null}
 
       <div className="rounded-2xl glass p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -932,6 +1023,15 @@ function CommunityScreen() {
           placeholder="Describe what happened so others can stay aware..."
           className="w-full rounded-lg glass-dark px-2.5 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
         />
+        <label className="text-[11px] text-slate-400 flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={attachReportLocation}
+            onChange={(e) => setAttachReportLocation(e.target.checked)}
+            className="accent-pink-500"
+          />
+          Attach my GPS to this report (helps the live map)
+        </label>
         {submitMessage ? <p className="text-xs text-purple-400 font-semibold animate-pulse">{submitMessage}</p> : null}
         <button
           type="submit"
@@ -962,6 +1062,12 @@ function CommunityScreen() {
             </div>
             <p className="text-sm font-semibold text-white mt-2">{item.title}</p>
             <p className="text-xs text-slate-400 mt-1">{item.description}</p>
+            {item.aiSummary ? (
+              <div className="mt-2 rounded-xl border border-purple-500/25 bg-purple-500/10 px-3 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-purple-300">AI safety insight</p>
+                <p className="text-xs text-slate-200 mt-1 leading-relaxed">{item.aiSummary}</p>
+              </div>
+            ) : null}
             {item.tags?.length ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {item.tags.map((tag) => (
@@ -987,10 +1093,57 @@ function CommunityScreen() {
         ) : null}
       </div> : null}
 
+      <div className="rounded-2xl glass p-4 space-y-3 border border-amber-500/20">
+        <p className="text-xs font-semibold text-amber-200">Moderator access (hackathon)</p>
+        <p className="text-[10px] text-slate-400 leading-relaxed">
+          Paste the server <span className="text-slate-300">MODERATOR_BOOTSTRAP_KEY</span> so review calls authenticate. Key is stored only in this browser (localStorage).
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="password"
+            value={modKeyInput}
+            onChange={(e) => setModKeyInput(e.target.value)}
+            placeholder="Bootstrap key"
+            className="flex-1 rounded-lg glass-dark px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500/40"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.setItem("nigehbaan_moderator_bootstrap", modKeyInput.trim());
+                  success("Moderator key saved for this browser.");
+                } catch {
+                  toastError("Could not save key in this browser.");
+                }
+              }}
+              className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-500"
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.removeItem("nigehbaan_moderator_bootstrap");
+                  setModKeyInput("");
+                  success("Moderator key cleared.");
+                } catch {
+                  // ignore
+                }
+              }}
+              className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-2xl glass p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-white">Moderator queue (demo)</p>
-          <button onClick={loadPendingReports} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh queue</button>
+          <p className="text-sm font-semibold text-white">Moderator queue</p>
+          <button type="button" onClick={loadPendingReports} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh queue</button>
         </div>
         {moderationLoading ? (
           <p className="text-xs text-slate-400">Loading pending reports...</p>
@@ -1004,9 +1157,15 @@ function CommunityScreen() {
               <p className="text-xs text-slate-400">{report.city} • {report.category}</p>
               <p className="text-sm font-semibold text-white group-hover:text-purple-300 transition-colors">{report.title}</p>
               <p className="text-xs text-slate-400 mt-1">{report.description}</p>
+              {report.aiSummary ? (
+                <p className="text-[11px] text-purple-200/90 mt-2 leading-snug border-t border-white/10 pt-2">
+                  <span className="font-semibold text-purple-300">AI summary: </span>
+                  {report.aiSummary}
+                </p>
+              ) : null}
               <div className="mt-2 flex gap-2">
-                <button onClick={() => moderateReport(report.id, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 transition-colors">Approve</button>
-                <button onClick={() => moderateReport(report.id, "reject")} className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 transition-colors">Reject</button>
+                <button type="button" onClick={() => moderateReport(report.id, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 transition-colors">Approve</button>
+                <button type="button" onClick={() => moderateReport(report.id, "reject")} className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 transition-colors">Reject</button>
               </div>
             </div>
           ))}
@@ -1485,6 +1644,7 @@ function DMScanner() {
 }
 
 function DeepfakeDetector() {
+  const { error: toastError } = useToast();
   const [imageBase64, setImageBase64] = useState(null);
   const [imageMimeType, setImageMimeType] = useState("");
   const [result, setResult] = useState(null);
@@ -1505,15 +1665,17 @@ function DeepfakeDetector() {
     if (!imageBase64 || loading) return;
     setLoading(true);
     try {
-      const data = await api("/api/ai/analyze-image", { 
-        method: "POST", 
-        body: JSON.stringify({ 
-          imageBase64, 
+      const data = await api("/ai/analyze-image", {
+        method: "POST",
+        body: JSON.stringify({
+          imageBase64,
           imageMimeType,
-          toolType: "deepfake"
-        }) 
+          toolType: "deepfake",
+        }),
       });
       setResult(data.result);
+    } catch (e) {
+      toastError(e?.message || "Image analysis failed.");
     } finally {
       setLoading(false);
     }
@@ -1579,6 +1741,7 @@ function DeepfakeDetector() {
 }
 
 function VoiceDetector() {
+  const { error: toastError } = useToast();
   const [fileBase64, setFileBase64] = useState(null);
   const [mimeType, setMimeType] = useState("");
   const [result, setResult] = useState(null);
@@ -1599,15 +1762,17 @@ function VoiceDetector() {
     if (!fileBase64 || loading) return;
     setLoading(true);
     try {
-      const data = await api("/api/ai/analyze-image", { 
-        method: "POST", 
-        body: JSON.stringify({ 
-          imageBase64: fileBase64, 
+      const data = await api("/ai/analyze-image", {
+        method: "POST",
+        body: JSON.stringify({
+          imageBase64: fileBase64,
           imageMimeType: mimeType,
-          toolType: "voice"
-        }) 
+          toolType: "voice",
+        }),
       });
       setResult(data.result);
+    } catch (e) {
+      toastError(e?.message || "Voice analysis failed.");
     } finally {
       setLoading(false);
     }
@@ -1946,20 +2111,46 @@ function SafeTransit({ contacts, autoDialPolice }) {
 }
 
 function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
+  const { success, error: toastError } = useToast();
   const [phase, setPhase] = useState("countdown");
   const [countdown, setCountdown] = useState(5);
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
+  const [sosMeta, setSosMeta] = useState({ location: null, aiTip: "" });
   useEffect(() => {
     if (phase !== "countdown") return;
     if (countdown <= 0) {
       setPhase("active");
-      api("/sos/start", { method: "POST", body: JSON.stringify({ source: "manual" }) }).catch(() => {});
+      const send = (body) => {
+        api("/sos/start", { method: "POST", body: JSON.stringify(body) })
+          .then((res) => {
+            setSosMeta({ location: res?.location || null, aiTip: res?.aiTip || "" });
+            success(res?.location ? "SOS sent with GPS logged." : "SOS sent to your contacts.");
+          })
+          .catch((e) => {
+            toastError(e?.message || "SOS could not reach the server.");
+          });
+      };
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) =>
+            send({
+              source: "manual",
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+            }),
+          () => send({ source: "manual" }),
+          { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 },
+        );
+      } else {
+        send({ source: "manual" });
+      }
       return;
     }
     const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, countdown]);
+  }, [phase, countdown, success, toastError]);
 
   const stopSOS = async () => {
     if (phase === "countdown") return onClose();
@@ -1993,6 +2184,19 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
             <div className="mt-6 space-y-1">
               <p className="text-sm text-red-100">Alerted: <span className="font-bold">{contacts.map((c) => c.name).join(", ") || "No contacts set"}</span></p>
               <p className="text-xs text-red-200">Police (15) {autoDialPolice ? "Auto-dialed" : "Notified"}</p>
+              {sosMeta.location?.lat != null && sosMeta.location?.lon != null ? (
+                <p className="text-[11px] text-red-100/90 font-mono mt-2 break-all">
+                  GPS: {Number(sosMeta.location.lat).toFixed(5)}, {Number(sosMeta.location.lon).toFixed(5)}
+                </p>
+              ) : (
+                <p className="text-[11px] text-red-200/80 mt-2">GPS unavailable — SOS still logged without coordinates.</p>
+              )}
+              {sosMeta.aiTip ? (
+                <div className="mt-3 max-w-sm mx-auto rounded-xl border border-white/20 bg-black/20 px-3 py-2 text-left">
+                  <p className="text-[10px] uppercase tracking-wide text-red-200 font-bold">AI tip</p>
+                  <p className="text-xs text-red-50 mt-1 leading-relaxed">{sosMeta.aiTip}</p>
+                </div>
+              ) : null}
             </div>
             
             <div className="mt-10 w-full max-w-[240px] space-y-2">
@@ -2022,8 +2226,11 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
   );
 }
 
-function MoreScreen({ settings, setSettings, contacts, setContacts }) {
+function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }) {
+  const { success, error: toastError } = useToast();
+  const [fakeCallOpen, setFakeCallOpen] = useState(false);
   const [name, setName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [phone, setPhone] = useState("+923001112233");
   const [deviceId, setDeviceId] = useState("demo-device");
   const [otpCode, setOtpCode] = useState("");
@@ -2040,17 +2247,36 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
   const [consultLoading, setConsultLoading] = useState(false);
   const addContact = async () => {
     if (!name.trim()) return;
-    const data = await api("/contacts", { method: "POST", body: JSON.stringify({ name: name.trim() }) });
-    setContacts(data.contacts);
-    setName("");
+    try {
+      const data = await api("/contacts", {
+        method: "POST",
+        body: JSON.stringify({ name: name.trim(), phone: (contactPhone.trim() || phone.trim() || "+920000000000").slice(0, 32) }),
+      });
+      setContacts(data.contacts || []);
+      setName("");
+      setContactPhone("");
+      success("Contact saved.");
+    } catch (e) {
+      toastError(e?.message || "Could not add contact.");
+    }
   };
   const removeContact = async (id) => {
-    const data = await api(`/contacts/${id}`, { method: "DELETE" });
-    setContacts(data.contacts);
+    try {
+      const data = await api(`/contacts/${id}`, { method: "DELETE" });
+      setContacts(data.contacts || []);
+      success("Contact removed.");
+    } catch (e) {
+      toastError(e?.message || "Could not remove contact.");
+    }
   };
   const updateSetting = async (next) => {
-    const data = await api("/settings", { method: "PUT", body: JSON.stringify(next) });
-    setSettings(data.settings);
+    try {
+      const data = await api("/settings", { method: "PUT", body: JSON.stringify(next) });
+      setSettings(data.settings);
+      success("Settings updated.");
+    } catch (e) {
+      toastError(e?.message || "Could not save settings.");
+    }
   };
 
   const requestOtp = async () => {
@@ -2135,9 +2361,111 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
   useEffect(() => {
     loadConsultRequests();
   }, []);
+
+  const sendQuickAlertSms = () => {
+    if (!contacts.length) {
+      toastError("Add trusted contacts in My safety circle first.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const body = encodeURIComponent(
+          `NIgaban quick alert — I may need help. My live location: https://www.google.com/maps?q=${lat},${lng}`,
+        );
+        const sanitized = contacts
+          .slice(0, 3)
+          .map((c) => String(c.phone || "").replace(/[^\d+]/g, "").trim())
+          .filter(Boolean);
+        if (!sanitized.length) {
+          toastError("Add phone numbers with country code (e.g. +92300…).");
+          return;
+        }
+        window.location.href = `sms:${sanitized.join(",")}?body=${body}`;
+      },
+      () => toastError("Allow location so your SMS includes live GPS."),
+      { enableHighAccuracy: true, timeout: 14_000, maximumAge: 30_000 },
+    );
+  };
+
+  const enableShakeMotion = async () => {
+    try {
+      if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+        const r = await DeviceMotionEvent.requestPermission();
+        if (r !== "granted") {
+          toastError("Motion permission denied.");
+          return;
+        }
+      }
+      try {
+        localStorage.setItem("nigehbaan_motion", "1");
+      } catch {
+        // ignore
+      }
+      window.dispatchEvent(new Event("nigehbaan-motion-enabled"));
+      success("Shake-to-SOS armed. Three firm shakes start a 3s countdown (cancel on screen).");
+    } catch {
+      toastError("Could not enable motion on this device.");
+    }
+  };
+
   return (
-    <div className="px-4 pt-4 pb-24 space-y-5">
+    <div className="px-4 pt-4 pb-28 space-y-5">
+      <FakeCallOverlay open={fakeCallOpen} onClose={() => setFakeCallOpen(false)} />
       <h2 className="text-2xl font-semibold">Resources & Settings</h2>
+
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Quick open</p>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { id: "shield", label: "AI Shield", icon: Shield },
+            { id: "legal", label: "Legal desk", icon: Scale },
+            { id: "transit", label: "Safe transit", icon: MapPin },
+            { id: "community", label: "Community", icon: Activity },
+          ].map((x) => {
+            const Icon = x.icon;
+            return (
+              <button
+                key={x.id}
+                type="button"
+                onClick={() => onNavigate(x.id)}
+                className="rounded-xl border border-white/10 bg-[#141523]/80 px-3 py-2.5 flex items-center gap-2 text-left hover:bg-white/10 transition-colors"
+              >
+                <Icon className="w-4 h-4 text-purple-400 shrink-0" />
+                <span className="text-xs font-semibold text-white">{x.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-3">
+        <p className="text-xs uppercase tracking-wide text-emerald-400 font-semibold">Discreet tools</p>
+        <button
+          type="button"
+          onClick={() => setFakeCallOpen(true)}
+          className="w-full rounded-xl border border-white/10 bg-[#141523] px-3 py-2.5 text-sm font-semibold text-white text-left hover:bg-white/10 transition-colors flex items-center gap-2"
+        >
+          <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
+          Fake incoming call
+        </button>
+        <div className="rounded-xl border border-white/10 bg-[#141523]/60 p-3">
+          <p className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold mb-2">Voice Note</p>
+          <VoiceNoteRecorder />
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
+        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Shake-to-SOS (iOS)</p>
+        <p className="text-[11px] text-slate-400 leading-relaxed">
+          On iPhone, motion access needs a tap. Android often works without this step. Three quick shakes start a 3-second cancel countdown, then your normal SOS flow runs.
+        </p>
+        <button type="button" onClick={enableShakeMotion} className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15">
+          Enable shake detection
+        </button>
+      </div>
+
       <div className="space-y-2">
         {[{ n: "Police", no: "15", i: Phone }, { n: "Madadgaar", no: "1099", i: Heart }, { n: "FIA Cybercrime", no: "1991", i: Shield }, { n: "Punjab Women Helpline", no: "1043", i: Building2 }].map((h) => {
           const Icon = h.i;
@@ -2145,9 +2473,25 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
         })}
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
-        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Trusted Contacts</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">My safety circle</p>
+          <button
+            type="button"
+            onClick={sendQuickAlertSms}
+            className="rounded-lg bg-gradient-to-r from-rose-600 to-red-700 text-white text-[10px] font-bold px-3 py-1.5 shadow-lg shadow-rose-900/30"
+          >
+            Quick alert SMS
+          </button>
+        </div>
+        <p className="text-[10px] text-slate-500 leading-relaxed">
+          Saves up to three numbers. Opens your SMS app with a distress line and a live Google Maps link (no server SMS). Some phones only fill the first recipient — resend if needed.
+        </p>
         {contacts.map((contact) => <div key={contact.id} className="flex items-center justify-between bg-white/10 rounded-lg px-3 py-2"><span className="text-sm">{contact.name}</span><button onClick={() => removeContact(contact.id)} className="text-xs font-semibold text-rose-700">Remove</button></div>)}
-        <div className="flex gap-2"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="New contact" className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-sm" /><button onClick={addContact} className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold">Add</button></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="rounded-lg border border-white/10 px-3 py-2 text-sm" />
+          <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="Phone (+92…)" className="rounded-lg border border-white/10 px-3 py-2 text-sm" />
+        </div>
+        <button type="button" onClick={addContact} className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold">Add contact</button>
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
         <p className="text-xs uppercase tracking-wide text-pink-400 font-semibold">Account Profile</p>
@@ -2286,6 +2630,7 @@ function ShieldHub({ onSelectTool }) {
 }
 
 function FloatingChatbot() {
+  const { error: chatToastError } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([{ role: "assistant", content: "Hi! I'm Nigehbaan AI. How can I help you stay safe today?" }]);
   const [input, setInput] = useState("");
@@ -2306,8 +2651,9 @@ function FloatingChatbot() {
     setLoading(true);
     try {
       const data = await api("/legal/chat", { method: "POST", body: JSON.stringify({ message: userText, history: next.slice(0, -1) }) });
-      setMessages([...next, { role: "assistant", content: data.reply }]);
-    } catch {
+      setMessages([...next, { role: "assistant", content: data.reply || "No reply returned." }]);
+    } catch (e) {
+      chatToastError(e?.message || "Legal chat unreachable.");
       setMessages([...next, { role: "assistant", content: "Sorry, I'm having trouble connecting. Please try again later." }]);
     } finally {
       setLoading(false);
@@ -2315,7 +2661,7 @@ function FloatingChatbot() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
+    <div className="fixed bottom-24 right-4 sm:right-6 z-[100] flex flex-col items-end">
       {isOpen && (
         <div className="mb-4 w-[350px] h-[500px] rounded-3xl glass shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/10 flex flex-col overflow-hidden animate-in slide-up zoom-in duration-300">
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 flex items-center justify-between">
@@ -2325,7 +2671,7 @@ function FloatingChatbot() {
               </div>
               <div>
                 <p className="font-bold text-white text-sm leading-tight">Nigehbaan AI</p>
-                <p className="text-[10px] text-white/75 font-medium">Powered by Google Gemini</p>
+                <p className="text-[10px] text-white/75 font-medium">Groq (Llama 3.3) · Gemini fallback</p>
               </div>
             </div>
             <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white transition-colors">
@@ -2395,24 +2741,51 @@ export default function App() {
   const [settings, setSettings] = useState({ stealthMode: false, autoDialPolice: true, cancelPin: "1234" });
   const [backendOk, setBackendOk] = useState(true);
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [shakeSosSecs, setShakeSosSecs] = useState(null);
+  const shakeTimerRef = useRef(null);
+  const impulseTimesRef = useRef([]);
+  const shakeCountdownActiveRef = useRef(false);
+
+  const [motionConsent, setMotionConsent] = useState(() => {
+    if (typeof navigator === "undefined") return true;
+    const ua = navigator.userAgent || "";
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (!isIOS) return true;
+    try {
+      return localStorage.getItem("nigehbaan_motion") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [timelineEntries, setTimelineEntries] = useState([]);
   const [timelineText, setTimelineText] = useState("");
   const [timelineSaving, setTimelineSaving] = useState(false);
   const [clerkProfileSyncHint, setClerkProfileSyncHint] = useState(null);
   const [communityFeed, setCommunityFeed] = useState([]);
+  const [showFirstVisitWelcome, setShowFirstVisitWelcome] = useState(false);
+
+  const { success: appToastSuccess, error: appToastError } = useToast();
+
+  useEffect(() => {
+    try {
+      setShowFirstVisitWelcome(localStorage.getItem("nigaban_welcomed") !== "true");
+    } catch {
+      setShowFirstVisitWelcome(true);
+    }
+  }, []);
 
   const loadCommunityFeed = async () => {
     try {
       const data = await api("/community/feed?city=Lahore");
       setCommunityFeed(data.feed || []);
-    } catch {
-      // ignore
+    } catch (e) {
+      appToastError(e?.message || "Could not refresh home feed.");
     }
   };
 
   useEffect(() => {
     loadCommunityFeed();
-    const interval = setInterval(loadCommunityFeed, 60000);
+    const interval = setInterval(loadCommunityFeed, 30_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -2496,6 +2869,67 @@ export default function App() {
 
   const isAuthenticated = clerkSignedIn || !!supabaseSession;
 
+  useEffect(() => {
+    const onMotionEnabled = () => setMotionConsent(true);
+    window.addEventListener("nigehbaan-motion-enabled", onMotionEnabled);
+    return () => window.removeEventListener("nigehbaan-motion-enabled", onMotionEnabled);
+  }, []);
+
+  const cancelShakeSos = () => {
+    if (shakeTimerRef.current) {
+      clearInterval(shakeTimerRef.current);
+      shakeTimerRef.current = null;
+    }
+    shakeCountdownActiveRef.current = false;
+    setShakeSosSecs(null);
+  };
+
+  useEffect(() => {
+    if (!(isAuthenticated || devBypass) || sosActive || !motionConsent) return undefined;
+    let lastMag = 0;
+    let primed = false;
+    const onMotion = (e) => {
+      if (shakeCountdownActiveRef.current) return;
+      const raw = e.acceleration;
+      const g = raw && (raw.x != null || raw.y != null) ? raw : e.accelerationIncludingGravity;
+      if (!g || g.x == null) return;
+      const mag = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z);
+      if (!primed) {
+        primed = true;
+        lastMag = mag;
+        return;
+      }
+      const delta = Math.abs(mag - lastMag);
+      lastMag = lastMag * 0.65 + mag * 0.35;
+      if (delta < 13) return;
+      const now = performance.now();
+      impulseTimesRef.current = impulseTimesRef.current.filter((t) => now - t < 1600);
+      impulseTimesRef.current.push(now);
+      if (impulseTimesRef.current.length < 3) return;
+      impulseTimesRef.current = [];
+      if (shakeTimerRef.current) return;
+      shakeCountdownActiveRef.current = true;
+      let left = 3;
+      setShakeSosSecs(left);
+      shakeTimerRef.current = window.setInterval(() => {
+        left -= 1;
+        if (left <= 0) {
+          if (shakeTimerRef.current) clearInterval(shakeTimerRef.current);
+          shakeTimerRef.current = null;
+          shakeCountdownActiveRef.current = false;
+          setShakeSosSecs(null);
+          setSosActive(true);
+          return;
+        }
+        setShakeSosSecs(left);
+      }, 1000);
+    };
+    window.addEventListener("devicemotion", onMotion, true);
+    return () => {
+      window.removeEventListener("devicemotion", onMotion, true);
+    };
+  }, [isAuthenticated, devBypass, sosActive, motionConsent]);
+
   const userProfile = clerkSignedIn ? (clerkUser?.primaryEmailAddress?.emailAddress || clerkUser?.fullName || "User") : supabaseSession ? supabaseSession.user.email : devBypass ? "Guest" : null;
 
   const handleSignOut = async () => {
@@ -2510,10 +2944,14 @@ export default function App() {
 
   useEffect(() => {
     Promise.all([api("/health"), api("/state")])
-      .then(([, state]) => {
+      .then(([health, state]) => {
+        if (!health || health.ok === false || health.status === "error") {
+          setBackendOk(false);
+          return;
+        }
+        setBackendOk(true);
         setContacts(state.contacts || []);
         setSettings((prev) => state.settings || prev);
-        setBackendOk(true);
       })
       .catch(() => setBackendOk(false));
   }, []);
@@ -2551,8 +2989,9 @@ export default function App() {
       });
       setTimelineText("");
       await loadTimeline();
-    } catch {
-      // ignore temporary errors in UI
+      appToastSuccess("Safety note saved.");
+    } catch (e) {
+      appToastError(e?.message || "Could not save safety note.");
     } finally {
       setTimelineSaving(false);
     }
@@ -2592,10 +3031,11 @@ export default function App() {
 
   const rendered = useMemo(() => {
     if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} communityFeed={communityFeed} />;
+    if (screen === "map") return <SafetyMapScreen />;
     if (screen === "legal") return <LegalChat />;
     if (screen === "transit") return <SafeTransit contacts={contacts} autoDialPolice={settings.autoDialPolice} />;
     if (screen === "community") return <CommunityScreen />;
-    if (screen === "more") return <MoreScreen settings={settings} setSettings={setSettings} contacts={contacts} setContacts={setContacts} />;
+    if (screen === "more") return <MoreScreen settings={settings} setSettings={setSettings} contacts={contacts} setContacts={setContacts} onNavigate={handleNavigate} />;
     if (screen === "shield") {
       if (shieldTool === "dm") return <DMScanner />;
       if (shieldTool === "deepfake") return <DeepfakeDetector />;
@@ -2607,7 +3047,9 @@ export default function App() {
   }, [screen, shieldTool, lang, contacts, settings, installPromptEvent, timelineEntries, timelineText, timelineSaving, communityFeed]);
 
   const title =
-    screen === "transit"
+    screen === "map"
+      ? "Safety map"
+      : screen === "transit"
       ? "Safe Transit"
       : screen === "community"
       ? "Community"
@@ -2618,42 +3060,84 @@ export default function App() {
       : null;
 
   const authShellLoading = !clerkLoaded || !supabaseAuthReady;
+  const firstVisitOverlay = showFirstVisitWelcome ? (
+    <FirstVisitWelcome onComplete={() => setShowFirstVisitWelcome(false)} />
+  ) : null;
+
   if (authShellLoading && !devBypass) {
     return (
-      <div className="min-h-screen bg-[#141523] flex flex-col items-center justify-center px-6 text-center">
-        <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
-        <p className="mt-4 text-xs text-slate-500 max-w-sm">
-          Loading sign-in… If this never finishes, check <span className="text-slate-400">VITE_CLERK_PUBLISHABLE_KEY</span>, Supabase URL/keys, and network. Run{" "}
-          <span className="font-mono text-slate-400">npm run dev:full</span> so the API is up.
-        </p>
-      </div>
+      <>
+        {firstVisitOverlay}
+        <div className="min-h-screen bg-[#141523] flex flex-col items-center justify-center px-6 text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
+          <p className="mt-4 text-xs text-slate-500 max-w-sm">
+            Loading sign-in… If this never finishes, check <span className="text-slate-400">VITE_CLERK_PUBLISHABLE_KEY</span>, Supabase URL/keys, and network. Run{" "}
+            <span className="font-mono text-slate-400">npm run dev:full</span> so the API is up.
+          </p>
+        </div>
+      </>
     );
   }
 
   if (!isAuthenticated && !devBypass) {
-    return <WelcomeAuthScreen onBypass={() => setDevBypass(true)} />;
+    return (
+      <>
+        {firstVisitOverlay}
+        <WelcomeAuthScreen onBypass={() => setDevBypass(true)} installPromptEvent={installPromptEvent} onInstall={handleInstallApp} />
+      </>
+    );
   }
 
   return (
+    <>
+      {firstVisitOverlay}
     <div className="min-h-screen bg-[#141523] text-white">
       <div className="w-full max-w-5xl mx-auto min-h-screen lg:min-h-[92vh] lg:my-4 bg-[#141523] shadow-xl lg:rounded-3xl overflow-hidden flex flex-col relative z-0">
         {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} userProfile={userProfile} onSignOut={handleSignOut} isClerk={clerkSignedIn} stealthMode={settings.stealthMode} /> : null}
-        <main className={`flex-1 ${screen === "legal" ? "flex flex-col" : "overflow-y-auto"}`}>{rendered}</main>
+        <main className={`flex-1 ${screen === "legal" ? "flex flex-col" : "overflow-y-auto"} ${!sosActive ? "pb-28" : ""}`}>{rendered}</main>
         {!sosActive ? (
           <>
-            <BottomNav active={screen} onNavigate={handleNavigate} />
+            {installPromptEvent ? (
+              <div className="fixed bottom-[4.25rem] left-0 right-0 z-[45] px-3 pointer-events-none max-w-5xl mx-auto">
+                <div className="pointer-events-auto flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-[#1e1040]/95 backdrop-blur-md px-3 py-2 shadow-lg">
+                  <p className="text-[11px] text-slate-200 leading-snug">
+                    <span className="font-bold text-white">Install NIgaban</span> — works offline after first load.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleInstallApp}
+                    className="shrink-0 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 px-3 py-1.5 text-[10px] font-bold text-white"
+                  >
+                    Install
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            <BottomNav active={screen} onNavigate={handleNavigate} onSOS={() => setSosActive(true)} />
             <FloatingChatbot />
           </>
+        ) : null}
+        {shakeSosSecs !== null ? (
+          <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/75 px-5">
+            <div className="w-full max-w-sm rounded-2xl border border-rose-500/35 bg-[#141523] p-6 text-center space-y-4 shadow-2xl">
+              <p className="text-sm font-bold text-white uppercase tracking-wide">Shake SOS</p>
+              <p className="text-5xl font-black text-rose-400 tabular-nums">{shakeSosSecs}</p>
+              <p className="text-xs text-slate-400 leading-relaxed">Emergency SOS starts when this reaches zero. Cancel if this was accidental.</p>
+              <button type="button" onClick={cancelShakeSos} className="w-full py-3.5 rounded-xl bg-white text-rose-900 font-bold text-sm active:scale-[0.99] transition-transform">
+                Cancel
+              </button>
+            </div>
+          </div>
         ) : null}
         {sosActive ? <SOSScreen onClose={() => setSosActive(false)} contacts={contacts} autoDialPolice={settings.autoDialPolice} cancelPin={settings.cancelPin} /> : null}
       </div>
       {!backendOk ? (
-        <div className="fixed bottom-3 right-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-900 flex items-center gap-1.5 z-50">
+        <div className="fixed bottom-[5.5rem] right-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-900 flex items-center gap-1.5 z-50 max-w-[min(92vw,20rem)]">
           <AlertCircle className="w-3.5 h-3.5" /> Backend offline. Start with `npm run dev:full`.
         </div>
       ) : null}
       {clerkSignedIn && clerkProfileSyncHint ? (
-        <div className="fixed bottom-3 left-3 max-w-sm rounded-xl border border-amber-400/40 bg-amber-950/90 px-3 py-2 text-[11px] text-amber-100 flex items-start gap-2 z-50 shadow-lg">
+        <div className="fixed bottom-[5.5rem] left-3 max-w-sm rounded-xl border border-amber-400/40 bg-amber-950/90 px-3 py-2 text-[11px] text-amber-100 flex items-start gap-2 z-50 shadow-lg">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400 mt-0.5" />
           <span>
             <span className="font-semibold text-amber-200">Account sync: </span>
@@ -2662,5 +3146,6 @@ export default function App() {
         </div>
       ) : null}
     </div>
+    </>
   );
 }
