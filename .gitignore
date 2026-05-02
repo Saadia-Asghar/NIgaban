@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 # Local API fallback store (regenerated when DB unavailable)
-server/data.json
+api/data.json
 .env
 .env.*
 !.env.example
