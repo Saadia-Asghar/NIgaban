@@ -9,7 +9,7 @@ import { Pool } from "pg";
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
-const dataPath = path.resolve(process.cwd(), "server", "data.json");
+const dataPath = path.resolve(process.cwd(), "api", "data.json");
 const supabaseDbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
 const useSupabaseDb = Boolean(supabaseDbUrl);
 const dbPool = useSupabaseDb
