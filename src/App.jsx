@@ -9,6 +9,7 @@ import MarketingLanding from "./components/MarketingLanding.jsx";
 import FakeCallOverlay from "./components/FakeCallOverlay.jsx";
 import VoiceNoteRecorder from "./components/VoiceNoteRecorder.jsx";
 import FirstVisitWelcome from "./components/FirstVisitWelcome.jsx";
+import HifazatGuide from "./components/HifazatGuide.jsx";
 import { BRAND_TAGLINE_EN, BRAND_TAGLINE_UR, BRAND_TAGLINE_SHORT } from "./lib/brand.js";
 import { buildIncidentReportText, downloadIncidentReport, printIncidentReportAsPdf } from "./lib/incidentReport.js";
 import { useToast } from "./lib/toastContext.jsx";
@@ -31,6 +32,7 @@ import {
   Loader2,
   Lock,
   LogOut,
+  MessageCircle,
   MapPin,
   MessageSquare,
   Phone,
@@ -51,7 +53,7 @@ function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut
   const displayTitle = stealthMode ? "Personal Notes" : title || "NIgaban";
   const displaySubtitle = stealthMode ? "Drafts · your notes" : lang === "ur" ? BRAND_TAGLINE_UR : BRAND_TAGLINE_EN;
   return (
-    <header className="sticky top-0 z-20 glass-dark px-4 py-3 flex items-center justify-between">
+    <div className="px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         {showBack ? (
           <button onClick={onBack} className="rounded-full p-1.5 hover:bg-white/10 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
@@ -63,7 +65,7 @@ function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut
         <div>
           <h1 className="text-lg font-semibold text-white">{displayTitle}</h1>
           {!title ? (
-            <p className="text-[8px] sm:text-[9px] text-slate-400 leading-snug max-w-[14rem] sm:max-w-xs">{displaySubtitle}</p>
+            <p className="text-[8px] sm:text-[9px] text-slate-400 leading-snug max-w-[14rem] sm:max-w-2xl">{displaySubtitle}</p>
           ) : null}
         </div>
       </div>
@@ -82,7 +84,74 @@ function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut
           </div>
         ) : null}
       </div>
-    </header>
+    </div>
+  );
+}
+
+/** Primary app sections — scrollable on small screens, complements bottom nav. */
+function FeatureNavTabs({ screen, shieldTool, onNavigate, onSelectShieldTool }) {
+  const mainTabs = [
+    { id: "home", label: "Home", icon: Home },
+    { id: "map", label: "Map", icon: MapPin },
+    { id: "hifazat", label: "Hifazat", icon: MessageCircle },
+    { id: "legal", label: "Legal", icon: Scale },
+    { id: "shield", label: "AI Shield", icon: Shield },
+    { id: "community", label: "Community", icon: Activity },
+    { id: "transit", label: "Transit", icon: Building2 },
+    { id: "more", label: "Profile", icon: UserCircle },
+  ];
+  const activeMain = (id) => {
+    if (id === "shield") return screen === "shield";
+    return screen === id;
+  };
+  const shieldSubs = [
+    { tool: null, label: "Overview" },
+    { tool: "dm", label: "DM scan" },
+    { tool: "deepfake", label: "Deepfake" },
+    { tool: "voice", label: "Voice" },
+    { tool: "distress", label: "Distress" },
+  ];
+  return (
+    <div className="border-t border-white/5 bg-black/20">
+      <nav className="flex gap-1 overflow-x-auto px-2 py-2 scrollbar-thin max-w-7xl mx-auto" aria-label="Main sections">
+        {mainTabs.map((t) => {
+          const Icon = t.icon;
+          const on = activeMain(t.id);
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => onNavigate(t.id)}
+              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
+                on ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 opacity-90" />
+              {t.label}
+            </button>
+          );
+        })}
+      </nav>
+      {screen === "shield" ? (
+        <nav className="flex gap-1 overflow-x-auto px-2 pb-2 border-t border-white/5 max-w-7xl mx-auto" aria-label="AI Shield tools">
+          {shieldSubs.map((s) => {
+            const on = shieldTool === s.tool;
+            return (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => onSelectShieldTool(s.tool)}
+                className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
+                  on ? "bg-violet-500/30 text-violet-100 border border-violet-400/40" : "text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </nav>
+      ) : null}
+    </div>
   );
 }
 
@@ -105,7 +174,7 @@ function BottomNav({ active, onNavigate, onSOS }) {
   };
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/10 pt-1 pb-[max(0.35rem,env(safe-area-inset-bottom))]">
-      <div className="max-w-5xl mx-auto flex items-end justify-between gap-0 px-1">
+      <div className="w-full max-w-7xl mx-auto flex items-end justify-between gap-0 px-1">
         {tabBtn("home", Home, "Home")}
         {tabBtn("map", MapPin, "Map")}
         <div className="flex flex-col items-center shrink-0 px-1">
@@ -127,6 +196,17 @@ function BottomNav({ active, onNavigate, onSOS }) {
 
 function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
   const authCardRef = useRef(null);
+
+  useEffect(() => {
+    const scrollAuth = () => {
+      window.setTimeout(() => {
+        authCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    };
+    window.addEventListener("nigaban-scroll-auth", scrollAuth);
+    return () => window.removeEventListener("nigaban-scroll-auth", scrollAuth);
+  }, []);
+
   const slides = [
     {
       title: "Pakistan’s AI legal safety layer",
@@ -170,7 +250,7 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
         onInstall={onInstall}
       />
 
-      <div ref={authCardRef} className="scroll-mt-4 border-t border-white/10 bg-gradient-to-b from-[#141523] to-[#0a0b12] px-5 py-12 max-w-lg mx-auto w-full space-y-8">
+      <div ref={authCardRef} className="scroll-mt-4 border-t border-white/10 bg-gradient-to-b from-[#141523] to-[#0a0b12] px-5 py-12 max-w-2xl mx-auto w-full space-y-8">
         <div className="surface-card surface-card-interactive p-6" key={step}>
           <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl ${slide.color} shadow-inner`}>
             <Icon className="h-6 w-6" />
@@ -385,8 +465,9 @@ function HomeScreen({
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           {[
+            { id: "hifazat", title: "Hifazat Guide", desc: "Full-page legal safety Q&A for Pakistan (works offline for common topics when the API is down).", icon: MessageCircle, color: "text-teal-400" },
             { id: "shield", title: "AI Threat Shield", desc: "Scan messages or audio for red flags before you reply or meet.", icon: Shield, color: "text-purple-400" },
             { id: "transit", title: "Safe Transit", desc: "Share trip context and check in with people you trust.", icon: MapPin, color: "text-emerald-400" },
             { id: "legal", title: "Legal AI desk", desc: "Orient on rights and paperwork—then speak with a qualified lawyer for decisions.", icon: Scale, color: "text-blue-400" },
@@ -1676,7 +1757,7 @@ function DMScanner() {
   };
 
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
       <h2 className="text-xl font-semibold">DM Harassment Scanner</h2>
       <div className="space-y-3">
         <textarea 
@@ -1767,11 +1848,11 @@ function DeepfakeDetector() {
   };
 
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
       <h2 className="text-xl font-semibold text-white">Deepfake Detector</h2>
-      <div className="rounded-2xl glass p-6 text-center space-y-4">
+      <div className="rounded-2xl glass p-6 sm:p-8 text-center space-y-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-full max-w-xs h-48 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative group hover:bg-white/5 hover:border-purple-500/50 transition-all cursor-pointer">
+          <div className="w-full max-w-full sm:max-w-md md:max-w-lg h-56 sm:h-64 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative group hover:bg-white/5 hover:border-purple-500/50 transition-all cursor-pointer">
             {imageBase64 ? (
               <img src={`data:${imageMimeType};base64,${imageBase64}`} alt="Target" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
             ) : (
@@ -1807,7 +1888,15 @@ function DeepfakeDetector() {
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${result.classification === "AI-Generated" ? "bg-red-500/20 text-red-400" : result.classification === "Suspicious" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
                 {result.classification}
               </span>
-              <span className="text-[10px] text-slate-400">Confidence: {result.confidence_score}%</span>
+              <span className="text-[10px] text-slate-400">
+                Confidence:{" "}
+                {typeof result.confidence_score === "number"
+                  ? result.confidence_score <= 1
+                    ? Math.round(result.confidence_score * 100)
+                    : Math.round(result.confidence_score)
+                  : "—"}
+                %
+              </span>
             </div>
             <p className="text-sm text-slate-200">{result.explanation}</p>
             {result.anomalies?.length > 0 && (
@@ -1864,11 +1953,11 @@ function VoiceDetector() {
   };
 
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
       <h2 className="text-xl font-semibold text-white">Voice Clone Detector</h2>
-      <div className="rounded-2xl glass p-6 text-center space-y-4">
+      <div className="rounded-2xl glass p-6 sm:p-8 text-center space-y-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-full max-w-xs h-32 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative group hover:bg-white/5 hover:border-purple-500/50 transition-all cursor-pointer">
+          <div className="w-full max-w-full sm:max-w-md h-36 sm:h-40 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative group hover:bg-white/5 hover:border-purple-500/50 transition-all cursor-pointer">
             {fileBase64 ? (
               <div className="flex flex-col items-center gap-2 text-purple-400">
                 <Volume2 className="w-8 h-8 group-hover:scale-110 transition-transform" />
@@ -1907,7 +1996,15 @@ function VoiceDetector() {
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${result.classification === "Synthetic" ? "bg-red-500/20 text-red-400" : result.classification === "Suspicious" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
                 {result.classification}
               </span>
-              <span className="text-[10px] text-slate-400">Confidence: {result.confidence_score}%</span>
+              <span className="text-[10px] text-slate-400">
+                Confidence:{" "}
+                {typeof result.confidence_score === "number"
+                  ? result.confidence_score <= 1
+                    ? Math.round(result.confidence_score * 100)
+                    : Math.round(result.confidence_score)
+                  : "—"}
+                %
+              </span>
             </div>
             <p className="text-sm text-slate-200">{result.explanation}</p>
             {result.anomalies?.length > 0 && (
@@ -2496,7 +2593,7 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
   };
 
   return (
-    <div className="px-4 pt-4 pb-28 space-y-5">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5">
       <FakeCallOverlay open={fakeCallOpen} onClose={() => setFakeCallOpen(false)} />
       <h2 className="text-2xl font-semibold">Resources & Settings</h2>
 
@@ -2504,6 +2601,7 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
         <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Quick open</p>
         <div className="grid grid-cols-2 gap-2">
           {[
+            { id: "hifazat", label: "Hifazat guide", icon: MessageCircle },
             { id: "shield", label: "AI Shield", icon: Shield },
             { id: "legal", label: "Legal desk", icon: Scale },
             { id: "transit", label: "Safe transit", icon: MapPin },
@@ -2703,10 +2801,10 @@ function ShieldHub({ onSelectTool }) {
     { id: "distress", title: "Distress Listener", icon: Ear, desc: "Auto-SOS on scream/keywords" },
   ];
   return (
-    <div className="px-4 pt-5 pb-24 space-y-3 animate-in fade-in">
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-5 pb-28 space-y-4 animate-in fade-in">
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-white tracking-tight">AI Threat Shield</h2>
-        <p className="text-sm text-slate-400 mt-1 leading-snug">Gemini-backed checks where configured—use alongside your own judgment.</p>
+        <p className="text-sm text-slate-400 mt-1 leading-snug max-w-3xl">Gemini-backed checks where configured—use alongside your own judgment.</p>
       </div>
       <div className="grid grid-cols-1 gap-3">
         {tools.map((t) => {
@@ -3162,6 +3260,7 @@ export default function App() {
   const rendered = useMemo(() => {
     if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} communityFeed={communityFeed} />;
     if (screen === "map") return <SafetyMapScreen />;
+    if (screen === "hifazat") return <HifazatGuide variant="page" />;
     if (screen === "legal") return <LegalChat />;
     if (screen === "transit") return <SafeTransit contacts={contacts} autoDialPolice={settings.autoDialPolice} />;
     if (screen === "community") return <CommunityScreen />;
@@ -3185,6 +3284,18 @@ export default function App() {
       ? "Community"
       : screen === "more"
       ? "Resources"
+      : screen === "legal"
+      ? "Legal AI desk"
+      : screen === "hifazat"
+      ? "Hifazat Guide"
+      : screen === "shield" && shieldTool === "dm"
+      ? "DM Harassment Scanner"
+      : screen === "shield" && shieldTool === "deepfake"
+      ? "Deepfake Detector"
+      : screen === "shield" && shieldTool === "voice"
+      ? "Voice Clone Detector"
+      : screen === "shield" && shieldTool === "distress"
+      ? "Distress Listener"
       : screen === "shield" && !shieldTool
       ? "AI Threat Shield"
       : null;
@@ -3221,14 +3332,44 @@ export default function App() {
   return (
     <>
       {firstVisitOverlay}
-    <div className="min-h-screen bg-[#141523] text-white">
-      <div className="w-full max-w-5xl mx-auto min-h-screen lg:min-h-[92vh] lg:my-4 bg-[#141523] shadow-xl lg:rounded-3xl overflow-hidden flex flex-col relative z-0">
-        {!sosActive ? <Header lang={lang} setLang={setLang} title={title} showBack={screen === "shield" && shieldTool !== null} onBack={() => setShieldTool(null)} userProfile={userProfile} onSignOut={handleSignOut} isClerk={clerkSignedIn} stealthMode={settings.stealthMode} /> : null}
-        <main className={`flex-1 ${screen === "legal" ? "flex flex-col" : "overflow-y-auto"} ${!sosActive ? "pb-28" : ""}`}>{rendered}</main>
+    <div className="min-h-[100dvh] bg-[#141523] text-white w-full">
+      <div className="w-full min-h-[100dvh] bg-[#141523] overflow-hidden flex flex-col relative z-0">
+        {!sosActive ? (
+          <div className="sticky top-0 z-20 shrink-0 glass-dark border-b border-white/10 backdrop-blur-md">
+            <Header
+              lang={lang}
+              setLang={setLang}
+              title={title}
+              showBack={(screen === "shield" && shieldTool !== null) || screen === "hifazat"}
+              onBack={() => {
+                if (screen === "hifazat") handleNavigate("home");
+                else setShieldTool(null);
+              }}
+              userProfile={userProfile}
+              onSignOut={handleSignOut}
+              isClerk={clerkSignedIn}
+              stealthMode={settings.stealthMode}
+            />
+            <FeatureNavTabs
+              screen={screen}
+              shieldTool={shieldTool}
+              onNavigate={handleNavigate}
+              onSelectShieldTool={(tool) => {
+                setScreen("shield");
+                setShieldTool(tool);
+              }}
+            />
+          </div>
+        ) : null}
+        <main
+          className={`flex-1 min-h-0 ${screen === "legal" || screen === "hifazat" ? "flex flex-col overflow-hidden" : "overflow-y-auto"} ${!sosActive ? "pb-28" : ""}`}
+        >
+          {rendered}
+        </main>
         {!sosActive ? (
           <>
             {installPromptEvent ? (
-              <div className="fixed bottom-[4.25rem] left-0 right-0 z-[45] px-3 pointer-events-none max-w-5xl mx-auto">
+              <div className="fixed bottom-[4.25rem] left-0 right-0 z-[45] px-3 pointer-events-none max-w-7xl mx-auto">
                 <div className="pointer-events-auto flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-[#1e1040]/95 backdrop-blur-md px-3 py-2 shadow-lg">
                   <p className="text-[11px] text-slate-200 leading-snug">
                     <span className="font-bold text-white">Install NIgaban</span> — works offline after first load.
@@ -3244,7 +3385,7 @@ export default function App() {
               </div>
             ) : null}
             <BottomNav active={screen} onNavigate={handleNavigate} onSOS={() => setSosActive(true)} />
-            <FloatingChatbot />
+            {screen !== "hifazat" && screen !== "legal" ? <FloatingChatbot /> : null}
           </>
         ) : null}
         {shakeSosSecs !== null ? (

@@ -195,7 +195,7 @@ export default function SafeZonesMap({ city, pins, routePath = null, mapLayerMod
       {mapError ? (
         <p className="text-xs text-amber-200/90 p-4 leading-relaxed">{mapError}</p>
       ) : (
-        <div ref={elRef} className="h-[min(55vh,420px)] w-full bg-slate-900/80" />
+        <div ref={elRef} className="h-[min(65vh,480px)] md:h-[min(72vh,620px)] w-full bg-slate-900/80" />
       )}
       <p className="text-[10px] text-slate-500 px-3 py-2 border-t border-white/5">
         {mapLayerMode === "heatmap"

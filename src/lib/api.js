@@ -30,8 +30,13 @@ async function bearerForRequest(path = "") {
   }
 }
 
+function apiOrigin() {
+  const raw = typeof import.meta.env.VITE_API_URL === "string" ? import.meta.env.VITE_API_URL.trim() : "";
+  return raw.replace(/\/$/, "");
+}
+
 /**
- * @param {string} path - e.g. "/health" (becomes fetch to "/api/health")
+ * @param {string} path - e.g. "/health" (becomes fetch to "/api/health" or `${VITE_API_URL}/api/health`)
  * @param {RequestInit} [options]
  */
 export async function api(path, options = {}) {
@@ -43,10 +48,24 @@ export async function api(path, options = {}) {
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`/api${normalized}`, {
-    ...options,
-    headers: { ...headers, ...options.headers },
-  });
+  const origin = apiOrigin();
+  const url = `${origin}/api${normalized}`;
+
+  let res;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers: { ...headers, ...options.headers },
+    });
+  } catch (e) {
+    const err = new Error(
+      e?.message?.includes("Failed to fetch")
+        ? "Network error — is the API running? Try: npm run dev:full (or set VITE_API_URL to your deployed API)."
+        : e?.message || "Network error",
+    );
+    err.cause = e;
+    throw err;
+  }
 
   const text = await res.text();
   let body = {};
@@ -58,7 +77,21 @@ export async function api(path, options = {}) {
     }
   }
 
-  if (!res.ok) {
+  const looksLikeSpaHtml =
+    res.ok &&
+    typeof body.error === "string" &&
+    body.error === "Server returned non-JSON" &&
+    (String(body.raw || "").includes("<!DOCTYPE") || String(body.raw || "").includes("<html"));
+
+  if (!res.ok || looksLikeSpaHtml) {
+    if (looksLikeSpaHtml) {
+      const err = new Error(
+        "API returned a web page instead of JSON — the backend is probably not running. Use npm run dev:full or set VITE_API_URL to your API host.",
+      );
+      err.status = res.status;
+      err.body = body;
+      throw err;
+    }
     const msg =
       typeof body.error === "string"
         ? body.error

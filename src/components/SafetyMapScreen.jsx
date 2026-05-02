@@ -93,7 +93,7 @@ export default function SafetyMapScreen() {
   };
 
   return (
-    <div className="px-4 pt-4 pb-28 space-y-4 animate-in fade-in max-w-lg mx-auto w-full">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
       <div>
         <h2 className="text-xl font-bold text-white tracking-tight">Safety map</h2>
         <p className="text-xs text-slate-400 mt-1">Pins or incident heatmap (Supabase-backed when configured) + optional walking route.</p>

@@ -965,6 +965,32 @@ async function callGroq({ systemPrompt, messages, maxTokens = 900 }) {
   }
 }
 
+/** Pull JSON from model output even when wrapped in markdown or extra prose. */
+function parseJsonFromAiOutput(raw, fallback) {
+  const stripFences = (s) =>
+    String(s || "")
+      .trim()
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/```\s*$/i, "")
+      .trim();
+  const s = stripFences(raw);
+  try {
+    return JSON.parse(s);
+  } catch {
+    /* continue */
+  }
+  const start = s.indexOf("{");
+  const end = s.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    try {
+      return JSON.parse(s.slice(start, end + 1));
+    } catch {
+      /* continue */
+    }
+  }
+  return fallback;
+}
+
 async function callGemini({ systemPrompt, messages, maxTokens = 900, imageBase64 = null, imageMimeType = "image/jpeg" }) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) throw new Error("No AI API keys configured (GROQ or GEMINI)");
@@ -1010,7 +1036,7 @@ async function callGemini({ systemPrompt, messages, maxTokens = 900, imageBase64
     },
   };
 
-  const modelName = imageBase64 ? "gemini-1.5-flash" : "gemini-1.5-flash"; // Both support vision
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
@@ -1615,11 +1641,28 @@ app.post("/api/ai/analyze-image", rateLimit({ keyPrefix: "ai-vision", windowMs: 
   try {
     const output = await callGemini({
       systemPrompt: `${systemPrompt}\n\nReturn strict JSON only. No markdown.`,
-      messages: [{ role: "user", content: "Analyze this image." }],
+      messages: [{ role: "user", content: toolType === "voice" ? "Analyze this audio file." : "Analyze this image." }],
       imageBase64,
       imageMimeType: imageMimeType || "image/jpeg",
     });
-    const parsed = JSON.parse(output.replace(/```json|```/g, "").trim());
+    const fallback =
+      toolType === "voice"
+        ? {
+            classification: "Suspicious",
+            confidence_score: 40,
+            anomalies: ["Model output was not valid JSON — retry or check GEMINI_API_KEY / GEMINI_MODEL."],
+            explanation: "Could not parse structured analysis. This is a placeholder; upload a shorter clip and try again.",
+          }
+        : {
+            classification: "Suspicious",
+            confidence_score: 40,
+            anomalies: ["Model output was not valid JSON — retry or check GEMINI_API_KEY / GEMINI_MODEL."],
+            explanation: "Could not parse structured analysis. Try another image or verify API keys.",
+          };
+    const parsed = parseJsonFromAiOutput(output, null);
+    if (!parsed || typeof parsed !== "object") {
+      return res.json({ result: fallback, live: false, parseError: true });
+    }
     res.json({ result: parsed, live: true });
   } catch (err) {
     console.error("AI Vision failed:", err.message);
@@ -1638,7 +1681,22 @@ app.post("/api/dm/scan", rateLimit({ keyPrefix: "dm-scan", windowMs: 60 * 1000, 
       imageBase64: imageBase64 || null,
       imageMimeType: imageMimeType || "image/jpeg",
     });
-    const parsed = JSON.parse(output.replace(/```json|```/g, "").trim());
+    const parsed = parseJsonFromAiOutput(output, null);
+    if (!parsed || typeof parsed !== "object") {
+      return res.json({
+        result: {
+          classification: "Unclear (parse error)",
+          severity: 5,
+          peca_section: "PECA / PPC — verify with counsel",
+          peca_explanation: "The model did not return valid JSON. Check GEMINI_API_KEY and GEMINI_MODEL.",
+          evidence_value: "Unknown",
+          recommended_action: "Preserve screenshots and consult a lawyer or FIA cybercrime (1991).",
+          summary: "Automated scan could not complete structured parsing.",
+        },
+        live: false,
+        error: "json_parse",
+      });
+    }
     res.json({ result: parsed, live: true });
   } catch (err) {
     console.error("DM Scan failed:", err.message);
