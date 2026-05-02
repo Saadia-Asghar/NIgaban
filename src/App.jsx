@@ -1500,20 +1500,23 @@ function DeepfakeDetector() {
       <h2 className="text-xl font-semibold text-white">Deepfake Detector</h2>
       <div className="rounded-2xl glass p-6 text-center space-y-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-full max-w-xs h-48 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative">
+          <div className="w-full max-w-xs h-48 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative group hover:bg-white/5 hover:border-purple-500/50 transition-all cursor-pointer">
             {imageBase64 ? (
-              <img src={`data:${imageMimeType};base64,${imageBase64}`} alt="Target" className="w-full h-full object-cover" />
+              <img src={`data:${imageMimeType};base64,${imageBase64}`} alt="Target" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-slate-500">
-                <ImageIcon className="w-10 h-10 opacity-20" />
-                <p className="text-[10px] uppercase tracking-widest font-bold">Upload Image</p>
+              <div className="flex flex-col items-center gap-3 text-slate-500 group-hover:text-purple-400 transition-colors">
+                <ImageIcon className="w-10 h-10 opacity-50 group-hover:scale-110 transition-transform" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-white">Click to Upload Image</p>
+                  <p className="text-[10px] uppercase tracking-widest font-semibold">JPG, PNG, WEBP</p>
+                </div>
               </div>
             )}
             <input 
               type="file" 
               accept="image/*" 
               onChange={handleImageChange} 
-              className="absolute inset-0 opacity-0 cursor-pointer" 
+              className="absolute inset-0 opacity-0 cursor-pointer z-10" 
             />
           </div>
           <p className="text-xs text-slate-400">Analysis for AI-generation, lighting inconsistencies, and artifacts.</p>
@@ -1591,23 +1594,26 @@ function VoiceDetector() {
       <h2 className="text-xl font-semibold text-white">Voice Clone Detector</h2>
       <div className="rounded-2xl glass p-6 text-center space-y-4">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-full max-w-xs h-32 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative">
+          <div className="w-full max-w-xs h-32 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative group hover:bg-white/5 hover:border-purple-500/50 transition-all cursor-pointer">
             {fileBase64 ? (
               <div className="flex flex-col items-center gap-2 text-purple-400">
-                <Volume2 className="w-8 h-8" />
-                <p className="text-xs font-semibold">Audio Ready</p>
+                <Volume2 className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                <p className="text-xs font-semibold">Audio Ready (Click to change)</p>
               </div>
             ) : (
-              <div className="flex flex-col items-center gap-2 text-slate-500">
-                <Volume2 className="w-10 h-10 opacity-20" />
-                <p className="text-[10px] uppercase tracking-widest font-bold">Upload Audio Sample</p>
+              <div className="flex flex-col items-center gap-3 text-slate-500 group-hover:text-purple-400 transition-colors">
+                <Volume2 className="w-10 h-10 opacity-50 group-hover:scale-110 transition-transform" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-white">Click to Upload Audio</p>
+                  <p className="text-[10px] uppercase tracking-widest font-semibold">MP3, WAV, M4A</p>
+                </div>
               </div>
             )}
             <input 
               type="file" 
               accept="audio/*" 
               onChange={handleFileChange} 
-              className="absolute inset-0 opacity-0 cursor-pointer" 
+              className="absolute inset-0 opacity-0 cursor-pointer z-10" 
             />
           </div>
           <p className="text-xs text-slate-400">Upload a recording to check for AI cloning or synthetic robotic patterns.</p>
