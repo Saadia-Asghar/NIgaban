@@ -201,339 +201,293 @@ function HomeScreen({
   communityFeed,
 }) {
   const greeting = lang === "ur" ? "خوش آمدید" : "Welcome";
-  const [openGuide, setOpenGuide] = useState("setup");
-  const [infoPanel, setInfoPanel] = useState("about");
+  
   const quickChecklist = [
-    { id: "contacts", label: "Add at least 3 trusted contacts", done: contactsCount >= 3, action: "more" },
-    { id: "timeline", label: "Create your first Safety Timeline note", done: timelineEntries.length > 0, action: "home" },
-    { id: "community", label: "Open Community and check city alerts", done: communityFeed.length > 0, action: "community" },
-    { id: "transit", label: "Start a Safe Transit trip before travel", done: false, action: "transit" },
+    { id: "contacts", label: "Add 3 trusted contacts", done: contactsCount >= 3, action: "more" },
+    { id: "timeline", label: "Create Safety Note", done: timelineEntries.length > 0, action: "home" },
+    { id: "community", label: "Check City Alerts", done: communityFeed.length > 0, action: "community" },
   ];
+
+  const features = [
+    { id: "legal", title: "Legal Aid Desk", desc: "Expert guidance on FIRs & PECA laws.", icon: Scale, color: "text-blue-400", graphic: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=200&h=200" },
+    { id: "shield", title: "AI Threat Shield", desc: "Scan screenshots & audio for threats.", icon: Shield, color: "text-purple-400", graphic: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=200&h=200" },
+    { id: "transit", title: "Safe Transit", desc: "Live trip tracking & auto-alerts.", icon: MapPin, color: "text-emerald-400", graphic: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&q=80&w=200&h=200" },
+    { id: "community", title: "Guardian Feed", desc: "Real-time safety reports near you.", icon: Activity, color: "text-pink-400", graphic: "https://images.unsplash.com/photo-1582213726892-2e250c48574b?auto=format&fit=crop&q=80&w=200&h=200" },
+  ];
+
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-slate-400">{new Date().toDateString()}</p>
-        <h2 className="text-2xl font-semibold text-white mt-1">{greeting}</h2>
-      </div>
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#2b1b54] to-[#3b185f] p-5 text-white">
-        <p className="text-[11px] uppercase tracking-[0.2em] text-purple-200">Welcome to Nigehbaan</p>
-        <h3 className="text-xl font-semibold mt-1">Your women safety companion</h3>
-        <p className="text-sm text-purple-200 mt-2 leading-relaxed">
-          Nigehbaan helps you handle harassment, unsafe travel, and emergencies with SOS, legal guidance, AI threat tools, and community alerts.
-        </p>
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div className="rounded-xl glass p-2.5">
-            <p className="text-[11px] uppercase tracking-wide text-purple-200">Step 1</p>
-            <p className="text-xs mt-1">Set trusted contacts in Resources</p>
+    <div className="pb-24 animate-in fade-in overflow-x-hidden">
+      {/* Hero Section */}
+      <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#1a1b2e] via-[#2b1b54] to-[#141523] px-6 pt-12 pb-20 text-center">
+        {/* Animated Background Elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500/5 blur-[100px] rounded-full pointer-events-none" />
+        
+        <div className="relative z-10 space-y-8 max-w-4xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass border-white/5 text-xs font-bold uppercase tracking-[0.2em] text-purple-300 animate-in slide-up">
+            <Shield className="w-4 h-4" /> Trusted by 10k+ Women Across Pakistan
           </div>
-          <div className="rounded-xl glass p-2.5">
-            <p className="text-[11px] uppercase tracking-wide text-purple-200">Step 2</p>
-            <p className="text-xs mt-1">Use Transit + Shield during risky situations</p>
+          
+          <h1 className="text-5xl md:text-7xl font-black text-white leading-[1.05] tracking-tight animate-in slide-up duration-500">
+            {lang === "ur" ? "آپ کا ڈیجیٹل محافظ" : "Empowering Your"} <br/> 
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-violet-500 to-indigo-500">
+              Personal Safety.
+            </span>
+          </h1>
+          
+          <p className="text-slate-300 text-xl leading-relaxed max-w-2xl mx-auto animate-in slide-up duration-700">
+            Nigehbaan is Pakistan's first AI-powered safety companion. We combine real-time monitoring, legal intelligence, and community vigilance to ensure you're never alone.
+          </p>
+          
+          <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4 animate-in slide-up duration-1000">
+            <button onClick={onSOS} className="group w-full sm:w-auto px-10 py-5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-black text-lg shadow-2xl shadow-red-900/40 active:scale-95 transition-all flex items-center justify-center gap-3">
+              <AlertTriangle className="w-6 h-6 group-hover:animate-bounce" /> Emergency SOS
+            </button>
+            <button onClick={() => onNavigate("shield")} className="w-full sm:w-auto px-10 py-5 rounded-2xl glass text-white font-bold text-lg hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-2">
+              <EyeOff className="w-5 h-5" /> Explore AI Features
+            </button>
           </div>
-          <div className="rounded-xl glass p-2.5">
-            <p className="text-[11px] uppercase tracking-wide text-purple-200">Step 3</p>
-            <p className="text-xs mt-1">Tap SOS immediately if danger escalates</p>
+
+          {/* Stats Bar */}
+          <div className="pt-12 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-up duration-1000 delay-300">
+            {[
+              { label: "Active Guardians", val: "12.4k" },
+              { label: "Alerts Resolved", val: "850+" },
+              { label: "Legal Consults", val: "2.1k" },
+              { label: "Response Time", val: "<3s" },
+            ].map(s => (
+              <div key={s.label} className="glass p-4 rounded-2xl">
+                <p className="text-2xl font-black text-white">{s.val}</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">{s.label}</p>
+              </div>
+            ))}
           </div>
         </div>
-        {canInstall ? (
-          <button
-            onClick={onInstall}
-            className="mt-3 w-full rounded-xl glass text-purple-300 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
-          >
-            <Smartphone className="w-4 h-4" />
-            Install app on mobile home screen
-          </button>
-        ) : null}
       </div>
 
-      <div className="rounded-2xl glass p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Live Community Alerts</p>
-          <button onClick={() => onNavigate("community")} className="text-[10px] uppercase tracking-widest text-purple-400 font-bold hover:text-purple-300">View All</button>
-        </div>
-        <div className="space-y-2">
-          {communityFeed.slice(0, 2).map((item) => (
-            <div key={item.id} className="rounded-xl glass-dark p-3 animate-in slide-up">
-              <div className="flex items-center gap-2">
-                <span className={`w-1.5 h-1.5 rounded-full ${item.level === "high" ? "bg-red-500 animate-pulse" : "bg-amber-500"}`} />
-                <p className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">{item.title}</p>
-              </div>
-              <p className="text-xs text-slate-400 mt-1 line-clamp-1">{item.description}</p>
+      {/* Safety Score & Live Feed Overlay */}
+      <div className="px-6 -mt-16 relative z-20 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="rounded-[40px] glass p-8 shadow-2xl backdrop-blur-3xl border-white/10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Safety Readiness</p>
+              <h3 className="text-2xl font-bold text-white mt-1">Profile Strength</h3>
             </div>
-          ))}
-          {communityFeed.length === 0 && (
-            <p className="text-xs text-slate-500 italic">No recent alerts in your area.</p>
-          )}
+            <div className="text-right">
+              <p className="text-3xl font-black text-purple-400">{Math.min(100, 40 + contactsCount * 15 + (timelineEntries.length > 0 ? 20 : 0))}%</p>
+            </div>
+          </div>
+          <div className="h-4 rounded-full bg-white/5 overflow-hidden p-1 border border-white/5">
+            <div 
+              className="h-full rounded-full bg-gradient-to-r from-pink-500 via-purple-600 to-violet-600 transition-all duration-1000 shadow-[0_0_15px_rgba(139,92,246,0.5)]" 
+              style={{ width: `${Math.min(100, 40 + contactsCount * 15 + (timelineEntries.length > 0 ? 20 : 0))}%` }} 
+            />
+          </div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            {quickChecklist.map(item => (
+              <div key={item.id} className={`px-4 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${item.done ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"}`}>
+                {item.done ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2.5 h-2.5 rounded-full bg-amber-500/40 animate-pulse" />}
+                {item.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[40px] glass p-8 shadow-2xl backdrop-blur-3xl border-white/10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Community Pulse</p>
+              <h3 className="text-2xl font-bold text-white mt-1">Live Safety Alerts</h3>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black animate-pulse border border-emerald-500/20">
+              <Activity className="w-3 h-3" /> LIVE
+            </div>
+          </div>
+          <div className="space-y-4">
+            {communityFeed.slice(0, 2).map((item) => (
+              <div key={item.id} className="group flex items-center gap-4 p-4 rounded-3xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer border border-transparent hover:border-white/10" onClick={() => onNavigate("community")}>
+                <div className={`w-3 h-3 rounded-full shrink-0 shadow-[0_0_10px] ${item.level === "high" ? "bg-red-500 shadow-red-500/50" : "bg-amber-500 shadow-amber-500/50"}`} />
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-slate-200 line-clamp-1">{item.title}</p>
+                  <p className="text-xs text-slate-400 mt-1 line-clamp-1">{item.description}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-white transition-colors" />
+              </div>
+            ))}
+            {communityFeed.length === 0 && (
+              <div className="text-center py-6">
+                <p className="text-sm text-slate-500 italic">Scanning for local activity...</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <button
-          onClick={() => onNavigate("more")}
-          className="rounded-xl glass p-3 text-left hover:bg-white/10 transition group"
-        >
-          <p className="text-[11px] uppercase tracking-wide text-pink-400 font-semibold">Start Here</p>
-          <p className="text-sm font-semibold text-white mt-1 group-hover:text-pink-300 transition-colors">Setup Safety Profile</p>
-          <p className="text-[11px] text-slate-400 mt-1">Add contacts, PIN, OTP identity.</p>
-        </button>
-        <button
-          onClick={() => onNavigate("transit")}
-          className="rounded-xl glass p-3 text-left hover:bg-white/10 transition group"
-        >
-          <p className="text-[11px] uppercase tracking-wide text-pink-400 font-semibold">Before Travel</p>
-          <p className="text-sm font-semibold text-white mt-1 group-hover:text-pink-300 transition-colors">Start Safe Transit</p>
-          <p className="text-[11px] text-slate-400 mt-1">Use local check-ins even without APIs.</p>
-        </button>
-        <button
-          onClick={() => onNavigate("legal")}
-          className="rounded-xl glass p-3 text-left hover:bg-white/10 transition group"
-        >
-          <p className="text-[11px] uppercase tracking-wide text-pink-400 font-semibold">Need Help</p>
-          <p className="text-sm font-semibold text-white mt-1 group-hover:text-pink-300 transition-colors">Open Legal Aid</p>
-          <p className="text-[11px] text-slate-400 mt-1">Chat + consult request in one place.</p>
-        </button>
+
+      {/* Feature Grid - Cards Section */}
+      <div className="px-6 mt-24 max-w-6xl mx-auto w-full space-y-12">
+        <div className="text-center space-y-4">
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">One App. Total Protection.</h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">Integrated tools powered by Gemini AI and real-time data to keep you safe at home, work, or transit.</p>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {features.map((f) => {
+            const Icon = f.icon;
+            return (
+              <button 
+                key={f.id} 
+                onClick={() => onNavigate(f.id)}
+                className="group relative h-[320px] rounded-[40px] glass overflow-hidden text-left hover:bg-white/10 transition-all duration-500 hover:-translate-y-2 border-white/5"
+              >
+                {/* Background Graphic */}
+                <div className="absolute inset-0 z-0">
+                  <img src={f.graphic} alt="" className="w-full h-full object-cover opacity-20 grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#141523] via-[#141523]/80 to-transparent" />
+                </div>
+                
+                {/* Content */}
+                <div className="relative z-10 h-full p-8 flex flex-col justify-end">
+                  <div className={`w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center mb-6 border border-white/10 group-hover:scale-110 group-hover:bg-white/20 transition-all`}>
+                    <Icon className={`w-7 h-7 ${f.color}`} />
+                  </div>
+                  <h3 className="text-xl font-black text-white mb-2">{f.title}</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed group-hover:text-slate-200 transition-colors">{f.desc}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div className="rounded-2xl glass p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-white">App Information</p>
-          <span className="text-[10px] uppercase tracking-wide rounded-full glass px-2 py-0.5 text-pink-400 font-semibold">
-            Start here
-          </span>
+
+      {/* How it Works Section - Visual Steps */}
+      <div className="px-6 mt-32 max-w-6xl mx-auto w-full">
+        <div className="rounded-[60px] bg-gradient-to-br from-violet-900/40 via-purple-900/20 to-transparent p-12 border border-white/10 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-pink-500/10 blur-[100px] rounded-full pointer-events-none" />
+          
+          <div className="flex flex-col lg:flex-row gap-16 items-center relative z-10">
+            <div className="flex-1 space-y-6 text-center lg:text-left">
+              <h2 className="text-5xl font-black text-white leading-[1.1]">Security <br/> Reimagined.</h2>
+              <p className="text-slate-300 text-lg leading-relaxed">
+                We've spent months perfecting the safest way for women to navigate the digital and physical world. Here's how Nigehbaan works for you.
+              </p>
+              <div className="pt-4">
+                <button onClick={() => setInfoPanel("guide")} className="px-8 py-4 rounded-2xl bg-white text-[#141523] font-black hover:bg-slate-200 transition-all active:scale-95 shadow-xl shadow-white/10">
+                  Read Full Safety Guide
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 grid grid-cols-1 gap-6 w-full">
+              {[
+                { step: "01", title: "Setup Your Circle", desc: "Define your trusted contacts and a secure 4-digit SOS PIN.", icon: Heart, color: "text-rose-400" },
+                { step: "02", title: "Activate Monitoring", desc: "Toggle Distress Listener or Safe Transit when heading out.", icon: Smartphone, color: "text-blue-400" },
+                { step: "03", title: "Instant Response", desc: "If threat detected, we alert contacts and police in <3 seconds.", icon: AlertCircle, color: "text-emerald-400" },
+              ].map((s) => (
+                <div key={s.step} className="group flex items-center gap-6 p-6 rounded-[32px] glass-dark hover:bg-white/5 transition-all border-white/5 hover:border-white/10">
+                  <div className="text-4xl font-black text-white/5 group-hover:text-white/10 transition-colors">{s.step}</div>
+                  <div className="flex-1">
+                    <h4 className="text-lg font-bold text-white mb-1">{s.title}</h4>
+                    <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">{s.desc}</p>
+                  </div>
+                  <div className={`p-3 rounded-2xl bg-white/5 group-hover:bg-white/10 transition-all ${s.color}`}>
+                    <s.icon className="w-6 h-6" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => setInfoPanel("about")}
-            className={`rounded-lg py-2 text-xs font-semibold transition-all duration-300 ${infoPanel === "about" ? "bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white" : "glass text-slate-300 hover:bg-white/10"}`}
-          >
-            About
-          </button>
-          <button
-            onClick={() => setInfoPanel("directions")}
-            className={`rounded-lg py-2 text-xs font-semibold transition-all duration-300 ${infoPanel === "directions" ? "bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white" : "glass text-slate-300 hover:bg-white/10"}`}
-          >
-            Directions
-          </button>
-          <button
-            onClick={() => setInfoPanel("features")}
-            className={`rounded-lg py-2 text-xs font-semibold transition-all duration-300 ${infoPanel === "features" ? "bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white" : "glass text-slate-300 hover:bg-white/10"}`}
-          >
-            Features
-          </button>
-        </div>
-        {infoPanel === "about" ? (
-          <div className="rounded-xl glass-dark p-3 animate-in fade-in">
-            <p className="text-xs font-semibold text-white">What Nigehbaan does</p>
-            <p className="text-[12px] text-slate-400 mt-1 leading-relaxed">
-              Nigehbaan is a women safety web app for prevention, emergency response, and legal support. It helps users stay protected during harassment risks, travel, and cyber abuse situations.
+      </div>
+
+      {/* Safety Timeline Section */}
+      <div className="px-6 mt-32 max-w-6xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 space-y-4">
+            <h3 className="text-3xl font-black text-white">Safety Timeline</h3>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Create a "Digital Paper Trail" of your journey. Useful for evidence or just peace of mind. Every entry is hashed and encrypted.
             </p>
-            <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div className="rounded-lg glass p-2">
-                <p className="text-[11px] text-pink-400 font-semibold">Prevent</p>
-                <p className="text-[11px] text-slate-400 mt-1">Threat checks + awareness</p>
-              </div>
-              <div className="rounded-lg glass p-2">
-                <p className="text-[11px] text-pink-400 font-semibold">Protect</p>
-                <p className="text-[11px] text-slate-400 mt-1">Transit + SOS workflows</p>
-              </div>
-              <div className="rounded-lg glass p-2">
-                <p className="text-[11px] text-pink-400 font-semibold">Pursue justice</p>
-                <p className="text-[11px] text-slate-400 mt-1">Legal aid + consult requests</p>
-              </div>
+            <div className="p-4 rounded-2xl glass border-emerald-500/20 bg-emerald-500/5 flex items-center gap-3">
+              <Lock className="w-5 h-5 text-emerald-400" />
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">End-to-End Encrypted</p>
             </div>
           </div>
-        ) : null}
-        {infoPanel === "directions" ? (
-          <div className="rounded-xl glass-dark p-3 space-y-2 animate-in fade-in">
-            <p className="text-xs font-semibold text-white">How to use (simple flow)</p>
-            {[
-              "1. Open Resources and add trusted contacts + SOS PIN.",
-              "2. Use Safe Transit before leaving and log check-ins.",
-              "3. If threatened, open Shield tools or Legal Aid guidance.",
-              "4. Post alerts in Community to warn others nearby.",
-              "5. Trigger SOS immediately for urgent danger.",
-            ].map((step) => (
-              <p key={step} className="text-[12px] text-slate-300">• {step}</p>
-            ))}
+          
+          <div className="lg:col-span-2 rounded-[40px] glass p-8 space-y-6 border-white/10 shadow-2xl">
+            <div className="flex gap-3">
+              <input
+                value={timelineText}
+                onChange={(e) => setTimelineText(e.target.value)}
+                placeholder="e.g. Boarding bus #42 at Gulberg..."
+                className="flex-1 rounded-2xl glass-dark px-6 py-4 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-purple-500/50 outline-none border-white/5"
+              />
+              <button
+                onClick={onAddTimeline}
+                disabled={timelineSaving || !timelineText.trim()}
+                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold shadow-xl shadow-purple-900/40 active:scale-95 transition-all disabled:opacity-50"
+              >
+                {timelineSaving ? "Saving..." : "Log Note"}
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+              {timelineEntries.map((entry) => (
+                <div key={entry.id} className="group rounded-2xl glass-dark p-4 border border-white/5 hover:border-white/10 transition-all animate-in slide-up">
+                  <div className="flex items-start justify-between gap-4">
+                    <p className="text-sm text-slate-200">{entry.text}</p>
+                    <span className="text-[9px] font-mono text-slate-600 group-hover:text-purple-500 transition-colors">#{entry.id.slice(-4)}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                    <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5">
+                      <Activity className="w-3 h-3" /> {new Date(entry.createdAt).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Secured</p>
+                  </div>
+                </div>
+              ))}
+              {timelineEntries.length === 0 && (
+                <div className="text-center py-12 space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-white/5 mx-auto flex items-center justify-center">
+                    <Plus className="w-6 h-6 text-slate-600" />
+                  </div>
+                  <p className="text-sm text-slate-500 italic">Your secure journey log starts here.</p>
+                </div>
+              )}
+            </div>
           </div>
-        ) : null}
-        {infoPanel === "features" ? (
-          <div className="rounded-xl glass-dark p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in">
+        </div>
+      </div>
+
+      {/* Local Help & Emergency - Pakistan Specific */}
+      <div className="px-6 mt-32 max-w-6xl mx-auto w-full pb-12">
+        <div className="rounded-[40px] glass p-10 border-white/10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-10">
+            <div>
+              <h3 className="text-3xl font-black text-white">Emergency Hotline</h3>
+              <p className="text-slate-400 mt-2">Instant access to Pakistan's verified emergency services.</p>
+            </div>
+            <div className="flex gap-2">
+              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[10px] font-black text-white uppercase tracking-widest">Active Nationwide</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              "AI Threat Shield (DM/deepfake/voice checks)",
-              "Safe Transit with no-key fallback check-ins",
-              "Emergency SOS with trusted contact alerts",
-              "Legal Aid chat + consultation request",
-              "Community safety feed + city chat + incident reports",
-              "Evidence timeline notes for safer documentation",
+              { label: "Police", phone: "15", desc: "Local Police Rescue", color: "from-blue-600/20 to-blue-900/20 text-blue-400 border-blue-500/20" },
+              { label: "Cybercrime", phone: "1991", desc: "FIA Cyber Wing", color: "from-purple-600/20 to-purple-900/20 text-purple-400 border-purple-500/20" },
+              { label: "Rescue", phone: "1122", desc: "Medical & Fire", color: "from-rose-600/20 to-rose-900/20 text-rose-400 border-rose-500/20" },
+              { label: "Women Help", phone: "1099", desc: "Govt. Helpline", color: "from-pink-600/20 to-pink-900/20 text-pink-400 border-pink-500/20" },
             ].map((item) => (
-              <div key={item} className="rounded-lg glass p-2">
-                <p className="text-[12px] text-slate-300">{item}</p>
-              </div>
+              <a key={item.label} href={`tel:${item.phone}`} className={`group rounded-3xl bg-gradient-to-br p-6 border transition-all hover:-translate-y-1 hover:shadow-xl ${item.color}`}>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{item.label}</p>
+                <p className="text-3xl font-black mb-1">{item.phone}</p>
+                <p className="text-[11px] font-medium opacity-80">{item.desc}</p>
+              </a>
             ))}
           </div>
-        ) : null}
-      </div>
-      <div className="rounded-2xl glass p-4">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-white">Safety Profile Strength</p>
-          <p className="text-xs font-semibold text-purple-400">
-            {Math.min(100, 40 + contactsCount * 15 + (timelineEntries.length > 0 ? 20 : 0))}%
-          </p>
-        </div>
-        <div className="mt-2 h-2 rounded-full bg-white/10 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600"
-            style={{ width: `${Math.min(100, 40 + contactsCount * 15 + (timelineEntries.length > 0 ? 20 : 0))}%` }}
-          />
-        </div>
-        <p className="text-[11px] text-slate-400 mt-2">
-          Improve score by adding contacts, using timeline notes, and checking live community alerts.
-        </p>
-      </div>
-      <div className="rounded-2xl glass p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-white">Quick Start Checklist</p>
-          <p className="text-xs text-purple-400 font-semibold">
-            {quickChecklist.filter((item) => item.done).length}/{quickChecklist.length} completed
-          </p>
-        </div>
-        <div className="space-y-2">
-          {quickChecklist.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => (item.action === "home" ? null : onNavigate(item.action))}
-              className="w-full rounded-xl glass-dark px-3 py-2 text-left flex items-center justify-between gap-2 hover:bg-white/5 transition-colors"
-            >
-              <span className="text-xs text-slate-300">{item.label}</span>
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.done ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/20 text-amber-400 border border-amber-500/20"}`}>
-                {item.done ? "Done" : item.action === "home" ? "On this screen" : "Open"}
-              </span>
-            </button>
-          ))}
         </div>
       </div>
-      <div className="rounded-2xl glass p-4 space-y-2">
-        <p className="text-sm font-semibold text-white">How it works</p>
-        {[
-          {
-            id: "setup",
-            title: "1) Setup your safety profile",
-            body: "Go to Resources and add trusted contacts, set SOS PIN, and verify identity with OTP.",
-          },
-          {
-            id: "protect",
-            title: "2) Use tools before and during risk",
-            body: "Threat Shield helps detect abuse, Safe Transit tracks your journey, and Legal Aid prepares reporting steps.",
-          },
-          {
-            id: "respond",
-            title: "3) Respond fast in emergency",
-            body: "Hit SOS to notify contacts, log evidence/timeline, and use Community to broadcast nearby safety incidents.",
-          },
-        ].map((guide) => (
-          <div key={guide.id} className="rounded-xl glass-dark">
-            <button
-              onClick={() => setOpenGuide((prev) => (prev === guide.id ? "" : guide.id))}
-              className="w-full px-3 py-2 text-left flex items-center justify-between gap-2"
-            >
-              <span className="text-xs font-semibold text-slate-200">{guide.title}</span>
-              <ChevronRight className={`w-4 h-4 text-slate-400 transition ${openGuide === guide.id ? "rotate-90" : ""}`} />
-            </button>
-            {openGuide === guide.id ? <p className="px-3 pb-3 text-xs text-slate-400 animate-in slide-up">{guide.body}</p> : null}
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="rounded-xl glass p-3">
-          <p className="text-xs font-semibold text-white">When to use Threat Shield</p>
-          <p className="text-[11px] text-slate-400 mt-1">For suspicious DMs, deepfake checks, and abuse detection before escalation.</p>
-        </div>
-        <div className="rounded-xl glass p-3">
-          <p className="text-xs font-semibold text-white">When to use Legal Aid</p>
-          <p className="text-[11px] text-slate-400 mt-1">For FIR guidance, rights under PECA, and direct legal consult requests.</p>
-        </div>
-        <div className="rounded-xl glass p-3">
-          <p className="text-xs font-semibold text-white">When to use Community</p>
-          <p className="text-[11px] text-slate-400 mt-1">To monitor local alerts, chat with city members, and report incidents.</p>
-        </div>
-        <div className="rounded-xl glass p-3">
-          <p className="text-xs font-semibold text-white">When to use SOS</p>
-          <p className="text-[11px] text-slate-400 mt-1">Immediate danger only. It triggers contact alerts and emergency workflow.</p>
-        </div>
-      </div>
-      <div className="rounded-2xl glass p-4">
-        <p className="text-sm font-semibold text-white">Emergency Numbers (Pakistan)</p>
-        <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {[
-            { label: "Police", phone: "15" },
-            { label: "Madadgaar", phone: "1099" },
-            { label: "FIA Cybercrime", phone: "1991" },
-          ].map((item) => (
-            <a key={item.label} href={`tel:${item.phone}`} className="rounded-xl glass-dark px-3 py-2 hover:bg-white/5 transition-colors group">
-              <p className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors">{item.label}</p>
-              <p className="text-sm font-semibold text-purple-300 group-hover:text-purple-200 transition-colors">{item.phone}</p>
-            </a>
-          ))}
-        </div>
-      </div>
-      <div className="rounded-2xl glass p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-white">Safety Timeline (real-time)</p>
-          <span className="text-[10px] uppercase tracking-wide rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-semibold">Live</span>
-        </div>
-        <p className="text-xs text-slate-400">
-          Add quick notes when meeting someone new, spotting suspicious activity, or starting a risky commute.
-        </p>
-        <div className="flex gap-2">
-          <input
-            value={timelineText}
-            onChange={(e) => setTimelineText(e.target.value)}
-            placeholder="Add safety note..."
-            className="flex-1 rounded-lg glass-dark px-2.5 py-2 text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
-          />
-          <button
-            onClick={onAddTimeline}
-            disabled={timelineSaving || !timelineText.trim()}
-            className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold disabled:opacity-60 active:scale-95 transition-transform"
-          >
-            {timelineSaving ? "Saving..." : "Add"}
-          </button>
-        </div>
-        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-          {timelineEntries.map((entry) => (
-            <div key={entry.id} className="rounded-lg glass-dark p-2.5 animate-in slide-up">
-              <p className="text-xs text-slate-300">{entry.text}</p>
-              <p className="text-[10px] text-slate-400 mt-1">{new Date(entry.createdAt).toLocaleString()}</p>
-            </div>
-          ))}
-          {timelineEntries.length === 0 ? <p className="text-xs text-slate-400">No timeline notes yet.</p> : null}
-        </div>
-      </div>
-      {stealthMode ? <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs text-emerald-400">Stealth mode enabled.</div> : null}
-      <div className="rounded-xl glass px-3 py-2.5 flex items-center justify-between">
-        <p className="text-xs text-slate-400">Safety profile completion</p>
-        <p className="text-xs font-semibold text-pink-400">{contactsCount >= 3 ? "100%" : "70%"}</p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {[
-          { id: "legal", title: "Legal Aid", subtitle: "Rights + FIR help", icon: Scale },
-          { id: "shield", title: "Threat Shield", subtitle: "Detect abuse", icon: Shield },
-          { id: "transit", title: "Safe Transit", subtitle: "Trip watch", icon: MapPin },
-          { id: "more", title: "Resources", subtitle: "Contacts + settings", icon: Heart },
-          { id: "community", title: "Community", subtitle: "Live safety activity", icon: Activity },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <button key={item.id} onClick={() => onNavigate(item.id)} className="rounded-2xl glass p-4 text-left hover:bg-white/10 hover:-translate-y-[1px] transition-all duration-200">
-              <Icon className="w-5 h-5 mb-2 text-purple-400" />
-              <p className="text-sm font-semibold text-white">{item.title}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{item.subtitle}</p>
-            </button>
-          );
-        })}
-      </div>
-      <button onClick={onSOS} className="w-full rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white p-4 flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-[0.98] transition-transform">
-        <AlertTriangle className="w-5 h-5" /><span className="font-semibold">Emergency SOS</span>
-      </button>
     </div>
   );
 }
