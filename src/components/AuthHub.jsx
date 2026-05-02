@@ -64,12 +64,32 @@ function SupabaseAuthCard() {
     if (!supabaseEnabled || !supabase) return undefined;
     supabase.auth.getSession().then(({ data }) => {
       setUserEmail(data.session?.user?.email || "");
+      if (data.session?.access_token) {
+        try {
+          localStorage.setItem("nigehbaan_token", data.session.access_token);
+        } catch {
+          // ignore
+        }
+      }
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUserEmail(session?.user?.email || "");
+      if (session?.access_token) {
+        try {
+          localStorage.setItem("nigehbaan_token", session.access_token);
+        } catch {
+          // ignore
+        }
+      } else if (event === "SIGNED_OUT") {
+        try {
+          localStorage.removeItem("nigehbaan_token");
+        } catch {
+          // ignore
+        }
+      }
     });
     return () => {
-      listener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -102,9 +122,20 @@ function SupabaseAuthCard() {
   const signIn = async () => {
     setStatus("");
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    setStatus(error ? error.message : "Signed in with Supabase.");
+    if (error) {
+      setStatus(error.message);
+    } else {
+      if (data?.session?.access_token) {
+        try {
+          localStorage.setItem("nigehbaan_token", data.session.access_token);
+        } catch {
+          // ignore
+        }
+      }
+      setStatus("Signed in with Supabase.");
+    }
   };
 
   const signInWithGoogle = async () => {

@@ -18,6 +18,13 @@ const dbPool = useSupabaseDb
       ssl: { rejectUnauthorized: false },
     })
   : null;
+
+if (dbPool) {
+  dbPool.on("error", (err) => {
+    console.error("Unexpected error on idle database client:", err.message);
+    dbDisabledReason = err.message;
+  });
+}
 let dbReadyPromise = null;
 let dbDisabledReason = "";
 
@@ -860,26 +867,72 @@ function sanitizeUserText(text) {
 
 async function callGroq({ systemPrompt, messages, maxTokens = 900 }) {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error("Missing GROQ_API_KEY");
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+  if (!apiKey) return callGemini({ systemPrompt, messages, maxTokens });
+  try {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+        temperature: 0.2,
+        max_tokens: maxTokens,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+      }),
+    });
+    if (!response.ok) throw new Error(`Groq error ${response.status}`);
+    const data = await response.json();
+    return data?.choices?.[0]?.message?.content || "";
+  } catch (err) {
+    console.error("Groq failed, falling back to Gemini:", err.message);
+    return callGemini({ systemPrompt, messages, maxTokens });
+  }
+}
+
+async function callGemini({ systemPrompt, messages, maxTokens = 900 }) {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) throw new Error("No AI API keys configured (GROQ or GEMINI)");
+
+  // Convert OpenAI-style messages to Gemini-style
+  // Gemini expects: { contents: [ { role: 'user', parts: [{ text: '...' }] } ] }
+  // System prompt is passed separately or as a special instruction in newer models
+  const history = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  const payload = {
+    contents: history,
+    system_instruction: {
+      parts: [{ text: systemPrompt }],
     },
-    body: JSON.stringify({
-      model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+    generationConfig: {
+      maxOutputTokens: maxTokens,
       temperature: 0.2,
-      max_tokens: maxTokens,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages,
-      ],
-    }),
-  });
-  if (!response.ok) throw new Error(`Groq error ${response.status}`);
+    },
+  };
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(`Gemini error ${response.status}: ${JSON.stringify(errData)}`);
+  }
+
   const data = await response.json();
-  return data?.choices?.[0]?.message?.content || "";
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 function getAuthToken(req) {
