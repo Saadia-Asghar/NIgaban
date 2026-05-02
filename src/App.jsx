@@ -168,26 +168,27 @@ function BottomNav({ active, onNavigate, onSOS }) {
         }`}
       >
         <Icon className="w-5 h-5 shrink-0" />
-        <span className="text-[10px] font-semibold truncate max-w-full px-0.5">{label}</span>
+        <span className="text-[9px] font-semibold truncate max-w-full px-0.5">{label}</span>
       </button>
     );
   };
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/10 pt-1 pb-[max(0.35rem,env(safe-area-inset-bottom))]">
-      <div className="w-full max-w-7xl mx-auto flex items-end justify-between gap-0 px-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/10 pt-1 pb-[max(0.4rem,env(safe-area-inset-bottom))]">
+      <div className="w-full max-w-lg mx-auto flex items-end justify-between gap-0 px-2">
         {tabBtn("home", Home, "Home")}
         {tabBtn("map", MapPin, "Map")}
         <div className="flex flex-col items-center shrink-0 px-1">
           <button
             type="button"
             onClick={onSOS}
-            className="-mt-8 mb-0.5 w-16 h-16 rounded-full bg-gradient-to-br from-rose-600 to-red-700 border-[3px] border-[#141523] shadow-xl shadow-rose-900/45 flex flex-col items-center justify-center text-white active:scale-95 transition-transform"
+            className="-mt-7 mb-0.5 w-14 h-14 rounded-full bg-gradient-to-br from-rose-600 to-red-700 border-[3px] border-[#0a0b12] shadow-xl shadow-rose-900/45 flex flex-col items-center justify-center text-white active:scale-95 transition-transform sos-pulse"
             aria-label="Emergency SOS"
           >
-            <AlertTriangle className="w-6 h-6" />
-            <span className="text-[9px] font-black leading-none">SOS</span>
+            <AlertTriangle className="w-5 h-5" />
+            <span className="text-[8px] font-black leading-none mt-0.5">SOS</span>
           </button>
         </div>
+        {tabBtn("community", Activity, "Alert")}
         {tabBtn("more", UserCircle, "Profile")}
       </div>
     </nav>
@@ -195,114 +196,135 @@ function BottomNav({ active, onNavigate, onSOS }) {
 }
 
 function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
-  const authCardRef = useRef(null);
-
-  useEffect(() => {
-    const scrollAuth = () => {
-      window.setTimeout(() => {
-        authCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 120);
-    };
-    window.addEventListener("nigaban-scroll-auth", scrollAuth);
-    return () => window.removeEventListener("nigaban-scroll-auth", scrollAuth);
-  }, []);
-
-  const slides = [
-    {
-      title: "Pakistan’s AI legal safety layer",
-      description: BRAND_TAGLINE_EN,
-      icon: Shield,
-      color: "bg-rose-500/20 text-rose-200 border border-rose-500/20",
-    },
-    {
-      title: "Legal + Evidence in One Place",
-      description:
-        "Use Legal Aid Chat and DM Scanner to understand rights and keep ready-to-use evidence.",
-      icon: Scale,
-      color: "bg-indigo-500/20 text-indigo-200 border border-indigo-500/20",
-    },
-    {
-      title: "Emergency Ready",
-      description:
-        "Configure trusted contacts and SOS PIN. One tap can alert family and emergency support.",
-      icon: AlertTriangle,
-      color: "bg-red-500/20 text-red-200 border border-red-500/20",
-    },
-  ];
+  const [showMarketing, setShowMarketing] = useState(false);
   const [step, setStep] = useState(0);
 
+  const slides = [
+    { title: "Your safety, your control", description: "Silent SOS, trusted circle alerts, and legal guidance — all in one app built for Pakistan.", icon: Shield, accent: "from-rose-500/20 to-purple-600/20 border-rose-500/20 text-rose-200" },
+    { title: "Know your rights instantly", description: "Hifazat AI gives you Pakistan-specific legal guidance under PECA 2016 and Anti-Harassment Act 2010.", icon: Scale, accent: "from-indigo-500/20 to-blue-600/20 border-indigo-500/20 text-indigo-200" },
+    { title: "Community-powered alerts", description: "See real incident hotspots in Lahore, Karachi, Islamabad, and Peshawar reported by women like you.", icon: Activity, accent: "from-emerald-500/20 to-teal-600/20 border-emerald-500/20 text-emerald-200" },
+  ];
+
   useEffect(() => {
-    const timer = setInterval(() => {
-      setStep((v) => (v + 1) % slides.length);
-    }, 4000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setStep(v => (v + 1) % slides.length), 4200);
+    return () => clearInterval(t);
   }, [slides.length]);
 
+  useEffect(() => {
+    const onScroll = () => {};
+    window.addEventListener("nigaban-scroll-auth", onScroll);
+    return () => window.removeEventListener("nigaban-scroll-auth", onScroll);
+  }, []);
+
   const slide = slides[step];
-  const Icon = slide.icon;
+  const SlideIcon = slide.icon;
+
+  if (showMarketing) {
+    return (
+      <div className="min-h-screen bg-[#07080f] w-full animate-in fade-in overflow-y-auto">
+        <MarketingLanding
+          onTryBrowser={() => setShowMarketing(false)}
+          onBypass={onBypass}
+          installPromptEvent={installPromptEvent}
+          onInstall={onInstall}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#0a0b12] w-full animate-in fade-in overflow-y-auto">
-      <MarketingLanding
-        onTryBrowser={() => authCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        onBypass={onBypass}
-        installPromptEvent={installPromptEvent}
-        onInstall={onInstall}
-      />
+    <div className="min-h-[100dvh] bg-[#07080f] flex flex-col lg:flex-row animate-in fade-in">
+      {/* LEFT PANEL — branding + features (desktop only / top on mobile) */}
+      <div className="lg:flex-1 lg:min-h-screen relative overflow-hidden bg-gradient-to-br from-[#0d0b1a] via-[#150f2a] to-[#0a0b12] flex flex-col justify-between px-6 pt-10 pb-8 lg:px-12 lg:pt-16">
+        <div className="pointer-events-none absolute inset-0 hero-grid opacity-30" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
 
-      <div ref={authCardRef} className="scroll-mt-4 border-t border-white/10 bg-gradient-to-b from-[#141523] to-[#0a0b12] px-5 py-12 max-w-2xl mx-auto w-full space-y-8">
-        <div className="surface-card surface-card-interactive p-6" key={step}>
-          <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl ${slide.color} shadow-inner`}>
-            <Icon className="h-6 w-6" />
-          </div>
-          <h3 className="text-xl font-bold tracking-tight text-white mb-2">{slide.title}</h3>
-          <p className="text-sm text-slate-300 leading-relaxed">{slide.description}</p>
-          <div className="mt-5 flex items-center gap-2">
-            {slides.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                aria-label={`Slide ${i + 1}`}
-                onClick={() => setStep(i)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-8 bg-gradient-to-r from-pink-500 to-purple-600" : "w-4 bg-white/15 hover:bg-white/25"}`}
-              />
-            ))}
+        {/* Logo */}
+        <div className="relative z-10 flex items-center gap-3 mb-8 lg:mb-0">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-900/50 text-white font-black text-lg">ن</div>
+          <div>
+            <p className="text-white font-black text-lg leading-none">NIgaban</p>
+            <p className="text-purple-400/80 text-xs font-medium" dir="rtl">نگہبان</p>
           </div>
         </div>
 
-        <ul className="text-left space-y-3 text-sm text-slate-300">
-          <li className="flex gap-3">
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-            <span>
-              <span className="font-semibold text-white">SOS + GPS log</span> — one countdown, trusted contacts notified, location stored for evidence.
-            </span>
-          </li>
-          <li className="flex gap-3">
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-            <span>
-              <span className="font-semibold text-white">Live map &amp; feed</span> — see hotspots, tap pins for AI summaries from recent reports.
-            </span>
-          </li>
-          <li className="flex gap-3">
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-            <span>
-              <span className="font-semibold text-white">Groq-powered insights</span> — instant risk tips on reports and emergencies (with helpline pointers).
-            </span>
-          </li>
-        </ul>
+        {/* Center feature carousel */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center py-6 lg:py-0">
+          <div className={`surface-card p-6 lg:p-8 border transition-all duration-500 ${slide.accent}`} key={step}>
+            <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl border mb-4 ${slide.accent}`}>
+              <SlideIcon className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl lg:text-2xl font-black text-white tracking-tight mb-2">{slide.title}</h2>
+            <p className="text-sm text-slate-300 leading-relaxed">{slide.description}</p>
+            <div className="mt-5 flex items-center gap-2">
+              {slides.map((_, i) => (
+                <button key={i} type="button" aria-label={`Slide ${i + 1}`} onClick={() => setStep(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-7 bg-gradient-to-r from-pink-500 to-purple-600" : "w-3 bg-white/15"}`} />
+              ))}
+            </div>
+          </div>
 
-        <div className="surface-card p-6 scroll-mt-8">
-          <p className="text-center text-sm font-bold text-white mb-4">Sign in</p>
-          <AuthHub />
-          <div className="mt-4 pt-4 border-t border-white/5 flex flex-col items-center gap-2">
-            <p className="text-[11px] text-slate-400">Having trouble signing in?</p>
-            <button
-              type="button"
-              onClick={onBypass}
-              className="rounded-lg glass px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
-            >
-              Continue as Guest (Dev Bypass)
+          <ul className="mt-6 space-y-3">
+            {[
+              { label: "SOS + GPS log", detail: "One tap, trusted circle alerted instantly" },
+              { label: "Evidence vault", detail: "SHA-256 hashed, tamper-proof for legal use" },
+              { label: "Offline-capable", detail: "PWA works even on spotty internet" },
+            ].map(item => (
+              <li key={item.label} className="flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span className="text-sm text-slate-300"><span className="font-semibold text-white">{item.label}</span> — {item.detail}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Bottom links */}
+        <div className="relative z-10 hidden lg:flex items-center gap-4 pt-4">
+          <button type="button" onClick={() => setShowMarketing(true)} className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2">
+            Learn more
+          </button>
+          {installPromptEvent ? (
+            <button type="button" onClick={onInstall} className="text-xs text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2">
+              Install app
             </button>
+          ) : null}
+        </div>
+      </div>
+
+      {/* RIGHT PANEL — auth form */}
+      <div className="lg:w-[480px] lg:min-h-screen flex flex-col justify-center px-6 py-8 lg:px-12 lg:py-16 bg-[#0a0b12] border-t border-white/5 lg:border-t-0 lg:border-l">
+        <div className="w-full max-w-sm mx-auto space-y-6">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight">Sign in to NIgaban</h1>
+            <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">Your safety companion for Pakistan. Free, private, and always with you.</p>
+          </div>
+
+          <AuthHub />
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/8" /></div>
+            <div className="relative flex justify-center">
+              <span className="bg-[#0a0b12] px-3 text-[10px] text-slate-600 uppercase tracking-widest">or</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onBypass}
+            className="w-full rounded-2xl border border-white/10 bg-white/[0.03] py-3.5 text-sm font-semibold text-slate-300 hover:bg-white/8 hover:text-white active:scale-[0.98] transition-all"
+          >
+            Continue as guest — explore the demo
+          </button>
+
+          <p className="text-center text-[10px] text-slate-600 leading-relaxed">
+            By signing in, you agree that this app is a safety tool, not a substitute for emergency services. In danger, always call <span className="text-slate-400 font-semibold">15</span>.
+          </p>
+
+          {/* Mobile marketing link */}
+          <div className="flex items-center justify-center gap-4 pt-2 lg:hidden">
+            <button type="button" onClick={() => setShowMarketing(true)} className="text-xs text-slate-500 hover:text-slate-300 underline underline-offset-2">About NIgaban</button>
+            {installPromptEvent ? (
+              <button type="button" onClick={onInstall} className="text-xs text-purple-400 hover:text-purple-300 underline underline-offset-2">Install app</button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -355,14 +377,14 @@ function HomeScreen({
             <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">{tagline}</p>
           </div>
           
-          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black text-white leading-[0.95] tracking-tight animate-in slide-up duration-500">
-            Secure. <br/>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400">Transparent.</span> <br/>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white leading-[0.95] tracking-tight animate-in slide-up duration-500">
+            Safe. <br/>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400">Informed.</span> <br/>
             Unstoppable.
           </h1>
-          
-          <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-2xl mx-auto animate-in slide-up duration-700">
-            Silent SOS (press S three times in this demo), incident heatmaps, and one-tap evidence exports — built for hackathon clarity and real-world pressure.
+
+          <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-2xl mx-auto animate-in slide-up duration-700">
+            Silent SOS, incident heatmaps, AI legal guidance, and one-tap evidence exports — Pakistan's safety companion for women.
           </p>
           
           <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4 animate-in slide-up duration-1000">
@@ -498,9 +520,9 @@ function HomeScreen({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { step: "01", title: "Set up your circle", desc: "Add trusted contacts and a 4-digit SOS cancel PIN in More.", icon: Heart, bg: "bg-rose-500/10", border: "border-rose-500/25", color: "text-rose-400" },
-            { step: "02", title: "Turn on what you need", desc: "Safe Transit when commuting; Distress Listener only when you want audio watch.", icon: Smartphone, bg: "bg-blue-500/10", border: "border-blue-500/25", color: "text-blue-400" },
-            { step: "03", title: "Act fast if it spikes", desc: "SOS notifies your circle; optional auto-dial is configurable.", icon: AlertCircle, bg: "bg-emerald-500/10", border: "border-emerald-500/25", color: "text-emerald-400" },
+            { step: "01", title: "Set up your circle", desc: "Add 2–3 trusted contacts in Profile → Safety Circle. Set a 4-digit SOS cancel PIN.", icon: Heart, bg: "bg-rose-500/10", border: "border-rose-500/25", color: "text-rose-400" },
+            { step: "02", title: "Know your tools", desc: "Use Safe Transit for commutes, Hifazat for legal questions, and AI Shield to verify suspicious media.", icon: Smartphone, bg: "bg-blue-500/10", border: "border-blue-500/25", color: "text-blue-400" },
+            { step: "03", title: "Act fast if threatened", desc: "Tap SOS or press S three times — your circle is alerted with your live location instantly.", icon: AlertCircle, bg: "bg-emerald-500/10", border: "border-emerald-500/25", color: "text-emerald-400" },
           ].map((s) => (
             <div key={s.step} className={`group relative overflow-hidden surface-card surface-card-interactive p-8 border ${s.border}`}>
               <div className={`w-16 h-16 rounded-2xl ${s.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
@@ -2292,6 +2314,55 @@ function SafeTransit({ contacts, autoDialPolice }) {
   );
 }
 
+function useSiren() {
+  const ctxRef = useRef(null);
+  const oscRef = useRef(null);
+  const gainRef = useRef(null);
+  const rafRef = useRef(null);
+  const [active, setActive] = useState(false);
+
+  const stop = useCallback(() => {
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    if (oscRef.current) { try { oscRef.current.stop(); } catch { /* ignore */ } oscRef.current = null; }
+    if (gainRef.current) { gainRef.current = null; }
+    if (ctxRef.current) { try { ctxRef.current.close(); } catch { /* ignore */ } ctxRef.current = null; }
+    setActive(false);
+  }, []);
+
+  const start = useCallback(() => {
+    stop();
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      ctxRef.current = ctx;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.9;
+      gain.connect(ctx.destination);
+      gainRef.current = gain;
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.value = 880;
+      osc.connect(gain);
+      osc.start();
+      oscRef.current = osc;
+      const startT = ctx.currentTime;
+      const sweep = () => {
+        if (!ctxRef.current) return;
+        const t = (ctx.currentTime - startT) % 1.2;
+        const freq = t < 0.6 ? 660 + (t / 0.6) * 440 : 1100 - ((t - 0.6) / 0.6) * 440;
+        osc.frequency.setTargetAtTime(freq, ctx.currentTime, 0.04);
+        rafRef.current = requestAnimationFrame(sweep);
+      };
+      sweep();
+      setActive(true);
+    } catch {
+      setActive(false);
+    }
+  }, [stop]);
+
+  useEffect(() => () => stop(), [stop]);
+  return { active, start, stop };
+}
+
 function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
   const { success, error: toastError } = useToast();
   const [phase, setPhase] = useState("countdown");
@@ -2299,10 +2370,13 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [sosMeta, setSosMeta] = useState({ location: null, aiTip: "" });
+  const siren = useSiren();
+
   useEffect(() => {
     if (phase !== "countdown") return;
     if (countdown <= 0) {
       setPhase("active");
+      siren.start();
       const send = (body) => {
         api("/sos/start", { method: "POST", body: JSON.stringify(body) })
           .then((res) => {
@@ -2335,13 +2409,14 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
   }, [phase, countdown, success, toastError]);
 
   const stopSOS = async () => {
-    if (phase === "countdown") return onClose();
+    if (phase === "countdown") { siren.stop(); return onClose(); }
     if (pin !== cancelPin) {
       setError("Incorrect PIN");
       return;
     }
     try {
       await api("/sos/stop", { method: "POST", body: JSON.stringify({ pin }) });
+      siren.stop();
       onClose();
     } catch {
       setError("Could not verify PIN with server");
@@ -2381,7 +2456,25 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
               ) : null}
             </div>
             
-            <div className="mt-10 w-full max-w-[240px] space-y-2">
+            <button
+              type="button"
+              onClick={() => siren.active ? siren.stop() : siren.start()}
+              className="mt-6 flex items-center gap-2 rounded-full border-2 border-white/40 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/10 transition-all"
+            >
+              {siren.active ? (
+                <>
+                  <svg className="w-4 h-4 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  Mute siren
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                  Sound alarm
+                </>
+              )}
+            </button>
+
+            <div className="mt-6 w-full max-w-[240px] space-y-2">
               <p className="text-[10px] uppercase tracking-widest font-bold text-red-200">Enter PIN to cancel</p>
               <input
                 value={pin}
@@ -2410,6 +2503,7 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
 
 function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }) {
   const { success, error: toastError } = useToast();
+  const siren = useSiren();
   const [fakeCallOpen, setFakeCallOpen] = useState(false);
   const [name, setName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -2544,6 +2638,9 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
     loadConsultRequests();
   }, []);
 
+  const buildAlertBody = (lat, lng) =>
+    `🆘 NIgaban ALERT — I may need help. My location: https://www.google.com/maps?q=${lat},${lng} — Please call me or contact police (15) if I don't respond.`;
+
   const sendQuickAlertSms = () => {
     if (!contacts.length) {
       toastError("Add trusted contacts in My safety circle first.");
@@ -2553,9 +2650,6 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
       (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        const body = encodeURIComponent(
-          `NIgaban quick alert — I may need help. My live location: https://www.google.com/maps?q=${lat},${lng}`,
-        );
         const sanitized = contacts
           .slice(0, 3)
           .map((c) => String(c.phone || "").replace(/[^\d+]/g, "").trim())
@@ -2564,9 +2658,31 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
           toastError("Add phone numbers with country code (e.g. +92300…).");
           return;
         }
-        window.location.href = `sms:${sanitized.join(",")}?body=${body}`;
+        window.location.href = `sms:${sanitized.join(",")}?body=${encodeURIComponent(buildAlertBody(lat, lng))}`;
       },
       () => toastError("Allow location so your SMS includes live GPS."),
+      { enableHighAccuracy: true, timeout: 14_000, maximumAge: 30_000 },
+    );
+  };
+
+  const sendWhatsAppAlert = () => {
+    if (!contacts.length) {
+      toastError("Add trusted contacts first.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const firstContact = contacts[0];
+        const phone = String(firstContact.phone || "").replace(/[^\d+]/g, "").replace(/^\+/, "").trim();
+        if (!phone) {
+          toastError("Add a phone number with country code (e.g. +92300…).");
+          return;
+        }
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(buildAlertBody(lat, lng))}`, "_blank", "noopener");
+      },
+      () => toastError("Allow location so your WhatsApp message includes live GPS."),
       { enableHighAccuracy: true, timeout: 14_000, maximumAge: 30_000 },
     );
   };
@@ -2633,6 +2749,17 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
           <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
           Fake incoming call
         </button>
+        <button
+          type="button"
+          onClick={() => siren.active ? siren.stop() : siren.start()}
+          className={`w-full rounded-xl border px-3 py-2.5 text-sm font-semibold text-white text-left transition-colors flex items-center gap-2 ${siren.active ? "border-rose-500/40 bg-rose-900/30 animate-pulse" : "border-white/10 bg-[#141523] hover:bg-white/10"}`}
+        >
+          <svg className="w-4 h-4 text-rose-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+          {siren.active ? "Stop siren (tap to mute)" : "Sound alarm / siren"}
+        </button>
         <div className="rounded-xl border border-white/10 bg-[#141523]/60 p-3">
           <p className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold mb-2">Voice Note</p>
           <VoiceNoteRecorder />
@@ -2678,16 +2805,29 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
       <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">My safety circle</p>
-          <button
-            type="button"
-            onClick={sendQuickAlertSms}
-            className="rounded-lg bg-gradient-to-r from-rose-600 to-red-700 text-white text-[10px] font-bold px-3 py-1.5 shadow-lg shadow-rose-900/30"
-          >
-            Quick alert SMS
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={sendQuickAlertSms}
+              className="rounded-lg bg-gradient-to-r from-rose-600 to-red-700 text-white text-[10px] font-bold px-3 py-1.5 shadow-lg shadow-rose-900/30 flex items-center gap-1"
+            >
+              <Phone className="w-3 h-3" />
+              SMS Alert
+            </button>
+            <button
+              type="button"
+              onClick={sendWhatsAppAlert}
+              className="rounded-lg bg-[#25D366] text-white text-[10px] font-bold px-3 py-1.5 shadow-lg shadow-green-900/30 flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+              WhatsApp SOS
+            </button>
+          </div>
         </div>
         <p className="text-[10px] text-slate-500 leading-relaxed">
-          Saves up to three numbers. Opens your SMS app with a distress line and a live Google Maps link (no server SMS). Some phones only fill the first recipient — resend if needed.
+          SMS alert opens your app with a distress message for up to 3 contacts. WhatsApp SOS sends directly to your first contact with live location — no server needed.
         </p>
         {contacts.map((contact) => (
           <div key={contact.id} className="flex items-center justify-between bg-white/10 rounded-xl px-3 py-2.5 border border-white/5">
