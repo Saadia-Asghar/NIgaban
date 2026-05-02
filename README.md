@@ -20,6 +20,16 @@ npm run dev:full
 3. **Supabase** (dashboard): Project URL + anon key → `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Enable **Google** if you use Supabase Google sign-in; set **Redirect URLs** to match your site.
 4. **Database**: Set `SUPABASE_DB_URL` (or `DATABASE_URL`) so the server can run. Apply SQL under `supabase/migrations/` (includes `clerk_profiles` for Clerk user sync).
 
+### Verify the auth backend
+
+With the API running (`npm run server` or `npm run dev:full`):
+
+```bash
+curl -s http://localhost:8787/api/auth/status
+```
+
+You want `clerkSecretConfigured` and `databaseQueryable` both **true** so Clerk JWT verification and `clerk_profiles` sync work. If `databaseUrlConfigured` is false, set `SUPABASE_DB_URL` in `.env` and restart the server.
+
 ## Clerk → database sync
 
 After sign-in or sign-up with Clerk, the app calls `POST /api/auth/clerk-sync` with the Clerk session token. The server verifies the JWT and upserts a row in `public.clerk_profiles` (same database as Supabase). This keeps a mirror of Clerk users in Postgres for your own queries and RLS you may add later.

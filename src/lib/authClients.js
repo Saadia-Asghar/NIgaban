@@ -7,5 +7,12 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 export const supabaseEnabled = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = supabaseEnabled
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        flowType: "pkce",
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    })
   : null;

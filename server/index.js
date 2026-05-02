@@ -1032,6 +1032,27 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
+app.get("/api/auth/status", async (_req, res) => {
+  const clerkSecretConfigured = Boolean(getClerkSecretKey());
+  const databaseUrlConfigured = Boolean(supabaseDbUrl);
+  let databaseQueryable = false;
+  if (dbPool) {
+    try {
+      await ensureDbReady();
+      await dbPool.query("SELECT 1 AS ok");
+      databaseQueryable = true;
+    } catch {
+      databaseQueryable = false;
+    }
+  }
+  res.json({
+    clerkSecretConfigured,
+    databaseUrlConfigured,
+    databaseQueryable,
+    clerkProfileSyncReady: clerkSecretConfigured && databaseQueryable,
+  });
+});
+
 app.get("/api/state", async (_req, res) => {
   const data = await readData();
   res.json({ settings: data.settings, contacts: data.contacts });

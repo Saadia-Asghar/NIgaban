@@ -1952,6 +1952,7 @@ export default function App() {
   const [timelineEntries, setTimelineEntries] = useState([]);
   const [timelineText, setTimelineText] = useState("");
   const [timelineSaving, setTimelineSaving] = useState(false);
+  const [clerkProfileSyncHint, setClerkProfileSyncHint] = useState(null);
 
   useEffect(() => {
     if (!supabaseEnabled || !supabase) {
@@ -1988,11 +1989,25 @@ export default function App() {
             "Content-Type": "application/json",
           },
         });
-        if (!res.ok && import.meta.env.DEV) {
-          const t = await res.text().catch(() => "");
-          console.warn("[clerk-sync]", res.status, t);
+        const raw = await res.text().catch(() => "");
+        let body = {};
+        try {
+          body = raw ? JSON.parse(raw) : {};
+        } catch {
+          body = {};
+        }
+        if (!res.ok) {
+          const msg =
+            typeof body.error === "string"
+              ? body.error
+              : raw?.trim() || `Profile sync failed (${res.status})`;
+          setClerkProfileSyncHint(msg);
+          if (import.meta.env.DEV) console.warn("[clerk-sync]", res.status, raw);
+        } else {
+          setClerkProfileSyncHint(null);
         }
       } catch (e) {
+        setClerkProfileSyncHint("Could not reach server for profile sync. Use npm run dev:full.");
         if (import.meta.env.DEV) console.warn("[clerk-sync]", e);
       }
     })();
@@ -2006,6 +2021,7 @@ export default function App() {
   const userProfile = clerkSignedIn ? (clerkUser?.primaryEmailAddress?.emailAddress || clerkUser?.fullName || "User") : supabaseSession ? supabaseSession.user.email : devBypass ? "Guest" : null;
 
   const handleSignOut = async () => {
+    setClerkProfileSyncHint(null);
     if (clerkSignedIn) {
       await clerkSignOut();
     } else if (supabaseSession && supabase) {
@@ -2147,6 +2163,15 @@ export default function App() {
       {!backendOk ? (
         <div className="fixed bottom-3 right-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] text-red-900 flex items-center gap-1.5 z-50">
           <AlertCircle className="w-3.5 h-3.5" /> Backend offline. Start with `npm run dev:full`.
+        </div>
+      ) : null}
+      {clerkSignedIn && clerkProfileSyncHint ? (
+        <div className="fixed bottom-3 left-3 max-w-sm rounded-xl border border-amber-400/40 bg-amber-950/90 px-3 py-2 text-[11px] text-amber-100 flex items-start gap-2 z-50 shadow-lg">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-400 mt-0.5" />
+          <span>
+            <span className="font-semibold text-amber-200">Account sync: </span>
+            {clerkProfileSyncHint}
+          </span>
         </div>
       ) : null}
     </div>
