@@ -1,16 +1,34 @@
-# React + Vite
+# Nigehbaan
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Women’s safety companion (React + Vite + Express). Auth uses **Clerk** (email + Google in the Clerk UI) and optional **Supabase Auth** (email/password + Google). App data can live in **Supabase Postgres** via `SUPABASE_DB_URL`.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+cp .env.example .env
+npm install
+npm run dev:full
+```
 
-## React Compiler
+- Frontend: [http://localhost:5173](http://localhost:5173) (proxies `/api` to the server).
+- API: `http://localhost:8787` (override with `PORT`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Auth setup
 
-## Expanding the ESLint configuration
+1. **Clerk** (dashboard): Create an application; enable **Email** and **Google**; copy the **Publishable** key into `VITE_CLERK_PUBLISHABLE_KEY` and the **Secret** key into `CLERK_SECRET_KEY` (server only, never expose in Vite).
+2. **Optional** `CLERK_AUTHORIZED_PARTIES`: comma-separated origins (e.g. `http://localhost:5173`) for stricter JWT checks. Leave empty for local experiments.
+3. **Supabase** (dashboard): Project URL + anon key → `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Enable **Google** if you use Supabase Google sign-in; set **Redirect URLs** to match your site.
+4. **Database**: Set `SUPABASE_DB_URL` (or `DATABASE_URL`) so the server can run. Apply SQL under `supabase/migrations/` (includes `clerk_profiles` for Clerk user sync).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Clerk → database sync
+
+After sign-in or sign-up with Clerk, the app calls `POST /api/auth/clerk-sync` with the Clerk session token. The server verifies the JWT and upserts a row in `public.clerk_profiles` (same database as Supabase). This keeps a mirror of Clerk users in Postgres for your own queries and RLS you may add later.
+
+## Scripts
+
+| Command        | Description                          |
+| -------------- | ------------------------------------ |
+| `npm run dev`  | Vite only                            |
+| `npm run server` | Express API                        |
+| `npm run dev:full` | API + Vite (recommended)         |
+| `npm run build` | Production frontend bundle        |

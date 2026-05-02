@@ -1,19 +1,109 @@
-@import "tailwindcss";
-
-body {
-  margin: 0;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: radial-gradient(circle at top right, #2b1b54 0, #141523 35%),
-    radial-gradient(circle at bottom left, #3b185f 0, #141523 30%);
-  background-color: #141523;
-  color: #e2e8f0;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #4c1d95 #1e1b4b;
-}
+@import "tailwindcss"; 
+ 
+ /* ===== Base ===== */ 
+ body { 
+   margin: 0; 
+   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; 
+   background: radial-gradient(circle at top right, #2b1b54 0, #141523 35%), 
+     radial-gradient(circle at bottom left, #3b185f 0, #141523 30%); 
+   background: radial-gradient(ellipse at top right, #2b1b54 0%, #141523 40%), 
+               radial-gradient(ellipse at bottom left, #3b185f 0%, #141523 35%); 
+   background-color: #141523; 
+   color: #e2e8f0; 
+ } 
+ 
+ #root { 
+   min-height: 100vh; 
+ } 
+ 
+ /* ===== Scrollbars ===== */ 
+ * { 
+   scrollbar-width: thin; 
+   scrollbar-color: #5b21b6 #1e1b4b; 
+ } 
+ 
+ ::-webkit-scrollbar { 
+   width: 4px; 
+   height: 4px; 
+ } 
+ ::-webkit-scrollbar-track { background: #1e1b4b; } 
+ ::-webkit-scrollbar-thumb { background: #5b21b6; border-radius: 99px; } 
+ ::-webkit-scrollbar-thumb:hover { background: #7c3aed; } 
+ 
+ /* ===== Utility ===== */ 
+ .bg-white\/8 { background-color: rgba(255,255,255,0.08); } 
+ 
+ /* ===== Animations ===== */ 
+ @keyframes fade-in { 
+   from { opacity: 0; transform: translateY(8px); } 
+   to   { opacity: 1; transform: translateY(0); } 
+ } 
+ 
+ @keyframes slide-up { 
+   from { opacity: 0; transform: translateY(16px); } 
+   to   { opacity: 1; transform: translateY(0); } 
+ } 
+ 
+ @keyframes glow-pulse { 
+   0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); } 
+   50%       { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); } 
+ } 
+ 
+ .animate-in { 
+   animation: fade-in 0.35s ease-out both; 
+ } 
+ 
+ .fade-in { animation-name: fade-in; } 
+ .slide-up { animation-name: slide-up; } 
+ 
+ .zoom-in-95 { 
+   animation-name: fade-in; 
+ } 
+ 
+ .duration-200 { animation-duration: 0.2s; } 
+ .duration-300 { animation-duration: 0.3s; } 
+ .duration-500 { animation-duration: 0.5s; } 
+ 
+ /* ===== Logo glow effect ===== */ 
+ .logo-glow { 
+   filter: drop-shadow(0 0 8px rgba(134, 59, 255, 0.6)); 
+ } 
+ 
+ /* ===== Glassmorphism helpers ===== */ 
+ .glass { 
+   background: rgba(255,255,255,0.05); 
+   backdrop-filter: blur(12px); 
+   -webkit-backdrop-filter: blur(12px); 
+   border: 1px solid rgba(255,255,255,0.1); 
+ } 
+ 
+ .glass-dark { 
+   background: rgba(20,21,35,0.8); 
+   backdrop-filter: blur(12px); 
+   -webkit-backdrop-filter: blur(12px); 
+   border: 1px solid rgba(255,255,255,0.08); 
+ } 
+ 
+ /* ===== SOS screen pulse ===== */ 
+ @keyframes sos-ring { 
+   0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); } 
+   70%  { box-shadow: 0 0 0 24px rgba(239, 68, 68, 0); } 
+   100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+ } 
+ 
+ .sos-pulse { animation: sos-ring 1.5s ease-out infinite; } 
+ 
+ /* ===== Select option theming ===== */ 
+ select option { 
+   background-color: #1e1b4b; 
+   color: #e2e8f0; 
+ } 
+ 
+ /* ===== Input autofill ===== */ 
+ input:-webkit-autofill, 
+ input:-webkit-autofill:hover, 
+ input:-webkit-autofill:focus { 
+   -webkit-text-fill-color: #e2e8f0; 
+   -webkit-box-shadow: 0 0 0px 1000px #1a1b2e inset; 
+   transition: background-color 5000s ease-in-out 0s; 
+ }

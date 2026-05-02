@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useUser, UserButton, useClerk } from "@clerk/react";
-import { supabase } from "./lib/authClients";
+import { useUser, UserButton, useClerk, useAuth } from "@clerk/react";
+import { supabase, supabaseEnabled } from "./lib/authClients";
 import AuthHub from "./components/AuthHub.jsx";
 import {
-  Activity,
   AlertCircle,
   AlertTriangle,
   Building2,
@@ -23,15 +22,11 @@ import {
   LogOut,
   MapPin,
   MessageSquare,
-  Mic,
   Phone,
   Plus,
-  Radio,
   Scale,
   Send,
   Shield,
-  Sparkles,
-  User,
   Volume2,
   X,
   Smartphone,
@@ -41,32 +36,31 @@ const LEGAL_SYSTEM_PROMPT = `You are the Legal Aid Assistant for Nigehbaan...`;
 const DM_SCAN_SYSTEM_PROMPT = `Return only JSON with classification, severity, peca_section, peca_explanation, evidence_value, recommended_action, summary.`;
 
 async function api(path, options = {}) {
-  let token = "";
   try {
-    token = localStorage.getItem("nigehbaan_token") || "";
+    const token = localStorage.getItem("nigehbaan_token") || "";
+    const res = await fetch(`/api${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+      ...options,
+    });
+    if (!res.ok) throw new Error(`Request failed ${res.status}`);
+    return res.json();
   } catch {
-    token = "";
+    return {};
   }
-  const res = await fetch(`/api${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
-  });
-  if (!res.ok) throw new Error(`Request failed ${res.status}`);
-  return res.json();
 }
 
 function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut, isClerk }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-white/10 bg-[#141523]/80 px-4 py-3 backdrop-blur flex items-center justify-between">
+    <header className="sticky top-0 z-20 glass-dark px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-2">
         {showBack ? (
-          <button onClick={onBack} className="rounded-full p-1.5 hover:bg-white/20/60"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={onBack} className="rounded-full p-1.5 hover:bg-white/10 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
         ) : (
-          <div className="w-9 h-9 rounded-full bg-violet-800 text-white flex items-center justify-center font-bold">ن</div>
+          <div className="w-9 h-9 rounded-full bg-violet-800 text-white flex items-center justify-center font-bold logo-glow">ن</div>
         )}
         <div>
           <h1 className="text-lg font-semibold text-white">{title || "Nigehbaan"}</h1>
@@ -74,7 +68,7 @@ function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <button onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))} className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-purple-300 flex items-center gap-1">
+        <button onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))} className="text-xs font-semibold px-2.5 py-1 rounded-full glass text-purple-300 flex items-center gap-1 hover:bg-white/10 transition-colors">
           <Languages className="w-3.5 h-3.5" />{lang === "en" ? "EN" : "اردو"}
         </button>
         {isClerk ? (
@@ -101,12 +95,12 @@ function BottomNav({ active, onNavigate }) {
     { id: "more", icon: Plus, label: "More" },
   ];
   return (
-    <nav className="sticky bottom-0 border-t border-white/10 bg-white/5 backdrop-blur-md/95 px-2 py-2 flex items-center justify-around">
+    <nav className="sticky bottom-0 glass-dark border-t-0 px-2 py-2 flex items-center justify-around">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const activeTab = active === tab.id;
         return (
-          <button key={tab.id} onClick={() => onNavigate(tab.id)} className={`px-3 py-1.5 rounded-xl ${activeTab ? "text-purple-300 bg-white/10" : "text-slate-400"}`}>
+          <button key={tab.id} onClick={() => onNavigate(tab.id)} className={`px-3 py-1.5 rounded-xl transition-all duration-200 ${activeTab ? "text-purple-300 bg-white/10 shadow-lg shadow-purple-500/10" : "text-slate-400 hover:text-slate-200"}`}>
             <div className="flex flex-col items-center">
               <Icon className="w-5 h-5" />
               <span className="text-[10px] font-semibold">{tab.label}</span>
@@ -125,21 +119,21 @@ function WelcomeAuthScreen({ onBypass }) {
       description:
         "Nigehbaan helps you act quickly during harassment, unsafe commutes, or emergencies.",
       icon: Shield,
-      color: "bg-rose-100 text-rose-900",
+      color: "bg-rose-500/20 text-rose-200 border border-rose-500/20",
     },
     {
       title: "Legal + Evidence in One Place",
       description:
         "Use Legal Aid Chat and DM Scanner to understand rights and keep ready-to-use evidence.",
       icon: Scale,
-      color: "bg-indigo-100 text-indigo-900",
+      color: "bg-indigo-500/20 text-indigo-200 border border-indigo-500/20",
     },
     {
       title: "Emergency Ready",
       description:
         "Configure trusted contacts and SOS PIN. One tap can alert family and emergency support.",
       icon: AlertTriangle,
-      color: "bg-red-100 text-red-800",
+      color: "bg-red-500/20 text-red-200 border border-red-500/20",
     },
   ];
   const [step, setStep] = useState(0);
@@ -155,11 +149,11 @@ function WelcomeAuthScreen({ onBypass }) {
   const Icon = slide.icon;
 
   return (
-    <div className="min-h-screen bg-[#141523] flex flex-col md:flex-row overflow-y-auto w-full">
+    <div className="min-h-screen bg-[#141523] flex flex-col md:flex-row overflow-y-auto w-full animate-in fade-in">
       {/* Left / Top Side: About the App Slideshow */}
-      <div className="w-full md:w-1/2 min-h-[40vh] md:min-h-screen p-8 flex flex-col justify-center items-center relative overflow-hidden bg-white/5 border-b md:border-b-0 md:border-r border-white/10">
+      <div className="w-full md:w-1/2 min-h-[40vh] md:min-h-screen p-8 flex flex-col justify-center items-center relative overflow-hidden glass border-0 md:border-r md:border-white/5">
         <div className="absolute top-8 left-8 flex items-center gap-2">
-          <Shield className="w-6 h-6 text-pink-500" />
+          <Shield className="w-6 h-6 text-pink-500 logo-glow" />
           <span className="font-bold text-white tracking-widest uppercase">Nigehbaan</span>
         </div>
         
@@ -173,7 +167,7 @@ function WelcomeAuthScreen({ onBypass }) {
           </div>
           <div className="flex items-center gap-3">
             {slides.map((_, i) => (
-              <button key={i} onClick={() => setStep(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-8 bg-gradient-to-r from-pink-500 to-purple-600" : "w-4 bg-white/20 hover:bg-white/40"}`} />
+              <button key={i} onClick={() => setStep(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-8 bg-gradient-to-r from-pink-500 to-purple-600" : "w-4 glass hover:bg-white/20"}`} />
             ))}
           </div>
         </div>
@@ -186,13 +180,13 @@ function WelcomeAuthScreen({ onBypass }) {
             <h1 className="text-2xl md:text-3xl font-bold text-white">Welcome</h1>
             <p className="text-slate-400 text-sm">Sign in or create an account to secure your peace of mind.</p>
           </div>
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+          <div className="glass p-6 shadow-2xl rounded-3xl animate-in slide-up">
             <AuthHub />
-            <div className="mt-4 pt-4 border-t border-white/10 flex flex-col items-center gap-2">
+            <div className="mt-4 pt-4 border-t border-white/5 flex flex-col items-center gap-2">
               <p className="text-[11px] text-slate-400">Having trouble signing in?</p>
               <button 
                 onClick={onBypass} 
-                className="rounded-lg border border-white/20 bg-transparent px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
+                className="rounded-lg glass px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition-colors"
               >
                 Continue as Guest (Dev Bypass)
               </button>
@@ -240,15 +234,15 @@ function HomeScreen({
           Nigehbaan helps you handle harassment, unsafe travel, and emergencies with SOS, legal guidance, AI threat tools, and community alerts.
         </p>
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div className="rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-2.5">
+          <div className="rounded-xl glass p-2.5">
             <p className="text-[11px] uppercase tracking-wide text-purple-200">Step 1</p>
             <p className="text-xs mt-1">Set trusted contacts in Resources</p>
           </div>
-          <div className="rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-2.5">
+          <div className="rounded-xl glass p-2.5">
             <p className="text-[11px] uppercase tracking-wide text-purple-200">Step 2</p>
             <p className="text-xs mt-1">Use Transit + Shield during risky situations</p>
           </div>
-          <div className="rounded-xl bg-white/10 backdrop-blur-md border border-white/20 p-2.5">
+          <div className="rounded-xl glass p-2.5">
             <p className="text-[11px] uppercase tracking-wide text-purple-200">Step 3</p>
             <p className="text-xs mt-1">Tap SOS immediately if danger escalates</p>
           </div>
@@ -256,7 +250,7 @@ function HomeScreen({
         {canInstall ? (
           <button
             onClick={onInstall}
-            className="mt-3 w-full rounded-xl bg-white/5 backdrop-blur-md text-purple-300 py-2.5 text-sm font-semibold flex items-center justify-center gap-2"
+            className="mt-3 w-full rounded-xl glass text-purple-300 py-2.5 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
           >
             <Smartphone className="w-4 h-4" />
             Install app on mobile home screen
@@ -266,72 +260,72 @@ function HomeScreen({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
           onClick={() => onNavigate("more")}
-          className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 text-left hover:shadow-sm transition"
+          className="rounded-xl glass p-3 text-left hover:bg-white/10 transition group"
         >
           <p className="text-[11px] uppercase tracking-wide text-pink-400 font-semibold">Start Here</p>
-          <p className="text-sm font-semibold text-white mt-1">Setup Safety Profile</p>
+          <p className="text-sm font-semibold text-white mt-1 group-hover:text-pink-300 transition-colors">Setup Safety Profile</p>
           <p className="text-[11px] text-slate-400 mt-1">Add contacts, PIN, OTP identity.</p>
         </button>
         <button
           onClick={() => onNavigate("transit")}
-          className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 text-left hover:shadow-sm transition"
+          className="rounded-xl glass p-3 text-left hover:bg-white/10 transition group"
         >
           <p className="text-[11px] uppercase tracking-wide text-pink-400 font-semibold">Before Travel</p>
-          <p className="text-sm font-semibold text-white mt-1">Start Safe Transit</p>
+          <p className="text-sm font-semibold text-white mt-1 group-hover:text-pink-300 transition-colors">Start Safe Transit</p>
           <p className="text-[11px] text-slate-400 mt-1">Use local check-ins even without APIs.</p>
         </button>
         <button
           onClick={() => onNavigate("legal")}
-          className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 text-left hover:shadow-sm transition"
+          className="rounded-xl glass p-3 text-left hover:bg-white/10 transition group"
         >
           <p className="text-[11px] uppercase tracking-wide text-pink-400 font-semibold">Need Help</p>
-          <p className="text-sm font-semibold text-white mt-1">Open Legal Aid</p>
+          <p className="text-sm font-semibold text-white mt-1 group-hover:text-pink-300 transition-colors">Open Legal Aid</p>
           <p className="text-[11px] text-slate-400 mt-1">Chat + consult request in one place.</p>
         </button>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-3">
+      <div className="rounded-2xl glass p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-white">App Information</p>
-          <span className="text-[10px] uppercase tracking-wide rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-pink-400 font-semibold">
+          <span className="text-[10px] uppercase tracking-wide rounded-full glass px-2 py-0.5 text-pink-400 font-semibold">
             Start here
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => setInfoPanel("about")}
-            className={`rounded-lg py-2 text-xs font-semibold ${infoPanel === "about" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
+            className={`rounded-lg py-2 text-xs font-semibold transition-all duration-300 ${infoPanel === "about" ? "bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white" : "glass text-slate-300 hover:bg-white/10"}`}
           >
             About
           </button>
           <button
             onClick={() => setInfoPanel("directions")}
-            className={`rounded-lg py-2 text-xs font-semibold ${infoPanel === "directions" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
+            className={`rounded-lg py-2 text-xs font-semibold transition-all duration-300 ${infoPanel === "directions" ? "bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white" : "glass text-slate-300 hover:bg-white/10"}`}
           >
             Directions
           </button>
           <button
             onClick={() => setInfoPanel("features")}
-            className={`rounded-lg py-2 text-xs font-semibold ${infoPanel === "features" ? "bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white" : "bg-white/10 text-slate-300"}`}
+            className={`rounded-lg py-2 text-xs font-semibold transition-all duration-300 ${infoPanel === "features" ? "bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white" : "glass text-slate-300 hover:bg-white/10"}`}
           >
             Features
           </button>
         </div>
         {infoPanel === "about" ? (
-          <div className="rounded-xl border border-white/10 bg-[#141523] p-3">
+          <div className="rounded-xl glass-dark p-3 animate-in fade-in">
             <p className="text-xs font-semibold text-white">What Nigehbaan does</p>
             <p className="text-[12px] text-slate-400 mt-1 leading-relaxed">
               Nigehbaan is a women safety web app for prevention, emergency response, and legal support. It helps users stay protected during harassment risks, travel, and cyber abuse situations.
             </p>
             <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md p-2">
+              <div className="rounded-lg glass p-2">
                 <p className="text-[11px] text-pink-400 font-semibold">Prevent</p>
                 <p className="text-[11px] text-slate-400 mt-1">Threat checks + awareness</p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md p-2">
+              <div className="rounded-lg glass p-2">
                 <p className="text-[11px] text-pink-400 font-semibold">Protect</p>
                 <p className="text-[11px] text-slate-400 mt-1">Transit + SOS workflows</p>
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md p-2">
+              <div className="rounded-lg glass p-2">
                 <p className="text-[11px] text-pink-400 font-semibold">Pursue justice</p>
                 <p className="text-[11px] text-slate-400 mt-1">Legal aid + consult requests</p>
               </div>
@@ -339,7 +333,7 @@ function HomeScreen({
           </div>
         ) : null}
         {infoPanel === "directions" ? (
-          <div className="rounded-xl border border-white/10 bg-[#141523] p-3 space-y-2">
+          <div className="rounded-xl glass-dark p-3 space-y-2 animate-in fade-in">
             <p className="text-xs font-semibold text-white">How to use (simple flow)</p>
             {[
               "1. Open Resources and add trusted contacts + SOS PIN.",
@@ -353,7 +347,7 @@ function HomeScreen({
           </div>
         ) : null}
         {infoPanel === "features" ? (
-          <div className="rounded-xl border border-white/10 bg-[#141523] p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="rounded-xl glass-dark p-3 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in">
             {[
               "AI Threat Shield (DM/deepfake/voice checks)",
               "Safe Transit with no-key fallback check-ins",
@@ -362,14 +356,14 @@ function HomeScreen({
               "Community safety feed + city chat + incident reports",
               "Evidence timeline notes for safer documentation",
             ].map((item) => (
-              <div key={item} className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md p-2">
+              <div key={item} className="rounded-lg glass p-2">
                 <p className="text-[12px] text-slate-300">{item}</p>
               </div>
             ))}
           </div>
         ) : null}
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4">
+      <div className="rounded-2xl glass p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-white">Safety Profile Strength</p>
           <p className="text-xs font-semibold text-purple-400">
@@ -386,7 +380,7 @@ function HomeScreen({
           Improve score by adding contacts, using timeline notes, and checking live community alerts.
         </p>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-3">
+      <div className="rounded-2xl glass p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-white">Quick Start Checklist</p>
           <p className="text-xs text-purple-400 font-semibold">
@@ -398,17 +392,17 @@ function HomeScreen({
             <button
               key={item.id}
               onClick={() => (item.action === "home" ? null : onNavigate(item.action))}
-              className="w-full rounded-xl border border-white/10 bg-[#141523] px-3 py-2 text-left flex items-center justify-between gap-2"
+              className="w-full rounded-xl glass-dark px-3 py-2 text-left flex items-center justify-between gap-2 hover:bg-white/5 transition-colors"
             >
               <span className="text-xs text-slate-300">{item.label}</span>
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.done ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.done ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/20" : "bg-amber-500/20 text-amber-400 border border-amber-500/20"}`}>
                 {item.done ? "Done" : item.action === "home" ? "On this screen" : "Open"}
               </span>
             </button>
           ))}
         </div>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-2">
+      <div className="rounded-2xl glass p-4 space-y-2">
         <p className="text-sm font-semibold text-white">How it works</p>
         {[
           {
@@ -427,7 +421,7 @@ function HomeScreen({
             body: "Hit SOS to notify contacts, log evidence/timeline, and use Community to broadcast nearby safety incidents.",
           },
         ].map((guide) => (
-          <div key={guide.id} className="rounded-xl border border-white/10 bg-[#141523]">
+          <div key={guide.id} className="rounded-xl glass-dark">
             <button
               onClick={() => setOpenGuide((prev) => (prev === guide.id ? "" : guide.id))}
               className="w-full px-3 py-2 text-left flex items-center justify-between gap-2"
@@ -435,29 +429,29 @@ function HomeScreen({
               <span className="text-xs font-semibold text-slate-200">{guide.title}</span>
               <ChevronRight className={`w-4 h-4 text-slate-400 transition ${openGuide === guide.id ? "rotate-90" : ""}`} />
             </button>
-            {openGuide === guide.id ? <p className="px-3 pb-3 text-xs text-slate-400">{guide.body}</p> : null}
+            {openGuide === guide.id ? <p className="px-3 pb-3 text-xs text-slate-400 animate-in slide-up">{guide.body}</p> : null}
           </div>
         ))}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3">
+        <div className="rounded-xl glass p-3">
           <p className="text-xs font-semibold text-white">When to use Threat Shield</p>
           <p className="text-[11px] text-slate-400 mt-1">For suspicious DMs, deepfake checks, and abuse detection before escalation.</p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3">
+        <div className="rounded-xl glass p-3">
           <p className="text-xs font-semibold text-white">When to use Legal Aid</p>
           <p className="text-[11px] text-slate-400 mt-1">For FIR guidance, rights under PECA, and direct legal consult requests.</p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3">
+        <div className="rounded-xl glass p-3">
           <p className="text-xs font-semibold text-white">When to use Community</p>
           <p className="text-[11px] text-slate-400 mt-1">To monitor local alerts, chat with city members, and report incidents.</p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3">
+        <div className="rounded-xl glass p-3">
           <p className="text-xs font-semibold text-white">When to use SOS</p>
           <p className="text-[11px] text-slate-400 mt-1">Immediate danger only. It triggers contact alerts and emergency workflow.</p>
         </div>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4">
+      <div className="rounded-2xl glass p-4">
         <p className="text-sm font-semibold text-white">Emergency Numbers (Pakistan)</p>
         <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
           {[
@@ -465,17 +459,17 @@ function HomeScreen({
             { label: "Madadgaar", phone: "1099" },
             { label: "FIA Cybercrime", phone: "1991" },
           ].map((item) => (
-            <a key={item.label} href={`tel:${item.phone}`} className="rounded-xl border border-white/10 bg-[#141523] px-3 py-2">
-              <p className="text-[11px] text-slate-400">{item.label}</p>
-              <p className="text-sm font-semibold text-purple-300">{item.phone}</p>
+            <a key={item.label} href={`tel:${item.phone}`} className="rounded-xl glass-dark px-3 py-2 hover:bg-white/5 transition-colors group">
+              <p className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors">{item.label}</p>
+              <p className="text-sm font-semibold text-purple-300 group-hover:text-purple-200 transition-colors">{item.phone}</p>
             </a>
           ))}
         </div>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-3">
+      <div className="rounded-2xl glass p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-white">Safety Timeline (real-time)</p>
-          <span className="text-[10px] uppercase tracking-wide rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700 font-semibold">Live</span>
+          <span className="text-[10px] uppercase tracking-wide rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 font-semibold">Live</span>
         </div>
         <p className="text-xs text-slate-400">
           Add quick notes when meeting someone new, spotting suspicious activity, or starting a risky commute.
@@ -485,19 +479,19 @@ function HomeScreen({
             value={timelineText}
             onChange={(e) => setTimelineText(e.target.value)}
             placeholder="Add safety note..."
-            className="flex-1 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm"
+            className="flex-1 rounded-lg glass-dark px-2.5 py-2 text-sm focus:ring-2 focus:ring-purple-500/50 outline-none"
           />
           <button
             onClick={onAddTimeline}
             disabled={timelineSaving || !timelineText.trim()}
-            className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold disabled:opacity-60"
+            className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white px-3 py-2 text-xs font-semibold disabled:opacity-60 active:scale-95 transition-transform"
           >
             {timelineSaving ? "Saving..." : "Add"}
           </button>
         </div>
         <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
           {timelineEntries.map((entry) => (
-            <div key={entry.id} className="rounded-lg border border-white/10 bg-[#141523] p-2.5">
+            <div key={entry.id} className="rounded-lg glass-dark p-2.5 animate-in slide-up">
               <p className="text-xs text-slate-300">{entry.text}</p>
               <p className="text-[10px] text-slate-400 mt-1">{new Date(entry.createdAt).toLocaleString()}</p>
             </div>
@@ -505,10 +499,10 @@ function HomeScreen({
           {timelineEntries.length === 0 ? <p className="text-xs text-slate-400">No timeline notes yet.</p> : null}
         </div>
       </div>
-      {stealthMode ? <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-800">Stealth mode enabled.</div> : null}
-      <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-3 py-2.5 flex items-center justify-between">
+      {stealthMode ? <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs text-emerald-400">Stealth mode enabled.</div> : null}
+      <div className="rounded-xl glass px-3 py-2.5 flex items-center justify-between">
         <p className="text-xs text-slate-400">Safety profile completion</p>
-        <p className="text-xs font-semibold text-rose-900">{contactsCount >= 3 ? "100%" : "70%"}</p>
+        <p className="text-xs font-semibold text-pink-400">{contactsCount >= 3 ? "100%" : "70%"}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
@@ -520,15 +514,15 @@ function HomeScreen({
         ].map((item) => {
           const Icon = item.icon;
           return (
-            <button key={item.id} onClick={() => onNavigate(item.id)} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 text-left hover:shadow-md hover:-translate-y-[1px] transition">
+            <button key={item.id} onClick={() => onNavigate(item.id)} className="rounded-2xl glass p-4 text-left hover:bg-white/10 hover:-translate-y-[1px] transition-all duration-200">
               <Icon className="w-5 h-5 mb-2 text-purple-400" />
-              <p className="text-sm font-semibold">{item.title}</p>
+              <p className="text-sm font-semibold text-white">{item.title}</p>
               <p className="text-[11px] text-slate-400 mt-0.5">{item.subtitle}</p>
             </button>
           );
         })}
       </div>
-      <button onClick={onSOS} className="w-full rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white p-4 flex items-center gap-2 shadow-md">
+      <button onClick={onSOS} className="w-full rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white p-4 flex items-center gap-2 shadow-lg shadow-red-600/20 active:scale-[0.98] transition-transform">
         <AlertTriangle className="w-5 h-5" /><span className="font-semibold">Emergency SOS</span>
       </button>
     </div>
@@ -567,7 +561,7 @@ function CommunityScreen() {
   const [pendingReports, setPendingReports] = useState([]);
   const [moderationLoading, setModerationLoading] = useState(false);
 
-  const loadFeed = async (targetCity) => {
+  const loadFeed = useMemo(() => async (targetCity) => {
     setLoading(true);
     try {
       const data = await api(`/community/feed?city=${encodeURIComponent(targetCity)}`);
@@ -578,7 +572,7 @@ function CommunityScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const submitReport = async (e) => {
     e.preventDefault();
@@ -613,7 +607,7 @@ function CommunityScreen() {
     loadFeed(city);
   }, [city]);
 
-  const loadChat = async (targetCity) => {
+  const loadChat = useMemo(() => async (targetCity) => {
     setChatLoading(true);
     try {
       const data = await api(`/community/chat?city=${encodeURIComponent(targetCity)}`);
@@ -624,9 +618,9 @@ function CommunityScreen() {
     } finally {
       setChatLoading(false);
     }
-  };
+  }, []);
 
-  const loadNgos = async (targetCity) => {
+  const loadNgos = useMemo(() => async (targetCity) => {
     setNgoLoading(true);
     try {
       const data = await api(`/help/ngos?city=${encodeURIComponent(targetCity)}`);
@@ -636,12 +630,24 @@ function CommunityScreen() {
     } finally {
       setNgoLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadChat(city);
     loadNgos(city);
-  }, [city]);
+  }, [city, loadChat, loadNgos]);
+
+  const loadPendingReports = useMemo(() => async () => {
+    setModerationLoading(true);
+    try {
+      const data = await api("/moderation/reports?status=pending");
+      setPendingReports(data.reports || []);
+    } catch {
+      setPendingReports([]);
+    } finally {
+      setModerationLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!liveUpdates) return undefined;
@@ -654,23 +660,11 @@ function CommunityScreen() {
       loadPendingReports();
     }, 8000);
     return () => clearInterval(intervalId);
-  }, [city, activePanel, liveUpdates]);
-
-  const loadPendingReports = async () => {
-    setModerationLoading(true);
-    try {
-      const data = await api("/moderation/reports?status=pending");
-      setPendingReports(data.reports || []);
-    } catch {
-      setPendingReports([]);
-    } finally {
-      setModerationLoading(false);
-    }
-  };
+  }, [city, activePanel, liveUpdates, loadChat, loadFeed, loadPendingReports]);
 
   useEffect(() => {
     loadPendingReports();
-  }, []);
+  }, [loadPendingReports]);
 
   const moderateReport = async (id, action) => {
     try {
@@ -799,19 +793,19 @@ function CommunityScreen() {
         </button>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-3">
+      <div className="rounded-2xl glass p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-white">Nearby NGOs ({city})</p>
-          <button onClick={() => loadNgos(city)} className="text-xs font-semibold text-purple-400">Refresh NGOs</button>
+          <button onClick={() => loadNgos(city)} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh NGOs</button>
         </div>
         {ngoLoading ? <p className="text-xs text-slate-400">Loading nearby NGOs...</p> : null}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {ngos.map((ngo) => (
-            <div key={`${ngo.name}-${ngo.phone}`} className="rounded-xl border border-white/10 bg-white/5 p-3">
-              <p className="text-sm font-semibold text-white">{ngo.name}</p>
+            <div key={`${ngo.name}-${ngo.phone}`} className="rounded-xl glass p-3 hover:bg-white/10 transition-colors group">
+              <p className="text-sm font-semibold text-white group-hover:text-purple-200 transition-colors">{ngo.name}</p>
               <p className="text-[11px] text-slate-400 mt-0.5">{ngo.focus}</p>
               <p className="text-[11px] text-slate-400 mt-1">{ngo.address}</p>
-              <a href={`tel:${ngo.phone}`} className="text-xs font-semibold text-purple-400 mt-1 inline-block">{ngo.phone}</a>
+              <a href={`tel:${ngo.phone}`} className="text-xs font-semibold text-purple-400 mt-1 inline-block hover:text-purple-300 transition-colors">{ngo.phone}</a>
             </div>
           ))}
         </div>
@@ -819,24 +813,24 @@ function CommunityScreen() {
       </div>
 
       {activePanel === "chat" ? (
-        <div className="space-y-3">
-          <form onSubmit={sendChatMessage} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-3">
+        <div className="space-y-3 animate-in fade-in">
+          <form onSubmit={sendChatMessage} className="rounded-2xl glass p-4 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <select
                 value={chatForm.mode}
                 onChange={(e) => setChatForm((prev) => ({ ...prev, mode: e.target.value }))}
-                className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm text-slate-300"
+                className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
               >
-                <option value="chat">General chat</option>
-                <option value="incident">Report incident</option>
+                <option value="chat" className="bg-[#1e1b4b]">General chat</option>
+                <option value="incident" className="bg-[#1e1b4b]">Report incident</option>
               </select>
               <select
                 value={chatForm.category}
                 onChange={(e) => setChatForm((prev) => ({ ...prev, category: e.target.value }))}
-                className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm text-slate-300"
+                className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
               >
                 {["Harassment", "Unsafe Transit", "Suspicious Activity", "Cyber Abuse", "Other"].map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat} value={cat} className="bg-[#1e1b4b]">{cat}</option>
                 ))}
               </select>
             </div>
@@ -845,20 +839,21 @@ function CommunityScreen() {
                 value={chatForm.alias}
                 onChange={(e) => setChatForm((prev) => ({ ...prev, alias: e.target.value }))}
                 placeholder="Display name"
-                className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm"
+                className="rounded-lg glass-dark px-2.5 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
               />
               <input
                 value={chatForm.area}
                 onChange={(e) => setChatForm((prev) => ({ ...prev, area: e.target.value }))}
                 placeholder="Area / landmark (required for incident)"
-                className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm"
+                className="rounded-lg glass-dark px-2.5 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
               />
             </div>
-            <label className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <label className="text-[11px] text-slate-400 flex items-center gap-1.5 cursor-pointer hover:text-slate-300 transition-colors">
               <input
                 type="checkbox"
                 checked={chatForm.anonymous}
                 onChange={(e) => setChatForm((prev) => ({ ...prev, anonymous: e.target.checked }))}
+                className="accent-pink-500"
               />
               Post anonymously
             </label>
@@ -867,35 +862,35 @@ function CommunityScreen() {
               onChange={(e) => setChatForm((prev) => ({ ...prev, text: e.target.value }))}
               rows={3}
               placeholder="Share safety updates, ask for support, or report harassment..."
-              className="w-full rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm"
+              className="w-full rounded-lg glass-dark px-2.5 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
             />
-            {chatMessageStatus ? <p className="text-xs text-purple-400">{chatMessageStatus}</p> : null}
+            {chatMessageStatus ? <p className="text-xs text-purple-400 font-semibold animate-pulse">{chatMessageStatus}</p> : null}
             <button
               type="submit"
               disabled={sendingChat}
-              className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-2.5 text-sm font-semibold disabled:opacity-60"
+              className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-2.5 text-sm font-bold disabled:opacity-60 transition-transform active:scale-95"
             >
               {sendingChat ? "Sending..." : chatForm.mode === "incident" ? "Post incident report" : "Send to chat"}
             </button>
           </form>
 
-          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-3">
+          <div className="rounded-2xl glass p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-white">#{city.toLowerCase()}-safety channel</p>
-              <button onClick={() => loadChat(city)} className="text-xs font-semibold text-purple-400">Refresh chat</button>
+              <button onClick={() => loadChat(city)} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh chat</button>
             </div>
             {chatLoading ? (
               <p className="text-xs text-slate-400">Loading chat messages...</p>
             ) : (
               <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
                 {chatMessages.map((msg) => (
-                  <div key={msg.id} className={`rounded-xl border p-3 ${msg.mode === "incident" ? "border-rose-200 bg-rose-50/60" : "border-white/10 bg-[#141523]"}`}>
+                  <div key={msg.id} className={`rounded-xl border p-3 animate-in slide-up ${msg.mode === "incident" ? "border-rose-500/30 bg-rose-500/10" : "glass-dark"}`}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-semibold text-slate-200">{msg.alias || "Anonymous"}</p>
                       <p className="text-[10px] text-slate-400">{new Date(msg.createdAt).toLocaleString()}</p>
                     </div>
                     {msg.mode === "incident" ? (
-                      <p className="text-[10px] mt-1 inline-block rounded-full border border-rose-200 bg-rose-100 px-2 py-0.5 font-semibold text-rose-800 uppercase tracking-wide">
+                      <p className="text-[10px] mt-1 inline-block rounded-full border border-rose-500/30 bg-rose-500/20 px-2 py-0.5 font-semibold text-rose-300 uppercase tracking-wide">
                         Incident Report
                       </p>
                     ) : null}
@@ -904,7 +899,7 @@ function CommunityScreen() {
                     {msg.tags?.length ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {msg.tags.map((tag) => (
-                          <span key={`${msg.id}-${tag}`} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/10 text-purple-400">
+                          <span key={`${msg.id}-${tag}`} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full glass text-purple-400">
                             {tag.replace("-", " ")}
                           </span>
                         ))}
@@ -913,7 +908,7 @@ function CommunityScreen() {
                   </div>
                 ))}
                 {!chatLoading && chatMessages.length === 0 ? (
-                  <p className="text-xs text-slate-400">No messages yet. Start the first community check-in.</p>
+                  <p className="text-xs text-slate-400 text-center py-4 italic">No messages yet. Start the first community check-in.</p>
                 ) : null}
               </div>
             )}
@@ -921,14 +916,15 @@ function CommunityScreen() {
         </div>
       ) : null}
 
-      {activePanel === "feed" ? <form onSubmit={submitReport} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-3">
+      {activePanel === "feed" ? <form onSubmit={submitReport} className="rounded-2xl glass p-4 space-y-3 animate-in fade-in">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-white">Post anonymous report</p>
-          <label className="text-[11px] text-slate-400 flex items-center gap-1.5">
+          <label className="text-[11px] text-slate-400 flex items-center gap-1.5 cursor-pointer hover:text-slate-300 transition-colors">
             <input
               type="checkbox"
               checked={form.anonymous}
               onChange={(e) => setForm((prev) => ({ ...prev, anonymous: e.target.checked }))}
+              className="accent-pink-500"
             />
             Anonymous
           </label>
@@ -937,17 +933,17 @@ function CommunityScreen() {
           <select
             value={form.category}
             onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
-            className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm text-slate-300"
+            className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
           >
             {["Harassment", "Unsafe Transit", "Suspicious Activity", "Cyber Abuse", "Other"].map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat} value={cat} className="bg-[#1e1b4b]">{cat}</option>
             ))}
           </select>
           <input
             value={form.area}
             onChange={(e) => setForm((prev) => ({ ...prev, area: e.target.value }))}
             placeholder="Area / landmark"
-            className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm"
+            className="rounded-lg glass-dark px-2.5 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
           />
         </div>
         <textarea
@@ -955,20 +951,20 @@ function CommunityScreen() {
           onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
           rows={3}
           placeholder="Describe what happened so others can stay aware..."
-          className="w-full rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-2 text-sm"
+          className="w-full rounded-lg glass-dark px-2.5 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50 resize-none"
         />
-        {submitMessage ? <p className="text-xs text-purple-400">{submitMessage}</p> : null}
+        {submitMessage ? <p className="text-xs text-purple-400 font-semibold animate-pulse">{submitMessage}</p> : null}
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-2.5 text-sm font-semibold disabled:opacity-60"
+          className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-2.5 text-sm font-bold disabled:opacity-60 transition-transform active:scale-95"
         >
           {submitting ? "Submitting..." : "Submit report"}
         </button>
       </form> : null}
 
       {activePanel === "feed" && loading ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 text-sm text-slate-400 flex items-center gap-2">
+        <div className="rounded-2xl glass p-4 text-sm text-slate-400 flex items-center gap-2">
           <Loader2 className="w-4 h-4 animate-spin" />
           Loading community activity...
         </div>
@@ -976,7 +972,7 @@ function CommunityScreen() {
 
       {activePanel === "feed" ? <div className="space-y-3">
         {items.map((item) => (
-          <div key={item.id} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4">
+          <div key={item.id} className="rounded-2xl glass p-4 animate-in slide-up">
             <div className="flex items-center justify-between gap-2">
               <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border font-semibold ${levelStyle(item.level)}`}>
                 {item.level}
@@ -990,7 +986,7 @@ function CommunityScreen() {
             {item.tags?.length ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {item.tags.map((tag) => (
-                  <span key={tag} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/10 text-purple-400">
+                  <span key={tag} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full glass text-purple-400">
                     {tag.replace("-", " ")}
                   </span>
                 ))}
@@ -998,7 +994,7 @@ function CommunityScreen() {
             ) : null}
             <p className="text-[11px] text-pink-400 mt-2 font-medium">Source: {item.source}</p>
             {item.verified ? (
-              <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+              <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
                 <CheckCircle2 className="w-3 h-3" />
                 Verified report
               </div>
@@ -1006,32 +1002,32 @@ function CommunityScreen() {
           </div>
         ))}
         {!loading && items.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 text-sm text-slate-400">
+          <div className="rounded-2xl glass p-4 text-sm text-slate-400 text-center italic">
             No activity found. Try a different city or refresh.
           </div>
         ) : null}
       </div> : null}
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-3">
+      <div className="rounded-2xl glass p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-white">Moderator queue (demo)</p>
-          <button onClick={loadPendingReports} className="text-xs font-semibold text-purple-400">Refresh queue</button>
+          <button onClick={loadPendingReports} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh queue</button>
         </div>
         {moderationLoading ? (
           <p className="text-xs text-slate-400">Loading pending reports...</p>
         ) : null}
         {!moderationLoading && pendingReports.length === 0 ? (
-          <p className="text-xs text-slate-400">No pending reports.</p>
+          <p className="text-xs text-slate-400 text-center py-2 italic">No pending reports.</p>
         ) : null}
         <div className="space-y-2">
           {pendingReports.map((report) => (
-            <div key={report.id} className="rounded-xl border border-white/10 bg-[#141523] p-3">
+            <div key={report.id} className="rounded-xl glass-dark p-3 group animate-in slide-up">
               <p className="text-xs text-slate-400">{report.city} • {report.category}</p>
-              <p className="text-sm font-semibold text-white">{report.title}</p>
+              <p className="text-sm font-semibold text-white group-hover:text-purple-300 transition-colors">{report.title}</p>
               <p className="text-xs text-slate-400 mt-1">{report.description}</p>
               <div className="mt-2 flex gap-2">
-                <button onClick={() => moderateReport(report.id, "approve")} className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[11px] font-semibold text-white">Approve</button>
-                <button onClick={() => moderateReport(report.id, "reject")} className="rounded-lg bg-rose-600 px-2.5 py-1.5 text-[11px] font-semibold text-white">Reject</button>
+                <button onClick={() => moderateReport(report.id, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 transition-colors">Approve</button>
+                <button onClick={() => moderateReport(report.id, "reject")} className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 transition-colors">Reject</button>
               </div>
             </div>
           ))}
@@ -1218,29 +1214,29 @@ function LegalChat() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#141523] text-white">
-      <div className="bg-white/5 backdrop-blur-md border-b border-white/10 px-4 py-3 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-[#141523] text-white animate-in fade-in">
+      <div className="glass-dark border-b-0 px-4 py-3 flex items-center justify-between">
         <p className="font-semibold text-white">Legal Aid Chat</p>
-        <button onClick={handleGenerateDraft} className="text-xs rounded-full bg-white/10 border border-white/20 px-3 py-1.5 text-purple-300 font-semibold hover:bg-white/20 transition-colors">Draft FIR</button>
+        <button onClick={handleGenerateDraft} className="text-xs rounded-full glass px-3 py-1.5 text-purple-300 font-semibold hover:bg-white/10 transition-colors">Draft FIR</button>
       </div>
-      <div className="px-4 py-3 bg-white/5 backdrop-blur-md border-b border-white/10 space-y-2">
+      <div className="px-4 py-3 glass border-b-0 space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-xs font-semibold text-purple-300 uppercase tracking-wide">Nearby Police & Help</p>
           <div className="flex items-center gap-2">
             <button
               onClick={detectCityFromLocation}
               disabled={detectingCity}
-              className="text-xs rounded-lg border border-white/20 bg-white/5 backdrop-blur-md px-2 py-1 text-purple-400 font-semibold disabled:opacity-50 hover:bg-white/10 transition-colors"
+              className="text-xs rounded-lg glass px-2 py-1 text-purple-400 font-semibold disabled:opacity-50 hover:bg-white/10 transition-colors"
             >
               {detectingCity ? "Detecting..." : "Use my location"}
             </button>
             <select
               value={nearbyCity}
               onChange={(e) => setNearbyCity(e.target.value)}
-              className="text-xs rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2 py-1 text-slate-300 focus:ring-2 focus:ring-purple-500/50 outline-none"
+              className="text-xs rounded-lg glass px-2 py-1 text-slate-300 focus:ring-2 focus:ring-purple-500/50 outline-none"
             >
               {["Lahore", "Karachi", "Islamabad", "Peshawar"].map((city) => (
-                <option key={city} value={city} className="bg-[#141523] text-white">{city}</option>
+                <option key={city} value={city} className="bg-[#1e1b4b] text-white">{city}</option>
               ))}
             </select>
           </div>
@@ -1252,23 +1248,23 @@ function LegalChat() {
           <div className="space-y-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {nearbyContacts.map((contact, idx) => (
-                <div key={`${contact.name}-${idx}`} className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md px-3 py-2 hover:bg-white/10 transition-colors">
+                <div key={`${contact.name}-${idx}`} className="rounded-xl glass px-3 py-2 hover:bg-white/10 transition-colors">
                   <p className="text-[11px] text-pink-400 font-semibold">{contact.type}</p>
                   <p className="text-sm font-semibold text-white">{contact.name}</p>
                   <p className="text-[11px] text-slate-400">{contact.address}</p>
-                  <a href={`tel:${contact.phone}`} className="text-xs font-semibold text-purple-400 mt-1 inline-block">{contact.phone}</a>
+                  <a href={`tel:${contact.phone}`} className="text-xs font-semibold text-purple-400 mt-1 inline-block hover:text-purple-300 transition-colors">{contact.phone}</a>
                 </div>
               ))}
             </div>
-            <div className="rounded-xl border border-pink-500/20 bg-pink-500/10 backdrop-blur-md p-3">
+            <div className="rounded-xl bg-pink-500/10 border border-pink-500/20 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-pink-300">Nearby NGOs</p>
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {nearbyNgos.map((ngo, idx) => (
-                  <div key={`${ngo.name}-${idx}`} className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md p-2.5 hover:bg-white/10 transition-colors">
+                  <div key={`${ngo.name}-${idx}`} className="rounded-lg glass p-2.5 hover:bg-white/10 transition-colors">
                     <p className="text-sm font-semibold text-white">{ngo.name}</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">{ngo.focus}</p>
                     <p className="text-[11px] text-slate-400">{ngo.address}</p>
-                    <a href={`tel:${ngo.phone}`} className="text-xs font-semibold text-pink-400 mt-1 inline-block">{ngo.phone}</a>
+                    <a href={`tel:${ngo.phone}`} className="text-xs font-semibold text-pink-400 mt-1 inline-block hover:text-pink-300 transition-colors">{ngo.phone}</a>
                   </div>
                 ))}
               </div>
@@ -1276,11 +1272,11 @@ function LegalChat() {
           </div>
         )}
       </div>
-      <div className="px-4 py-3 border-b border-white/10 bg-white/5 backdrop-blur-md">
-        <form onSubmit={requestConsult} className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
+      <div className="px-4 py-3 glass border-b-0">
+        <form onSubmit={requestConsult} className="rounded-xl glass-dark p-3 space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">Request Legal Consult</p>
-            <label className="text-[10px] text-slate-400 flex items-center gap-1.5 cursor-pointer">
+            <label className="text-[10px] text-slate-400 flex items-center gap-1.5 cursor-pointer hover:text-slate-300 transition-colors">
               <input
                 type="checkbox"
                 checked={consultForm.urgent}
@@ -1295,13 +1291,13 @@ function LegalChat() {
               value={consultForm.name}
               onChange={(e) => setConsultForm((prev) => ({ ...prev, name: e.target.value }))}
               placeholder="Your name"
-              className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
+              className="rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
             />
             <input
               value={consultForm.phone}
               onChange={(e) => setConsultForm((prev) => ({ ...prev, phone: e.target.value }))}
               placeholder="Phone"
-              className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
+              className="rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
             />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1309,22 +1305,22 @@ function LegalChat() {
               value={consultForm.city}
               onChange={(e) => setConsultForm((prev) => ({ ...prev, city: e.target.value }))}
               placeholder="City"
-              className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
+              className="rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
             />
             <select
               value={consultForm.issueType}
               onChange={(e) => setConsultForm((prev) => ({ ...prev, issueType: e.target.value }))}
-              className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-1.5 text-xs text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
+              className="rounded-lg glass px-2.5 py-1.5 text-xs text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
             >
               {["Harassment", "Cyber Abuse", "Blackmail", "Domestic Violence", "FIR Filing", "Other"].map((issue) => (
-                <option key={issue} value={issue} className="bg-[#141523] text-white">{issue}</option>
+                <option key={issue} value={issue} className="bg-[#1e1b4b] text-white">{issue}</option>
               ))}
             </select>
             <input
               value={consultForm.preferredTime}
               onChange={(e) => setConsultForm((prev) => ({ ...prev, preferredTime: e.target.value }))}
               placeholder="Preferred time"
-              className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
+              className="rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
             />
           </div>
           <textarea
@@ -1332,13 +1328,13 @@ function LegalChat() {
             onChange={(e) => setConsultForm((prev) => ({ ...prev, description: e.target.value }))}
             rows={2}
             placeholder="Briefly explain your issue..."
-            className="w-full rounded-lg border border-white/10 bg-white/5 backdrop-blur-md px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
+            className="w-full rounded-lg glass px-2.5 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500/50"
           />
           {consultStatus ? <p className="text-[11px] text-purple-400">{consultStatus}</p> : null}
           <button
             type="submit"
             disabled={consultLoading}
-            className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-2 text-xs font-semibold disabled:opacity-60 transition-transform active:scale-95"
+            className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 shadow-lg shadow-purple-500/25 text-white py-2 text-xs font-semibold disabled:opacity-60 transition-transform active:scale-95"
           >
             {consultLoading ? "Submitting..." : "Request consult"}
           </button>
@@ -1458,14 +1454,27 @@ function DistressListener({ onTriggerSOS }) {
   const [listening, setListening] = useState(false);
   const [detected, setDetected] = useState(false);
   return (
-    <div className="px-4 pt-4 pb-24 space-y-3">
+    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
       <h2 className="text-xl font-semibold">Distress Listener</h2>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-6 text-center">
-        <Ear className={`w-12 h-12 mx-auto ${listening ? "text-emerald-700" : "text-slate-400"}`} />
-        <p className="mt-2 text-sm">{detected ? "Trigger detected" : listening ? "Listening..." : "Ready"}</p>
-        {!listening ? <button onClick={() => setListening(true)} className="mt-4 rounded-full bg-emerald-700 text-white px-4 py-2 text-sm">Start listening</button> : null}
-        {listening && !detected ? <button onClick={() => setDetected(true)} className="mt-4 rounded-full bg-stone-900 text-white px-4 py-2 text-sm">Simulate detection</button> : null}
-        {detected ? <button onClick={onTriggerSOS} className="mt-3 rounded-full bg-red-600 text-white px-4 py-2 text-sm">Trigger SOS</button> : null}
+      <div className="rounded-2xl glass p-8 text-center space-y-4">
+        <div className={`w-20 h-20 mx-auto rounded-full glass flex items-center justify-center ${listening ? "sos-pulse text-emerald-400" : "text-slate-400"}`}>
+          <Ear className="w-10 h-10" />
+        </div>
+        <div>
+          <p className="text-lg font-semibold text-white">{detected ? "Distress Detected!" : listening ? "Monitoring Audio..." : "Ready to Listen"}</p>
+          <p className="text-xs text-slate-400 mt-1">App listens for screams or trigger keywords like "Help" or "Bachao".</p>
+        </div>
+        {!listening ? (
+          <button onClick={() => setListening(true)} className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white py-3 text-sm font-semibold transition-colors">Start Monitoring</button>
+        ) : (
+          <button onClick={() => { setListening(false); setDetected(false); }} className="w-full rounded-xl glass text-slate-300 py-3 text-sm font-semibold hover:bg-white/10 transition-colors">Stop Monitoring</button>
+        )}
+        {listening && !detected ? (
+          <button onClick={() => setDetected(true)} className="w-full rounded-xl glass-dark text-purple-300 py-3 text-sm font-semibold hover:bg-white/5 transition-colors">Simulate Detection</button>
+        ) : null}
+        {detected ? (
+          <button onClick={onTriggerSOS} className="w-full rounded-xl bg-red-600 text-white py-3 text-sm font-semibold animate-pulse">Trigger SOS Now</button>
+        ) : null}
       </div>
     </div>
   );
@@ -1555,48 +1564,77 @@ function SafeTransit({ contacts, autoDialPolice }) {
     setNextCheckInAt(null);
   };
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4">
+    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
       <h2 className="text-xl font-semibold">Safe Transit</h2>
-      <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-        <p className="text-xs text-slate-400">Transit mode: <span className="font-semibold text-white">{tripMode === "online" ? "Backend tracked" : "Local manual fallback"}</span></p>
-        <p className="text-[11px] text-slate-400 mt-1">
-          Works without map API keys. If backend/API fails, manual safety check-in flow continues.
+      <div className="rounded-2xl glass p-4">
+        <p className="text-xs text-slate-400 uppercase tracking-wide font-semibold">Transit mode</p>
+        <div className="flex items-center gap-2 mt-1">
+          <div className={`w-2 h-2 rounded-full ${tripMode === "online" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+          <p className="text-sm font-semibold text-white">{tripMode === "online" ? "Backend Tracked" : "Manual Fallback"}</p>
+        </div>
+        <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+          Nigehbaan tracks your route. If you deviate or miss a check-in, your contacts are alerted automatically.
         </p>
       </div>
-      {!trip ? <button onClick={startTrip} className="w-full rounded-2xl bg-emerald-800 text-white py-3 text-sm font-semibold">Start tracked trip</button> : null}
-      {trip?.status === "active" ? <button onClick={simulateDeviation} className="w-full rounded-xl bg-stone-900 text-white py-2.5 text-xs font-semibold">Mark possible deviation</button> : null}
+      {!trip ? (
+        <button onClick={startTrip} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-4 text-sm font-bold shadow-lg shadow-emerald-900/20 active:scale-95 transition-transform">Start Tracked Trip</button>
+      ) : (
+        <button onClick={simulateDeviation} className="w-full rounded-xl glass-dark text-amber-400 py-3 text-xs font-semibold hover:bg-white/5 transition-colors">Simulate Deviation Alert</button>
+      )}
       {trip ? (
-        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3">
-          <p className="text-xs text-slate-400">Shared with: {contacts.map((c) => c.name).join(", ") || "none"}</p>
-          <p className="text-xs text-slate-400 mt-1">Auto-dial police: {autoDialPolice ? "enabled" : "disabled"}</p>
-          {nextCheckInAt ? (
-            <p className="text-xs text-pink-400 mt-1">Next check-in due: {new Date(nextCheckInAt).toLocaleTimeString()}</p>
-          ) : null}
-          <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input
-              value={checkInText}
-              onChange={(e) => setCheckInText(e.target.value)}
-              placeholder="I'm safe at..."
-              className="sm:col-span-2 rounded-lg border border-white/10 px-2.5 py-2 text-xs"
-            />
-            <button onClick={submitCheckIn} className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-2.5 py-2 text-xs font-semibold">Add check-in</button>
+        <div className="rounded-2xl glass p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Status</p>
+              <p className={`text-sm font-bold ${trip.status === "deviated" ? "text-red-400" : "text-emerald-400"}`}>
+                {trip.status.toUpperCase()}
+              </p>
+            </div>
+            {nextCheckInAt && (
+              <div className="text-right">
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Next Check-in</p>
+                <p className="text-sm font-bold text-pink-400">{new Date(nextCheckInAt).toLocaleTimeString()}</p>
+              </div>
+            )}
           </div>
-          <div className="mt-2 flex items-center gap-2">
-            <label className="text-[11px] text-slate-400">Check-in timer (min):</label>
-            <input
-              type="number"
-              min={1}
-              max={30}
-              value={checkInTimerMinutes}
-              onChange={(e) => setCheckInTimerMinutes(Math.max(1, Math.min(30, Number(e.target.value) || 5)))}
-              className="w-16 rounded border border-white/20 px-2 py-1 text-xs"
-            />
-            <button onClick={markSafeArrival} className="ml-auto rounded-lg bg-emerald-700 text-white px-2.5 py-1.5 text-[11px] font-semibold">
-              Mark arrived safe
+          
+          <div className="space-y-2">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Manual Check-in</p>
+            <div className="flex gap-2">
+              <input
+                value={checkInText}
+                onChange={(e) => setCheckInText(e.target.value)}
+                placeholder="e.g. Just passed the bridge..."
+                className="flex-1 rounded-lg glass-dark px-3 py-2 text-xs focus:ring-1 focus:ring-purple-500/50 outline-none"
+              />
+              <button onClick={submitCheckIn} className="rounded-lg bg-purple-600 text-white px-4 py-2 text-xs font-semibold hover:bg-purple-500 transition-colors">Add</button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-white/5">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-bold">Interval:</span>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={checkInTimerMinutes}
+                onChange={(e) => setCheckInTimerMinutes(Math.max(1, Math.min(30, Number(e.target.value) || 5)))}
+                className="w-12 rounded glass-dark px-1.5 py-0.5 text-xs text-center"
+              />
+              <span className="text-[10px] text-slate-400">min</span>
+            </div>
+            <button onClick={markSafeArrival} className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-xs font-semibold hover:bg-emerald-500 transition-colors">
+              Arrived Safely
             </button>
           </div>
-          {statusMessage ? <p className="text-xs text-purple-400 mt-2">{statusMessage}</p> : null}
-          <div className="mt-2 space-y-1">{trip.events?.map((event, i) => <p key={`${event}-${i}`} className="text-xs text-slate-300">• {event}</p>)}</div>
+
+          {statusMessage ? <p className="text-xs text-pink-400 font-semibold animate-pulse">{statusMessage}</p> : null}
+          
+          <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Timeline</p>
+            {trip.events?.map((event, i) => <p key={`${event}-${i}`} className="text-[11px] text-slate-300 flex items-start gap-2"><span className="text-purple-500">•</span> {event}</p>)}
+          </div>
         </div>
       ) : null}
     </div>
@@ -1630,18 +1668,48 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-red-700 text-white flex flex-col">
-      <div className="flex-1 flex flex-col items-center justify-center p-6">
-        {phase === "countdown" ? <><p className="text-xs uppercase tracking-[0.3em] text-red-200 font-semibold">SOS in</p><p className="text-[8rem] font-bold leading-none mt-2">{countdown}</p></> : <>
-          <div className="w-32 h-32 rounded-full bg-white/5 backdrop-blur-md/15 flex items-center justify-center mb-5"><Radio className="w-16 h-16" /></div>
-          <p className="text-3xl font-bold">SOS active</p>
-          <p className="text-sm text-red-100 mt-2 text-center">Notified: {contacts.map((c) => c.name).join(", ") || "none"}</p>
-          <p className="text-xs text-red-100 mt-1">Auto-dial police: {autoDialPolice ? "enabled" : "disabled"}</p>
-          <input value={pin} onChange={(e) => setPin(e.target.value)} maxLength={4} placeholder={`Enter PIN (${cancelPin})`} className="mt-4 w-56 rounded-lg bg-white/5 backdrop-blur-md/15 border border-white/40 px-3 py-2 text-sm outline-none placeholder:text-red-100" />
-          {error ? <p className="text-xs mt-2">{error}</p> : null}
-        </>}
+    <div className="fixed inset-0 z-50 bg-[#7f1d1d] text-white flex flex-col animate-in fade-in">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        {phase === "countdown" ? (
+          <>
+            <p className="text-sm uppercase tracking-[0.4em] text-red-200 font-bold">SOS TRIGER IN</p>
+            <p className="text-[10rem] font-black leading-none mt-2 text-white animate-pulse">{countdown}</p>
+            <p className="text-xs text-red-200 mt-4 max-w-[200px]">Hold cancel to stop. Emergency contacts will be notified automatically.</p>
+          </>
+        ) : (
+          <>
+            <div className="w-40 h-40 rounded-full glass flex items-center justify-center mb-8 sos-pulse">
+              <AlertTriangle className="w-20 h-20 text-white" />
+            </div>
+            <h2 className="text-4xl font-black uppercase tracking-tighter">SOS Active</h2>
+            <div className="mt-6 space-y-1">
+              <p className="text-sm text-red-100">Alerted: <span className="font-bold">{contacts.map((c) => c.name).join(", ") || "No contacts set"}</span></p>
+              <p className="text-xs text-red-200">Police (15) {autoDialPolice ? "Auto-dialed" : "Notified"}</p>
+            </div>
+            
+            <div className="mt-10 w-full max-w-[240px] space-y-2">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-red-200">Enter PIN to cancel</p>
+              <input
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                maxLength={4}
+                type="password"
+                placeholder="• • • •"
+                className="w-full rounded-2xl glass text-center text-2xl font-bold py-4 outline-none focus:ring-2 focus:ring-white/50 transition-all placeholder:text-red-400/50"
+              />
+              {error ? <p className="text-xs text-white font-bold bg-red-900/50 py-1 rounded-full">{error}</p> : null}
+            </div>
+          </>
+        )}
       </div>
-      <div className="px-6 pb-8"><button onClick={stopSOS} className="w-full py-4 rounded-2xl bg-white/5 backdrop-blur-md/15 border border-white/20 text-sm font-semibold">{phase === "countdown" ? "Cancel SOS" : "I'm safe — end alert"}</button></div>
+      <div className="px-6 pb-10">
+        <button
+          onClick={stopSOS}
+          className={`w-full py-5 rounded-2xl font-bold text-lg transition-all duration-300 ${phase === "countdown" ? "glass hover:bg-white/10" : "bg-white text-red-900 shadow-xl active:scale-95"}`}
+        >
+          {phase === "countdown" ? "CANCEL SOS" : "I AM SAFE"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -1841,18 +1909,48 @@ function MoreScreen({ settings, setSettings, contacts, setContacts }) {
 
 function ShieldHub({ onSelectTool }) {
   const tools = [
-    { id: "dm", title: "DM Harassment Scanner", icon: MessageSquare },
-    { id: "deepfake", title: "Deepfake Detector", icon: ImageIcon },
-    { id: "voice", title: "Voice Clone Detector", icon: Volume2 },
-    { id: "distress", title: "Distress Listener", icon: Ear },
+    { id: "dm", title: "DM Harassment Scanner", icon: MessageSquare, desc: "Scan screenshots for threats" },
+    { id: "deepfake", title: "Deepfake Detector", icon: ImageIcon, desc: "Verify image authenticity" },
+    { id: "voice", title: "Voice Clone Detector", icon: Volume2, desc: "Analyze suspicious audio" },
+    { id: "distress", title: "Distress Listener", icon: Ear, desc: "Auto-SOS on scream/keywords" },
   ];
-  return <div className="px-4 pt-5 pb-24 space-y-3">{tools.map((t) => { const Icon = t.icon; return <button key={t.id} onClick={() => onSelectTool(t.id)} className="w-full rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 text-left flex items-center gap-3 hover:shadow-sm"><div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center"><Icon className="w-5 h-5 text-purple-300" /></div><span className="font-semibold text-sm flex-1">{t.title}</span><ChevronRight className="w-4 h-4 text-slate-500" /></button>; })}</div>;
+  return (
+    <div className="px-4 pt-5 pb-24 space-y-3 animate-in fade-in">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-white">AI Threat Shield</h2>
+        <p className="text-xs text-slate-400 mt-1">Advanced AI protection against modern threats.</p>
+      </div>
+      <div className="grid grid-cols-1 gap-3">
+        {tools.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              onClick={() => onSelectTool(t.id)}
+              className="w-full rounded-2xl glass p-4 text-left flex items-center gap-4 hover:bg-white/10 transition-all duration-300 group"
+            >
+              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Icon className="w-6 h-6 text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-white">{t.title}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">{t.desc}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
   const { isLoaded: clerkLoaded, isSignedIn: clerkSignedIn, user: clerkUser } = useUser();
   const { signOut: clerkSignOut } = useClerk();
+  const { getToken } = useAuth();
   const [supabaseSession, setSupabaseSession] = useState(null);
+  const [supabaseAuthReady, setSupabaseAuthReady] = useState(!supabaseEnabled);
   const [devBypass, setDevBypass] = useState(false);
   
   const [screen, setScreen] = useState("home");
@@ -1868,14 +1966,52 @@ export default function App() {
   const [timelineSaving, setTimelineSaving] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSupabaseSession(session);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (!supabaseEnabled || !supabase) {
+      setSupabaseAuthReady(true);
+      return undefined;
+    }
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSupabaseSession(session);
+      })
+      .finally(() => {
+        setSupabaseAuthReady(true);
+      });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSupabaseSession(session);
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!clerkLoaded || !clerkSignedIn) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token || cancelled) return;
+        const res = await fetch("/api/auth/clerk-sync", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok && import.meta.env.DEV) {
+          const t = await res.text().catch(() => "");
+          console.warn("[clerk-sync]", res.status, t);
+        }
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn("[clerk-sync]", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [clerkLoaded, clerkSignedIn, clerkUser?.id, getToken]);
 
   const isAuthenticated = clerkSignedIn || !!supabaseSession;
 
@@ -1884,7 +2020,7 @@ export default function App() {
   const handleSignOut = async () => {
     if (clerkSignedIn) {
       await clerkSignOut();
-    } else if (supabaseSession) {
+    } else if (supabaseSession && supabase) {
       await supabase.auth.signOut();
     }
     setDevBypass(false);
@@ -1894,31 +2030,31 @@ export default function App() {
     Promise.all([api("/health"), api("/state")])
       .then(([, state]) => {
         setContacts(state.contacts || []);
-        setSettings(state.settings || settings);
+        setSettings((prev) => state.settings || prev);
         setBackendOk(true);
       })
       .catch(() => setBackendOk(false));
   }, []);
 
-  const loadTimeline = async () => {
+  const loadTimeline = useMemo(() => async () => {
     try {
       const data = await api("/safety/timeline");
       setTimelineEntries(data.entries || []);
     } catch {
       setTimelineEntries([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadTimeline();
-  }, []);
+  }, [loadTimeline]);
 
   useEffect(() => {
     const timerId = setInterval(() => {
       loadTimeline();
     }, 9000);
     return () => clearInterval(timerId);
-  }, []);
+  }, [loadTimeline]);
 
   const addTimelineEntry = async () => {
     if (!timelineText.trim() || timelineSaving) return;
@@ -1999,7 +2135,8 @@ export default function App() {
       ? "AI Threat Shield"
       : null;
 
-  if (!clerkLoaded) {
+  const authShellLoading = !clerkLoaded || !supabaseAuthReady;
+  if (authShellLoading && !devBypass) {
     return (
       <div className="min-h-screen bg-[#141523] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-pink-500" />

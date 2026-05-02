@@ -9,7 +9,7 @@ import {
 import { supabase, supabaseEnabled } from "../lib/authClients";
 
 function ClerkAuthCard() {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded, user } = useUser();
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
@@ -19,6 +19,10 @@ function ClerkAuthCard() {
           <UserButton />
         </Show>
       </div>
+      <p className="text-[10px] text-slate-500 leading-snug">
+        In the Clerk dashboard, enable <span className="text-slate-400">Email</span> and{" "}
+        <span className="text-slate-400">Google</span> so the sign-in modal offers both.
+      </p>
 
       {!isLoaded ? (
         <p className="text-xs text-slate-400">Loading...</p>
@@ -28,7 +32,7 @@ function ClerkAuthCard() {
             <div className="flex flex-wrap gap-2">
               <SignInButton mode="modal">
                 <button className="rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 px-3 py-2 text-xs font-semibold text-white shadow-lg shadow-purple-500/25">
-                  Sign in with Clerk
+                  Sign in (email or Google)
                 </button>
               </SignInButton>
               <SignUpButton mode="modal">
@@ -83,7 +87,14 @@ function SupabaseAuthCard() {
   const signUp = async () => {
     setStatus("");
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const redirect = `${window.location.origin}${window.location.pathname || "/"}${window.location.search || ""}`;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirect,
+      },
+    });
     setLoading(false);
     setStatus(error ? error.message : "Signup successful. Check your email for confirmation.");
   };
@@ -96,19 +107,14 @@ function SupabaseAuthCard() {
     setStatus(error ? error.message : "Signed in with Supabase.");
   };
 
-  const signOut = async () => {
-    setStatus("");
-    await supabase.auth.signOut();
-    setStatus("Signed out.");
-  };
-
   const signInWithGoogle = async () => {
     setStatus("");
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}${window.location.pathname || "/"}`,
+        skipBrowserRedirect: false,
       },
     });
     setLoading(false);
@@ -118,6 +124,9 @@ function SupabaseAuthCard() {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wide text-purple-300">Supabase Authentication</p>
+      <p className="text-[10px] text-slate-500 leading-snug">
+        Supabase → Authentication → URL Configuration: add this site URL and the same URL under Redirect URLs. Enable the Google provider there.
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <input
           value={email}

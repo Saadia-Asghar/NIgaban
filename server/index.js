@@ -4,6 +4,7 @@ import cors from "cors";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
+import { createClerkClient, verifyToken } from "@clerk/backend";
 import { Pool } from "pg";
 
 const app = express();
@@ -571,6 +572,15 @@ async function ensureDbReady() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS clerk_profiles (
+        clerk_user_id TEXT PRIMARY KEY,
+        email TEXT NOT NULL DEFAULT '',
+        full_name TEXT NOT NULL DEFAULT '',
+        image_url TEXT,
+        last_synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS app_state (
         id TEXT PRIMARY KEY,
         payload JSONB NOT NULL,
@@ -1085,6 +1095,71 @@ app.post("/api/auth/verify-otp", async (req, res) => {
   sessionStore.set(token, session);
   otpStore.delete(phone);
   return res.json({ token, session });
+});
+
+app.post("/api/auth/clerk-sync", rateLimit({ keyPrefix: "clerk-sync", windowMs: 60 * 1000, max: 40 }), async (req, res) => {
+  const secretKey = process.env.CLERK_SECRET_KEY || "";
+  if (!secretKey.trim()) {
+    return res.status(503).json({ ok: false, error: "Server missing CLERK_SECRET_KEY (Clerk Dashboard → API Keys → Secret)." });
+  }
+  if (!dbPool) {
+    return res.status(503).json({ ok: false, error: "Database not configured (set SUPABASE_DB_URL)." });
+  }
+  const token = getAuthToken(req);
+  if (!token) return res.status(401).json({ ok: false, error: "Missing Authorization bearer token" });
+
+  const parties = String(process.env.CLERK_AUTHORIZED_PARTIES || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  try {
+    await ensureDbReady();
+  } catch {
+    return res.status(503).json({ ok: false, error: "Database unavailable" });
+  }
+
+  try {
+    const payload = await verifyToken(token, {
+      secretKey,
+      ...(parties.length ? { authorizedParties: parties } : {}),
+    });
+    const sub = payload.sub;
+    if (!sub) return res.status(401).json({ ok: false, error: "Invalid token payload" });
+
+    const clerk = createClerkClient({ secretKey });
+    let clerkUserId = sub;
+    let user;
+    try {
+      user = await clerk.users.getUser(sub);
+    } catch {
+      const session = await clerk.sessions.getSession(sub);
+      clerkUserId = session.userId;
+      user = await clerk.users.getUser(clerkUserId);
+    }
+
+    const email = user.primaryEmailAddress?.emailAddress || "";
+    const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.username || "";
+    const imageUrl = user.imageUrl || null;
+
+    await dbPool.query(
+      `INSERT INTO clerk_profiles (clerk_user_id, email, full_name, image_url, last_synced_at, created_at)
+       VALUES ($1, $2, $3, $4, NOW(), NOW())
+       ON CONFLICT (clerk_user_id) DO UPDATE SET
+         email = EXCLUDED.email,
+         full_name = EXCLUDED.full_name,
+         image_url = EXCLUDED.image_url,
+         last_synced_at = NOW()`,
+      [clerkUserId, email, fullName, imageUrl],
+    );
+
+    return res.json({
+      ok: true,
+      profile: { clerkUserId, email, fullName, imageUrl },
+    });
+  } catch {
+    return res.status(401).json({ ok: false, error: "Invalid or expired Clerk session" });
+  }
 });
 
 app.get("/api/auth/me", requireAuth, (req, res) => {

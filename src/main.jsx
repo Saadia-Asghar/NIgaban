@@ -10,10 +10,11 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-// ClerkProvider in Keyless mode: if VITE_CLERK_PUBLISHABLE_KEY is set it uses
-// that key; otherwise Clerk auto-generates temporary dev keys and shows a
-// "Claim your application" banner — no manual key setup required.
-const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+// ClerkProvider: use a trimmed key when set. Empty string would break init;
+// omit the prop for Clerk keyless / dev onboarding flow.
+const rawClerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const publishableKey =
+  typeof rawClerkKey === "string" && rawClerkKey.trim() ? rawClerkKey.trim() : undefined
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
