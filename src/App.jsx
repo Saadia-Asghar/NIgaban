@@ -2527,6 +2527,9 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
   const [evidenceMsg, setEvidenceMsg] = useState("");
   const [consultRequests, setConsultRequests] = useState([]);
   const [consultLoading, setConsultLoading] = useState(false);
+  const [showEvidenceVault, setShowEvidenceVault] = useState(false);
+  const [showLegalReqs, setShowLegalReqs] = useState(false);
+  const [showAddContact, setShowAddContact] = useState(false);
   const addContact = async () => {
     if (!name.trim()) return;
     try {
@@ -2714,290 +2717,517 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
     }
   };
 
-  return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5">
-      <FakeCallOverlay open={fakeCallOpen} onClose={() => setFakeCallOpen(false)} />
-      <h2 className="text-2xl font-semibold">Resources & Settings</h2>
+  /* ── derived state ── */
+  const hasContacts = contacts.length > 0;
+  const hasSession = Boolean(session);
+  const hasCustomPin = settings.cancelPin && settings.cancelPin !== "1234";
+  const safetyScore = (hasContacts ? 40 : 0) + (hasSession ? 35 : 0) + (hasCustomPin ? 15 : 0) + 10;
+  const avatarInitial = (session?.user?.email?.[0] || "N").toUpperCase();
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
-        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Quick open</p>
+  const SirenIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+    </svg>
+  );
+
+  const WAIcon = () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+  );
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 pb-28 pt-2 space-y-4 animate-in fade-in">
+      <FakeCallOverlay open={fakeCallOpen} onClose={() => setFakeCallOpen(false)} />
+
+      {/* ── 1. Profile Hero ── */}
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-violet-900/25 via-[#141523]/90 to-pink-950/20 p-5">
+        <div className="flex items-center gap-4">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-violet-600 flex items-center justify-center text-2xl font-black text-white shadow-lg shadow-purple-900/50">
+              {avatarInitial}
+            </div>
+            <span className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-[#141523] flex items-center justify-center ${hasSession ? "bg-emerald-500" : "bg-slate-600"}`}>
+              {hasSession
+                ? <CheckCircle2 className="w-3 h-3 text-white" />
+                : <X className="w-2.5 h-2.5 text-slate-300" />}
+            </span>
+          </div>
+          {/* Identity */}
+          <div className="flex-1 min-w-0">
+            <p className="text-lg font-bold text-white leading-tight truncate">
+              {session?.user?.email?.split("@")[0] || "NIgaban User"}
+            </p>
+            <p className="text-xs text-slate-400 truncate mt-0.5">
+              {hasSession ? session.user.email : "Guest — sign in to sync your data"}
+            </p>
+            {/* Safety score bar */}
+            <div className="flex items-center gap-2 mt-2.5">
+              <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{
+                    width: `${safetyScore}%`,
+                    background: safetyScore >= 80 ? "linear-gradient(90deg,#10b981,#34d399)" :
+                                safetyScore >= 50 ? "linear-gradient(90deg,#f59e0b,#fbbf24)" :
+                                "linear-gradient(90deg,#ec4899,#8b5cf6)",
+                  }}
+                />
+              </div>
+              <span className="text-[10px] font-bold shrink-0" style={{ color: safetyScore >= 80 ? "#34d399" : safetyScore >= 50 ? "#fbbf24" : "#c084fc" }}>
+                {safetyScore}% ready
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Setup checklist */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {[
+            { label: "Contacts", done: hasContacts, hint: "Add 1+" },
+            { label: "Account", done: hasSession, hint: "Sign in" },
+            { label: "PIN set", done: hasCustomPin, hint: "Change 1234" },
+          ].map((item) => (
+            <div key={item.label} className={`rounded-xl px-3 py-2.5 border text-center transition-colors ${item.done ? "border-emerald-500/25 bg-emerald-500/8" : "border-white/8 bg-white/[0.03]"}`}>
+              <div className={`text-lg mb-0.5 ${item.done ? "text-emerald-400" : "text-slate-600"}`}>
+                {item.done ? "✓" : "○"}
+              </div>
+              <p className={`text-[10px] font-bold leading-tight ${item.done ? "text-emerald-300" : "text-slate-500"}`}>{item.label}</p>
+              {!item.done && <p className="text-[9px] text-slate-600 mt-0.5">{item.hint}</p>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 2. Safety Circle ── */}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] overflow-hidden">
+        {/* Header */}
+        <div className="px-4 pt-4 pb-3 flex items-center justify-between gap-3 border-b border-white/6">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-rose-500/15 flex items-center justify-center">
+              <Heart className="w-4 h-4 text-rose-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Safety Circle</p>
+              <p className="text-[10px] text-slate-500">{contacts.length} trusted contact{contacts.length !== 1 ? "s" : ""}</p>
+            </div>
+          </div>
+          {/* Alert buttons */}
+          <div className="flex gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={sendQuickAlertSms}
+              className="rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-[10px] font-bold px-3 py-2 flex items-center gap-1.5 transition-colors active:scale-95"
+            >
+              <Phone className="w-3 h-3" /> SMS
+            </button>
+            <button
+              type="button"
+              onClick={sendWhatsAppAlert}
+              className="rounded-xl text-white text-[10px] font-bold px-3 py-2 flex items-center gap-1.5 transition-colors active:scale-95"
+              style={{ background: "#25D366" }}
+            >
+              <WAIcon /> WhatsApp
+            </button>
+          </div>
+        </div>
+
+        {/* Contact list */}
+        <div className="px-4 py-3 space-y-2">
+          {contacts.length === 0 ? (
+            <div className="py-6 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-3">
+                <Heart className="w-5 h-5 text-slate-600" />
+              </div>
+              <p className="text-sm font-semibold text-slate-400">No contacts yet</p>
+              <p className="text-[11px] text-slate-600 mt-1">Add someone you trust — they'll get your SOS with live GPS</p>
+            </div>
+          ) : (
+            contacts.map((contact, idx) => (
+              <div key={contact.id} className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-white/[0.04] border border-white/6 group">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-black text-white"
+                  style={{ background: ["linear-gradient(135deg,#ec4899,#8b5cf6)","linear-gradient(135deg,#8b5cf6,#06b6d4)","linear-gradient(135deg,#f59e0b,#ec4899)"][idx % 3] }}>
+                  {(contact.name || "?")[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{contact.name}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{contact.phone || "No number"}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeContact(contact.id)}
+                  className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-rose-500/15 text-slate-500 hover:text-rose-400 transition-all"
+                  aria-label="Remove contact"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))
+          )}
+
+          {/* Add contact form */}
+          {showAddContact ? (
+            <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-3 space-y-2 animate-in slide-up duration-200">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Full name"
+                className="w-full rounded-xl glass-dark px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none"
+              />
+              <input
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="Phone with country code (+92 300…)"
+                type="tel"
+                className="w-full rounded-xl glass-dark px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { addContact(); setShowAddContact(false); }}
+                  className="flex-1 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2.5 text-xs font-bold active:scale-95 transition-transform"
+                >
+                  Save contact
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddContact(false)}
+                  className="rounded-xl glass px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAddContact(true)}
+              className="w-full rounded-2xl border border-dashed border-white/15 py-3 text-xs font-semibold text-slate-400 hover:border-purple-500/40 hover:text-purple-300 hover:bg-purple-500/5 transition-all flex items-center justify-center gap-2"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add trusted contact
+            </button>
+          )}
+        </div>
+
+        {/* Footnote */}
+        <p className="px-4 pb-3 text-[10px] text-slate-600 leading-relaxed">
+          SMS opens your native messages app. WhatsApp SOS sends directly to your first contact with live GPS — no server needed.
+        </p>
+      </div>
+
+      {/* ── 3. Emergency Quick Actions ── */}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Discreet tools</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Fake Call */}
+          <button
+            type="button"
+            onClick={() => setFakeCallOpen(true)}
+            className="rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] px-4 py-3.5 flex items-center gap-3 text-left transition-colors active:scale-[0.97]"
+          >
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <Phone className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white leading-tight">Fake Call</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Exit situations</p>
+            </div>
+          </button>
+
+          {/* Siren */}
+          <button
+            type="button"
+            onClick={() => siren.active ? siren.stop() : siren.start()}
+            className={`rounded-2xl border px-4 py-3.5 flex items-center gap-3 text-left transition-colors active:scale-[0.97] ${siren.active ? "border-rose-500/40 bg-rose-900/20" : "border-white/10 bg-white/[0.04] hover:bg-white/[0.08]"}`}
+          >
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${siren.active ? "bg-rose-500/20 animate-pulse" : "bg-rose-500/10"}`}>
+              <span className={siren.active ? "text-rose-300" : "text-rose-500"}>
+                <SirenIcon />
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white leading-tight">{siren.active ? "Stop Siren" : "Siren"}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">{siren.active ? "Tap to mute" : "Loud alarm"}</p>
+            </div>
+          </button>
+
+          {/* Voice Note */}
+          <div className="col-span-2 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">Voice Note — stored on device</p>
+            <VoiceNoteRecorder />
+          </div>
+        </div>
+
+        {/* Shake / Keyboard SOS */}
+        <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5">
+            <Smartphone className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            <p className="text-xs font-bold text-amber-300">Shake / Keypress SOS</p>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Press <kbd>S</kbd> three times (within 2.5s, not in a text field) to trigger a 3s cancel countdown, then SOS. On iPhone, tap below to grant motion access.
+            </p>
+            <button
+              type="button"
+              onClick={enableShakeMotion}
+              className="mt-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/20 px-3 py-1.5 text-[10px] font-bold text-amber-300 transition-colors"
+            >
+              Enable shake detection
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 4. Emergency Hotlines ── */}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Emergency hotlines · Pakistan</p>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { id: "hifazat", label: "Hifazat guide", icon: MessageCircle },
-            { id: "shield", label: "AI Shield", icon: Shield },
-            { id: "legal", label: "Legal desk", icon: Scale },
-            { id: "transit", label: "Safe transit", icon: MapPin },
-            { id: "community", label: "Community", icon: Activity },
-          ].map((x) => {
-            const Icon = x.icon;
+            { name: "Police", no: "15", color: "from-rose-600 to-red-700", icon: Phone },
+            { name: "Madadgaar", no: "1099", color: "from-pink-600 to-rose-600", icon: Heart },
+            { name: "FIA Cyber", no: "1991", color: "from-violet-600 to-purple-700", icon: Shield },
+            { name: "Punjab Women", no: "1043", color: "from-purple-600 to-indigo-700", icon: Building2 },
+          ].map((h) => {
+            const Icon = h.icon;
             return (
-              <button
-                key={x.id}
-                type="button"
-                onClick={() => onNavigate(x.id)}
-                className="rounded-xl border border-white/10 bg-[#141523]/80 px-3 py-2.5 flex items-center gap-2 text-left hover:bg-white/10 transition-colors"
+              <a
+                key={h.name}
+                href={`tel:${h.no}`}
+                className="rounded-2xl border border-white/8 bg-white/[0.03] hover:bg-white/[0.07] p-3.5 flex items-center gap-3 no-underline group transition-colors active:scale-[0.97]"
               >
-                <Icon className="w-4 h-4 text-purple-400 shrink-0" />
-                <span className="text-xs font-semibold text-white">{x.label}</span>
-              </button>
+                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${h.color} flex items-center justify-center shrink-0 shadow-lg`}>
+                  <Icon className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-slate-500 truncate">{h.name}</p>
+                  <p className="text-lg font-black text-white leading-tight tracking-tight">{h.no}</p>
+                </div>
+                <Phone className="w-3.5 h-3.5 text-slate-600 group-hover:text-white transition-colors shrink-0" />
+              </a>
             );
           })}
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-3">
-        <p className="text-xs uppercase tracking-wide text-emerald-400 font-semibold">Discreet tools</p>
-        <button
-          type="button"
-          onClick={() => setFakeCallOpen(true)}
-          className="w-full rounded-xl border border-white/10 bg-[#141523] px-3 py-2.5 text-sm font-semibold text-white text-left hover:bg-white/10 transition-colors flex items-center gap-2"
-        >
-          <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-          Fake incoming call
-        </button>
-        <button
-          type="button"
-          onClick={() => siren.active ? siren.stop() : siren.start()}
-          className={`w-full rounded-xl border px-3 py-2.5 text-sm font-semibold text-white text-left transition-colors flex items-center gap-2 ${siren.active ? "border-rose-500/40 bg-rose-900/30 animate-pulse" : "border-white/10 bg-[#141523] hover:bg-white/10"}`}
-        >
-          <svg className="w-4 h-4 text-rose-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-          </svg>
-          {siren.active ? "Stop siren (tap to mute)" : "Sound alarm / siren"}
-        </button>
-        <div className="rounded-xl border border-white/10 bg-[#141523]/60 p-3">
-          <p className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold mb-2">Voice Note</p>
-          <VoiceNoteRecorder />
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
-        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">Silent mode SOS</p>
-        <p className="text-[11px] text-slate-400 leading-relaxed">
-          <span className="text-white font-semibold">Hardware vision:</span> volume-down pressed 3 times (no screen) — coming to native builds.{" "}
-          <span className="text-white font-semibold">Browser demo:</span> press the <kbd className="px-1 rounded bg-white/10">S</kbd> key three times within ~2.5s (not while typing in a field) — same 3s cancel countdown as shake, then SOS.
-        </p>
-        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold pt-1">Shake-to-SOS (iOS)</p>
-        <p className="text-[11px] text-slate-400 leading-relaxed">
-          On iPhone, motion access needs a tap. Three firm shakes start the same countdown.
-        </p>
-        <button type="button" onClick={enableShakeMotion} className="w-full rounded-lg bg-white/10 border border-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15">
-          Enable shake detection
-        </button>
-      </div>
-
-      <div className="space-y-2">
-        {[{ n: "Police", no: "15", i: Phone }, { n: "Madadgaar", no: "1099", i: Heart }, { n: "FIA Cybercrime", no: "1991", i: Shield }, { n: "Punjab Women Helpline", no: "1043", i: Building2 }].map((h) => {
-          const Icon = h.i;
-          return (
-            <div key={h.n} className="rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                <Icon className="w-4.5 h-4.5 text-purple-300" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold">{h.n}</p>
-              </div>
-              <a
-                href={`tel:${h.no.replace(/\s/g, "")}`}
-                className="px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white text-xs font-semibold no-underline inline-flex items-center justify-center"
-              >
-                {h.no}
-              </a>
-            </div>
-          );
-        })}
-      </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-3 space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">My safety circle</p>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={sendQuickAlertSms}
-              className="rounded-lg bg-gradient-to-r from-rose-600 to-red-700 text-white text-[10px] font-bold px-3 py-1.5 shadow-lg shadow-rose-900/30 flex items-center gap-1"
-            >
-              <Phone className="w-3 h-3" />
-              SMS Alert
-            </button>
-            <button
-              type="button"
-              onClick={sendWhatsAppAlert}
-              className="rounded-lg bg-[#25D366] text-white text-[10px] font-bold px-3 py-1.5 shadow-lg shadow-green-900/30 flex items-center gap-1"
-            >
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-              </svg>
-              WhatsApp SOS
-            </button>
-          </div>
-        </div>
-        <p className="text-[10px] text-slate-500 leading-relaxed">
-          SMS alert opens your app with a distress message for up to 3 contacts. WhatsApp SOS sends directly to your first contact with live location — no server needed.
-        </p>
-        {contacts.map((contact) => (
-          <div key={contact.id} className="flex items-center justify-between bg-white/10 rounded-xl px-3 py-2.5 border border-white/5">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <span className="text-[10px] font-bold text-purple-300">{(contact.name || "?")[0].toUpperCase()}</span>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">{contact.name}</p>
-                <p className="text-[10px] text-slate-400">{contact.phone}</p>
-              </div>
-            </div>
-            <button onClick={() => removeContact(contact.id)} className="text-[10px] font-bold text-rose-400 hover:text-rose-300 px-2 py-1 rounded-lg hover:bg-rose-500/10 transition-colors">Remove</button>
-          </div>
-        ))}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Contact name" className="rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
-          <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="Phone (+92…)" className="rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
-        </div>
-        <button type="button" onClick={addContact} className="w-full rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white px-3 py-2.5 text-xs font-bold flex items-center justify-center gap-2">
-          <Plus className="w-3.5 h-3.5" />Add to safety circle
-        </button>
-      </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-4">
+      {/* ── 5. Account ── */}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 space-y-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-pink-500/15 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-pink-500/15 flex items-center justify-center shrink-0">
             <UserCircle className="w-4 h-4 text-pink-400" />
           </div>
-          <p className="text-sm font-semibold text-white">Your account</p>
+          <p className="text-sm font-bold text-white">Your account</p>
         </div>
         <AuthHub />
         {session ? (
           <div className="flex items-center justify-between pt-1">
-            <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Session active</span>
+            <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Session active
+            </span>
             <button onClick={checkSession} className="text-[10px] font-semibold text-slate-500 hover:text-purple-400 transition-colors">Refresh</button>
           </div>
         ) : (
           <div className="border-t border-white/5 pt-3 space-y-2">
-            <p className="text-[11px] text-slate-500">Phone verification (optional — for OTP-based login)</p>
+            <p className="text-[11px] text-slate-500">Phone verification (optional)</p>
             <div className="flex gap-2">
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (+92…)" className="flex-1 rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
-              <button onClick={requestOtp} className="shrink-0 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-2 text-xs font-semibold">Send OTP</button>
+              <input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+92 300 …"
+                type="tel"
+                className="flex-1 rounded-xl glass-dark px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none"
+              />
+              <button onClick={requestOtp} className="shrink-0 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 text-white px-3 py-2 text-xs font-bold">Send OTP</button>
             </div>
             <div className="flex gap-2">
-              <input value={otpCode} onChange={(e) => setOtpCode(e.target.value)} placeholder="Enter code" className="flex-1 rounded-xl glass-dark px-3 py-2 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none" />
-              <button onClick={verifyOtp} className="shrink-0 rounded-lg bg-emerald-700 text-white px-3 py-2 text-xs font-semibold">Verify</button>
+              <input
+                value={otpCode}
+                onChange={(e) => setOtpCode(e.target.value)}
+                placeholder="6-digit code"
+                inputMode="numeric"
+                className="flex-1 rounded-xl glass-dark px-3 py-2.5 text-sm text-white focus:ring-1 focus:ring-pink-500 outline-none"
+              />
+              <button onClick={verifyOtp} className="shrink-0 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-2 text-xs font-bold transition-colors">Verify</button>
             </div>
             {authMsg ? <p className="text-xs text-slate-400">{authMsg}</p> : null}
           </div>
         )}
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs uppercase tracking-widest text-pink-400 font-bold">Secure Evidence Vault</p>
-          <Lock className="w-4 h-4 text-pink-500 opacity-50" />
-        </div>
-        <p className="text-[11px] text-slate-400 leading-relaxed">
-          Store tamper-proof evidence for legal reporting. Each entry is hashed and chained to prevent modification.
-        </p>
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <input value={evidenceForm.incidentId} onChange={(e) => setEvidenceForm((prev) => ({ ...prev, incidentId: e.target.value }))} placeholder="Incident ID / Name" className="rounded-xl glass-dark px-3 py-2 text-sm focus:ring-1 focus:ring-pink-500 outline-none" />
-            <input value={evidenceForm.title} onChange={(e) => setEvidenceForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Evidence title" className="rounded-xl glass-dark px-3 py-2 text-sm focus:ring-1 focus:ring-pink-500 outline-none" />
+
+      {/* ── 6. App Settings ── */}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
+        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-4">App settings</p>
+        <div className="space-y-1">
+          {/* Stealth */}
+          <div className="flex items-center gap-3 px-1 py-3 rounded-2xl hover:bg-white/[0.03] transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0">
+              <EyeOff className="w-4 h-4 text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">Stealth mode</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">App disguises as "Personal Notes"</p>
+            </div>
+            <label className="toggle-switch">
+              <input type="checkbox" checked={settings.stealthMode} onChange={(e) => updateSetting({ stealthMode: e.target.checked })} />
+              <span className="toggle-track" />
+            </label>
           </div>
-          <textarea 
-            value={evidenceForm.content} 
-            onChange={(e) => setEvidenceForm((prev) => ({ ...prev, content: e.target.value }))} 
-            rows={3}
-            placeholder="Describe the evidence or paste links/details here..." 
-            className="w-full rounded-xl glass-dark px-3 py-2 text-sm min-h-[80px] focus:ring-1 focus:ring-pink-500 outline-none"
-          />
-          <div className="flex gap-2">
-            <button onClick={uploadEvidence} className="flex-1 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 text-white py-2.5 text-xs font-bold shadow-lg shadow-pink-900/20 active:scale-95 transition-transform">
-              Sign & Lock Evidence
-            </button>
-            <button onClick={exportEvidencePacket} className="rounded-xl glass px-4 py-2.5 text-xs font-bold hover:bg-white/10 transition-colors">
-              <Download className="w-4 h-4" />
-            </button>
+          <div className="h-px bg-white/[0.04] mx-3" />
+          {/* Auto-dial */}
+          <div className="flex items-center gap-3 px-1 py-3 rounded-2xl hover:bg-white/[0.03] transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0">
+              <Phone className="w-4 h-4 text-rose-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">Auto-dial police</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Open emergency dial on SOS trigger</p>
+            </div>
+            <label className="toggle-switch">
+              <input type="checkbox" checked={settings.autoDialPolice} onChange={(e) => updateSetting({ autoDialPolice: e.target.checked })} />
+              <span className="toggle-track" />
+            </label>
+          </div>
+          <div className="h-px bg-white/[0.04] mx-3" />
+          {/* PIN */}
+          <div className="flex items-center gap-3 px-1 py-3 rounded-2xl hover:bg-white/[0.03] transition-colors">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+              <Lock className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-white">SOS cancel PIN</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">4 digits to cancel false alarms</p>
+            </div>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={settings.cancelPin}
+              onChange={(e) => updateSetting({ cancelPin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+              className="w-16 rounded-xl bg-white/10 border border-white/15 px-2 py-2 text-sm text-center text-white font-mono tracking-widest focus:ring-1 focus:ring-amber-400 focus:border-amber-400 outline-none"
+            />
           </div>
         </div>
-        {evidenceMsg ? (
-          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 flex items-start gap-2 animate-in slide-up">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5" />
-            <p className="text-[10px] text-emerald-300 font-mono break-all">{evidenceMsg}</p>
+      </div>
+
+      {/* ── 7. Evidence Vault (collapsible) ── */}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowEvidenceVault((v) => !v)}
+          className="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
+        >
+          <div className="w-9 h-9 rounded-xl bg-pink-500/15 flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4 text-pink-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-white">Secure Evidence Vault</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Hash-chained tamper-proof records</p>
+          </div>
+          <ChevronRight className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${showEvidenceVault ? "rotate-90" : ""}`} />
+        </button>
+        {showEvidenceVault ? (
+          <div className="px-4 pb-4 space-y-3 border-t border-white/6 pt-4 animate-in slide-up duration-200">
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Each entry is SHA-256 hashed and chained to prevent modification — admissible evidence trail.
+            </p>
+            <input
+              value={evidenceForm.incidentId}
+              onChange={(e) => setEvidenceForm((prev) => ({ ...prev, incidentId: e.target.value }))}
+              placeholder="Incident ID / Case name"
+              className="w-full rounded-xl glass-dark px-3 py-2.5 text-sm focus:ring-1 focus:ring-pink-500 outline-none"
+            />
+            <input
+              value={evidenceForm.title}
+              onChange={(e) => setEvidenceForm((prev) => ({ ...prev, title: e.target.value }))}
+              placeholder="Evidence title"
+              className="w-full rounded-xl glass-dark px-3 py-2.5 text-sm focus:ring-1 focus:ring-pink-500 outline-none"
+            />
+            <textarea
+              value={evidenceForm.content}
+              onChange={(e) => setEvidenceForm((prev) => ({ ...prev, content: e.target.value }))}
+              rows={3}
+              placeholder="Describe the incident or paste links / details…"
+              className="w-full rounded-xl glass-dark px-3 py-2.5 text-sm min-h-[80px] focus:ring-1 focus:ring-pink-500 outline-none resize-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={uploadEvidence}
+                className="flex-1 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 text-white py-2.5 text-xs font-bold active:scale-95 transition-transform"
+              >
+                Sign & Lock Evidence
+              </button>
+              <button
+                onClick={exportEvidencePacket}
+                className="rounded-xl glass px-4 py-2.5 text-slate-300 hover:text-white transition-colors"
+                title="Export packet"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
+            {evidenceMsg ? (
+              <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 flex items-start gap-2 animate-in slide-up">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-[10px] text-emerald-300 font-mono break-all">{evidenceMsg}</p>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md p-4 space-y-4">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs uppercase tracking-widest text-purple-400 font-bold">Your Legal Requests</p>
-          <button onClick={loadConsultRequests} className="text-[10px] uppercase tracking-widest text-slate-500 font-bold hover:text-purple-400 transition-colors">Refresh</button>
-        </div>
-        {consultLoading ? <p className="text-xs text-slate-400">Syncing with legal desk...</p> : null}
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-          {consultRequests.map((item) => (
-            <div key={item.id} className="rounded-xl glass-dark p-3 group hover:bg-white/5 transition-colors animate-in slide-up">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors">{item.issueType}</p>
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${item.urgent ? "bg-red-500/20 text-red-400 border border-red-500/20" : "bg-purple-500/20 text-purple-400 border border-purple-500/20"}`}>
-                  {item.urgent ? "Urgent" : "Queued"}
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1.5 line-clamp-2">{item.description}</p>
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-[9px] text-slate-500 font-medium">{item.city}</p>
-                <p className="text-[9px] text-slate-600">{new Date(item.createdAt).toLocaleDateString()}</p>
-              </div>
+
+      {/* ── 8. Legal Requests (collapsible) ── */}
+      <div className="rounded-3xl border border-white/10 bg-white/[0.03] overflow-hidden">
+        <button
+          type="button"
+          onClick={() => { setShowLegalReqs((v) => !v); if (!showLegalReqs) loadConsultRequests(); }}
+          className="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
+        >
+          <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center shrink-0">
+            <Scale className="w-4 h-4 text-violet-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-white">Legal Consultation Requests</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Track your submitted cases</p>
+          </div>
+          <ChevronRight className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${showLegalReqs ? "rotate-90" : ""}`} />
+        </button>
+        {showLegalReqs ? (
+          <div className="px-4 pb-4 border-t border-white/6 pt-4 animate-in slide-up duration-200">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">Your requests</p>
+              <button onClick={loadConsultRequests} className="text-[10px] text-purple-400 hover:text-purple-300 font-bold transition-colors">Refresh</button>
             </div>
-          ))}
-          {!consultLoading && consultRequests.length === 0 && (
-            <div className="py-8 text-center">
-              <Scale className="w-8 h-8 text-slate-700 mx-auto opacity-20" />
-              <p className="text-xs text-slate-500 mt-2 italic">No active legal consultation requests.</p>
-            </div>
-          )}
-        </div>
-      </div>
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] p-4 space-y-4">
-        <p className="text-xs uppercase tracking-wide text-slate-400 font-semibold">App Settings</p>
-        <div className="flex items-center gap-3 py-1">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0">
-            <EyeOff className="w-4 h-4 text-purple-400" />
+            {consultLoading ? (
+              <div className="flex items-center gap-2 py-4 justify-center text-slate-500 text-xs">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Syncing…
+              </div>
+            ) : consultRequests.length === 0 ? (
+              <div className="py-8 text-center">
+                <Scale className="w-8 h-8 text-slate-700 mx-auto mb-2" />
+                <p className="text-xs text-slate-500">No active legal consultation requests.</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
+                {consultRequests.map((item) => (
+                  <div key={item.id} className="rounded-2xl glass-dark p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold text-white">{item.issueType}</p>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${item.urgent ? "bg-red-500/20 text-red-400 border border-red-500/20" : "bg-purple-500/20 text-purple-400 border border-purple-500/20"}`}>
+                        {item.urgent ? "Urgent" : "Queued"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1.5 line-clamp-2">{item.description}</p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-[9px] text-slate-500">{item.city}</p>
+                      <p className="text-[9px] text-slate-600">{new Date(item.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-white">Stealth mode</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">App disguises itself as "Personal Notes"</p>
-          </div>
-          <label className="toggle-switch">
-            <input type="checkbox" checked={settings.stealthMode} onChange={(e) => updateSetting({ stealthMode: e.target.checked })} />
-            <span className="toggle-track" />
-          </label>
-        </div>
-        <div className="h-px bg-white/5" />
-        <div className="flex items-center gap-3 py-1">
-          <div className="w-8 h-8 rounded-lg bg-rose-500/15 flex items-center justify-center shrink-0">
-            <Phone className="w-4 h-4 text-rose-400" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-white">Auto-dial police</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Open emergency dial on SOS trigger</p>
-          </div>
-          <label className="toggle-switch">
-            <input type="checkbox" checked={settings.autoDialPolice} onChange={(e) => updateSetting({ autoDialPolice: e.target.checked })} />
-            <span className="toggle-track" />
-          </label>
-        </div>
-        <div className="h-px bg-white/5" />
-        <div className="flex items-center gap-3 py-1">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-            <Lock className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-white">SOS cancel PIN</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">4-digit PIN to cancel false alarms</p>
-          </div>
-          <input
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            value={settings.cancelPin}
-            onChange={(e) => updateSetting({ cancelPin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-            className="w-16 rounded-lg bg-white/10 border border-white/20 px-2 py-1.5 text-sm text-center text-white font-mono tracking-widest focus:ring-1 focus:ring-purple-400 focus:border-purple-400"
-          />
-        </div>
+        ) : null}
       </div>
     </div>
   );
