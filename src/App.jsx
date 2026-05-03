@@ -1233,44 +1233,50 @@ function CommunityScreen() {
 
       {activePanel === "feed" ? <div className="space-y-3">
         {items.map((item) => (
-          <div key={item.id} className="rounded-2xl glass p-4 animate-in slide-up">
-            <div className="flex items-center justify-between gap-2">
-              <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border font-semibold ${levelStyle(item.level)}`}>
-                {item.level}
-              </span>
-              <span className="text-[11px] text-slate-400">
-                {new Date(item.time).toLocaleString()}
+          <div key={item.id} className={`rounded-2xl border p-4 animate-in slide-up transition-all ${
+            item.level === "high" ? "border-rose-500/25 bg-rose-500/5" :
+            item.level === "watch" ? "border-amber-500/20 bg-amber-500/5" :
+            item.level === "resolved" ? "border-emerald-500/20 bg-emerald-500/5" :
+            "border-white/10 bg-white/[0.03]"
+          }`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`text-[10px] uppercase tracking-wider px-2.5 py-0.5 rounded-full border font-bold ${levelStyle(item.level)}`}>
+                  {item.level}
+                </span>
+                {item.verified ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                    <CheckCircle2 className="w-2.5 h-2.5" /> Verified
+                  </span>
+                ) : null}
+              </div>
+              <span className="text-[10px] text-slate-500 shrink-0 mt-0.5">
+                {new Date(item.time).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
               </span>
             </div>
-            <p className="text-sm font-semibold text-white mt-2">{item.title}</p>
-            <p className="text-xs text-slate-400 mt-1">{item.description}</p>
+            <p className="text-sm font-semibold text-white mt-2.5 leading-snug">{item.title}</p>
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">{item.description}</p>
             {item.aiSummary ? (
-              <div className="mt-2 rounded-xl border border-purple-500/25 bg-purple-500/10 px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-purple-300">AI safety insight</p>
-                <p className="text-xs text-slate-200 mt-1 leading-relaxed">{item.aiSummary}</p>
+              <div className="mt-3 rounded-xl border border-purple-500/20 bg-purple-500/8 px-3 py-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-1">AI insight</p>
+                <p className="text-xs text-slate-200 leading-relaxed">{item.aiSummary}</p>
               </div>
             ) : null}
-            {item.tags?.length ? (
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {item.tags.map((tag) => (
-                  <span key={tag} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full glass text-purple-400">
-                    {tag.replace("-", " ")}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-            <p className="text-[11px] text-pink-400 mt-2 font-medium">Source: {item.source}</p>
-            {item.verified ? (
-              <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
-                <CheckCircle2 className="w-3 h-3" />
-                Verified report
-              </div>
-            ) : null}
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              {item.tags?.map((tag) => (
+                <span key={tag} className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-purple-400">
+                  {tag.replace(/-/g, " ")}
+                </span>
+              ))}
+              {item.source ? <span className="text-[10px] text-slate-600 ml-auto">via {item.source}</span> : null}
+            </div>
           </div>
         ))}
         {!loading && items.length === 0 ? (
-          <div className="rounded-2xl glass p-4 text-sm text-slate-400 text-center italic">
-            No activity found. Try a different city or refresh.
+          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-8 text-center space-y-3">
+            <Activity className="w-8 h-8 text-slate-600 mx-auto" />
+            <p className="text-sm text-slate-500">No reports yet for {city}.</p>
+            <p className="text-xs text-slate-600">Be the first to report an incident below.</p>
           </div>
         ) : null}
       </div> : null}
@@ -1284,84 +1290,54 @@ function CommunityScreen() {
           <span>Moderator panel</span>
           <ChevronRight className={`w-4 h-4 transition-transform ${showModPanel ? "rotate-90" : ""}`} />
         </button>
-        {showModPanel ? <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3">
-        <p className="text-[10px] text-slate-400 leading-relaxed">
-          Paste your <span className="text-slate-300">MODERATOR_BOOTSTRAP_KEY</span> to authenticate moderation actions. Stored in this browser only.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="password"
-            value={modKeyInput}
-            onChange={(e) => setModKeyInput(e.target.value)}
-            placeholder="Bootstrap key"
-            className="flex-1 rounded-lg glass-dark px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500/40"
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                try {
-                  localStorage.setItem("nigehbaan_moderator_bootstrap", modKeyInput.trim());
-                  success("Moderator key saved for this browser.");
-                } catch {
-                  toastError("Could not save key in this browser.");
-                }
-              }}
-              className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-500"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                try {
-                  localStorage.removeItem("nigehbaan_moderator_bootstrap");
-                  setModKeyInput("");
-                  success("Moderator key cleared.");
-                } catch {
-                  // ignore
-                }
-              }}
-              className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      </div>
-
-        <div className="rounded-2xl glass p-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-white">Review queue</p>
-            <button type="button" onClick={loadPendingReports} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh</button>
-          </div>
-          {moderationLoading ? (
-            <p className="text-xs text-slate-400">Loading pending reports...</p>
-          ) : null}
-          {!moderationLoading && pendingReports.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-3 italic">No pending reports.</p>
-          ) : null}
-          <div className="space-y-2">
-            {pendingReports.map((report) => (
-              <div key={report.id} className="rounded-xl glass-dark p-3 group animate-in slide-up">
-                <p className="text-xs text-slate-400">{report.city} • {report.category}</p>
-                <p className="text-sm font-semibold text-white group-hover:text-purple-300 transition-colors">{report.title}</p>
-                <p className="text-xs text-slate-400 mt-1">{report.description}</p>
-                {report.aiSummary ? (
-                  <p className="text-[11px] text-purple-200/90 mt-2 leading-snug border-t border-white/10 pt-2">
-                    <span className="font-semibold text-purple-300">AI summary: </span>
-                    {report.aiSummary}
-                  </p>
-                ) : null}
-                <div className="mt-2 flex gap-2">
-                  <button type="button" onClick={() => moderateReport(report.id, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 transition-colors">Approve</button>
-                  <button type="button" onClick={() => moderateReport(report.id, "reject")} className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500 transition-colors">Reject</button>
-                </div>
+        {showModPanel ? (
+          <div className="px-4 pb-4 space-y-3 border-t border-white/5 pt-3 animate-in slide-up duration-200">
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Paste your <span className="text-slate-300">MODERATOR_BOOTSTRAP_KEY</span> to authenticate moderation actions. Stored in this browser only.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={modKeyInput}
+                onChange={(e) => setModKeyInput(e.target.value)}
+                placeholder="Bootstrap key"
+                className="flex-1 rounded-lg glass-dark px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-amber-500/40"
+              />
+              <button
+                type="button"
+                onClick={() => { try { localStorage.setItem("nigehbaan_moderator_bootstrap", modKeyInput.trim()); success("Key saved."); } catch { toastError("Could not save."); } }}
+                className="rounded-lg bg-amber-600 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-500"
+              >Save</button>
+              <button
+                type="button"
+                onClick={() => { try { localStorage.removeItem("nigehbaan_moderator_bootstrap"); setModKeyInput(""); success("Key cleared."); } catch { /* ignore */ } }}
+                className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10"
+              >Clear</button>
+            </div>
+            <div className="pt-2 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-white">Review queue</p>
+                <button type="button" onClick={loadPendingReports} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh</button>
               </div>
-            ))}
+              {moderationLoading ? <p className="text-xs text-slate-400">Loading…</p> : null}
+              {!moderationLoading && pendingReports.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-3 italic">No pending reports.</p>
+              ) : null}
+              {pendingReports.map((report) => (
+                <div key={report.id} className="rounded-xl glass-dark p-3 space-y-1 animate-in slide-up">
+                  <p className="text-[10px] text-slate-500">{report.city} · {report.category}</p>
+                  <p className="text-sm font-semibold text-white">{report.title}</p>
+                  <p className="text-xs text-slate-400">{report.description}</p>
+                  {report.aiSummary ? <p className="text-[11px] text-purple-200/80 pt-1 border-t border-white/8">{report.aiSummary}</p> : null}
+                  <div className="flex gap-2 pt-1">
+                    <button type="button" onClick={() => moderateReport(report.id, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500">Approve</button>
+                    <button type="button" onClick={() => moderateReport(report.id, "reject")} className="rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-rose-500">Reject</button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        </div> : null}
+        ) : null}
       </div>
     </div>
   );
@@ -2087,24 +2063,51 @@ function DistressListener({ onTriggerSOS }) {
   };
 
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
-      <h2 className="text-xl font-semibold">Distress Listener</h2>
-      <div className="rounded-2xl glass p-8 text-center space-y-4">
-        <div className={`w-20 h-20 mx-auto rounded-full glass flex items-center justify-center ${listening ? "sos-pulse text-emerald-400" : "text-slate-400"}`}>
-          <Ear className="w-10 h-10" />
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white">Distress Listener</h2>
+        <p className="text-xs text-slate-500">Listens for distress keywords — "Help", "Bachao", "Emergency" — and triggers SOS automatically.</p>
+      </div>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center space-y-6">
+        <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center transition-all duration-500 ${
+          detected ? "bg-red-500/20 border-2 border-red-500/40 sos-pulse" :
+          listening ? "bg-emerald-500/15 border-2 border-emerald-500/30 sos-pulse" :
+          "bg-white/5 border border-white/10"
+        }`}>
+          <Ear className={`w-10 h-10 transition-colors ${detected ? "text-red-400" : listening ? "text-emerald-400" : "text-slate-500"}`} />
         </div>
-        <div>
-          <p className="text-lg font-semibold text-white">{detected ? "Distress Detected!" : listening ? "Monitoring Audio..." : "Ready to Listen"}</p>
-          <p className="text-xs text-slate-400 mt-1">App listens for screams or trigger keywords like "Help" or "Bachao".</p>
+        <div className="space-y-1.5">
+          <p className="text-lg font-bold text-white">
+            {detected ? "Distress Detected!" : listening ? "Monitoring audio…" : "Ready to monitor"}
+          </p>
+          <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+            {detected
+              ? "A distress keyword was detected. Tap below to trigger SOS immediately."
+              : listening
+              ? "Listening for: Help · Bachao · Emergency · Save me · Danger"
+              : "Start monitoring to detect distress words and auto-trigger SOS."}
+          </p>
         </div>
-        {!listening ? (
-          <button onClick={startListening} className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white py-3 text-sm font-semibold transition-colors">Start Monitoring</button>
-        ) : (
-          <button onClick={stopListening} className="w-full rounded-xl glass text-slate-300 py-3 text-sm font-semibold hover:bg-white/10 transition-colors">Stop Monitoring</button>
-        )}
-        {detected ? (
-          <button onClick={onTriggerSOS} className="w-full rounded-xl bg-red-600 text-white py-3 text-sm font-semibold animate-pulse">Trigger SOS Now</button>
-        ) : null}
+        <div className="space-y-3 max-w-xs mx-auto">
+          {!listening ? (
+            <button onClick={startListening} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-3.5 text-sm font-bold shadow-lg shadow-emerald-900/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
+              <Ear className="w-4 h-4" /> Start Monitoring
+            </button>
+          ) : (
+            <button onClick={stopListening} className="w-full rounded-2xl border border-white/15 bg-white/5 text-slate-200 py-3.5 text-sm font-semibold hover:bg-white/10 active:scale-95 transition-all">
+              Stop Monitoring
+            </button>
+          )}
+          {detected ? (
+            <button onClick={onTriggerSOS} className="w-full rounded-2xl bg-gradient-to-r from-rose-600 to-red-700 text-white py-3.5 text-sm font-bold animate-pulse shadow-xl shadow-rose-900/30">
+              Trigger SOS Now
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4 space-y-1">
+        <p className="text-xs font-semibold text-amber-300">Privacy note</p>
+        <p className="text-[11px] text-amber-200/70 leading-relaxed">Audio is processed on-device using the Web Speech API. Nothing is sent to our servers. Browser permission is required.</p>
       </div>
     </div>
   );
@@ -2224,93 +2227,95 @@ function SafeTransit({ contacts, autoDialPolice }) {
     setNextCheckInAt(null);
   };
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
-      <h2 className="text-xl font-semibold">Safe Transit</h2>
-      <div className="rounded-2xl glass p-4">
-        <p className="text-xs text-slate-400 uppercase tracking-wide font-semibold">Transit mode</p>
-        <div className="flex items-center gap-2 mt-1">
-          <div className={`w-2 h-2 rounded-full ${tripMode === "online" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-          <p className="text-sm font-semibold text-white">{tripMode === "online" ? "Backend Tracked" : "Manual Fallback"}</p>
-        </div>
-        <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-          Nigehbaan tracks your route. If you deviate or miss a check-in, your contacts are alerted automatically.
-        </p>
-        {!hasContacts ? (
-          <p className="text-[11px] text-amber-200/90 mt-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
-            No trusted contacts yet — add them in Profile → Safety Circle so trip alerts can reach someone you trust.
-          </p>
-        ) : null}
-        <p className="text-[10px] text-slate-500 mt-2">Police auto-dial on SOS is {autoDialPolice ? "on" : "off"} (Profile → settings).</p>
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white">Safe Transit</h2>
+        <p className="text-xs text-slate-500">Share your journey with trusted contacts. Miss a check-in and they're notified automatically.</p>
       </div>
+
+      {!hasContacts ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 flex items-start gap-3">
+          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-200/80 leading-relaxed">No trusted contacts added yet. <button type="button" className="underline text-amber-300 font-semibold">Add them in Profile</button> so alerts can reach someone you trust.</p>
+        </div>
+      ) : null}
+
       {!trip ? (
-        <div className="space-y-3">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${tripMode === "online" ? "bg-emerald-500 animate-pulse" : "bg-amber-400"}`} />
+            <p className="text-sm font-semibold text-white">{tripMode === "online" ? "Backend-tracked mode" : "Manual check-in mode"}</p>
+          </div>
           <input
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
-            placeholder="Where are you going? (e.g. Gulberg Metro)"
+            placeholder="Destination (e.g. Gulberg Metro, Liberty Roundabout)"
             className="w-full rounded-2xl glass-dark px-4 py-3.5 text-sm text-white placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/40 outline-none"
           />
+          <div className="flex items-center gap-3">
+            <label className="text-xs text-slate-400 shrink-0">Check-in every</label>
+            <input
+              type="number" min={1} max={30} value={checkInTimerMinutes}
+              onChange={(e) => setCheckInTimerMinutes(Math.max(1, Math.min(30, Number(e.target.value) || 5)))}
+              className="w-14 rounded-lg glass-dark px-2 py-1.5 text-sm text-center text-white focus:ring-1 focus:ring-emerald-500/50 outline-none"
+            />
+            <label className="text-xs text-slate-400">minutes</label>
+          </div>
           <button onClick={startTrip} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-4 text-sm font-bold shadow-lg shadow-emerald-900/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
-            <MapPin className="w-4 h-4" /> Start Tracked Trip
+            <MapPin className="w-4 h-4" /> Start Safe Trip
           </button>
         </div>
-      ) : null}
-      {trip ? (
-        <div className="rounded-2xl glass p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Status</p>
-              <p className={`text-sm font-bold ${trip.status === "deviated" ? "text-red-400" : "text-emerald-400"}`}>
-                {trip.status.toUpperCase()}
-              </p>
-            </div>
-            {nextCheckInAt && (
-              <div className="text-right">
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Next Check-in</p>
-                <p className="text-sm font-bold text-pink-400">{new Date(nextCheckInAt).toLocaleTimeString()}</p>
+      ) : (
+        <div className="space-y-4">
+          <div className={`rounded-2xl border p-5 space-y-1 ${trip.status === "deviated" ? "border-red-500/30 bg-red-500/8" : trip.status === "completed" ? "border-emerald-500/25 bg-emerald-500/8" : "border-emerald-500/20 bg-emerald-500/5"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-3 h-3 rounded-full ${trip.status === "deviated" ? "bg-red-500 animate-pulse" : trip.status === "completed" ? "bg-emerald-500" : "bg-emerald-400 animate-pulse"}`} />
+                <p className={`text-sm font-bold ${trip.status === "deviated" ? "text-red-400" : "text-emerald-300"}`}>
+                  {trip.status === "deviated" ? "Deviation detected" : trip.status === "completed" ? "Arrived safely" : "Trip active"}
+                </p>
               </div>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Manual Check-in</p>
-            <div className="flex gap-2">
-              <input
-                value={checkInText}
-                onChange={(e) => setCheckInText(e.target.value)}
-                placeholder="e.g. Just passed the bridge..."
-                className="flex-1 rounded-lg glass-dark px-3 py-2 text-xs focus:ring-1 focus:ring-purple-500/50 outline-none"
-              />
-              <button onClick={submitCheckIn} className="rounded-lg bg-purple-600 text-white px-4 py-2 text-xs font-semibold hover:bg-purple-500 transition-colors">Add</button>
+              {nextCheckInAt && trip.status === "active" ? (
+                <p className="text-xs text-slate-400 font-mono">Next check-in: {new Date(nextCheckInAt).toLocaleTimeString()}</p>
+              ) : null}
             </div>
+            {trip.destination && <p className="text-xs text-slate-400 pl-5.5">→ {trip.destination}</p>}
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-white/5">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-slate-400 font-bold">Interval:</span>
-              <input
-                type="number"
-                min={1}
-                max={30}
-                value={checkInTimerMinutes}
-                onChange={(e) => setCheckInTimerMinutes(Math.max(1, Math.min(30, Number(e.target.value) || 5)))}
-                className="w-12 rounded glass-dark px-1.5 py-0.5 text-xs text-center"
-              />
-              <span className="text-[10px] text-slate-400">min</span>
-            </div>
-            <button onClick={markSafeArrival} className="rounded-lg bg-emerald-600 text-white px-4 py-2 text-xs font-semibold hover:bg-emerald-500 transition-colors">
-              Arrived Safely
-            </button>
-          </div>
+          {statusMessage ? (
+            <p className="text-xs text-amber-300 font-semibold px-1">{statusMessage}</p>
+          ) : null}
 
-          {statusMessage ? <p className="text-xs text-pink-400 font-semibold animate-pulse">{statusMessage}</p> : null}
-          
-          <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1">Timeline</p>
-            {trip.events?.map((event, i) => <p key={`${event}-${i}`} className="text-[11px] text-slate-300 flex items-start gap-2"><span className="text-purple-500">•</span> {event}</p>)}
+          {trip.status !== "completed" ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
+              <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Check-in</p>
+              <div className="flex gap-2">
+                <input
+                  value={checkInText}
+                  onChange={(e) => setCheckInText(e.target.value)}
+                  placeholder="e.g. Passing Liberty roundabout…"
+                  className="flex-1 rounded-xl glass-dark px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-purple-500/50 outline-none"
+                />
+                <button onClick={submitCheckIn} className="shrink-0 rounded-xl bg-purple-600 text-white px-4 py-2.5 text-xs font-bold hover:bg-purple-500 transition-colors">Log</button>
+              </div>
+              <button onClick={markSafeArrival} className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-3 text-sm font-bold active:scale-95 transition-transform">
+                I've Arrived Safely
+              </button>
+            </div>
+          ) : null}
+
+          <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-4 space-y-2">
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Trip timeline</p>
+            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {trip.events?.map((event, i) => (
+                <p key={`${event}-${i}`} className="text-[11px] text-slate-300 flex items-start gap-2">
+                  <span className="text-purple-500 mt-0.5 shrink-0">•</span> {event}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
