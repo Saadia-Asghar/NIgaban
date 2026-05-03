@@ -89,107 +89,75 @@ function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut
 }
 
 /** Primary app sections — scrollable on small screens, complements bottom nav. */
-function FeatureNavTabs({ screen, shieldTool, onNavigate, onSelectShieldTool }) {
-  const mainTabs = [
-    { id: "home", label: "Home", icon: Home },
-    { id: "map", label: "Map", icon: MapPin },
-    { id: "hifazat", label: "Hifazat", icon: MessageCircle },
-    { id: "legal", label: "Legal", icon: Scale },
-    { id: "shield", label: "AI Shield", icon: Shield },
-    { id: "community", label: "Community", icon: Activity },
-    { id: "transit", label: "Transit", icon: Building2 },
-    { id: "more", label: "Profile", icon: UserCircle },
-  ];
-  const activeMain = (id) => {
-    if (id === "shield") return screen === "shield";
-    return screen === id;
-  };
-  const shieldSubs = [
-    { tool: null, label: "Overview" },
-    { tool: "dm", label: "DM scan" },
-    { tool: "deepfake", label: "Deepfake" },
-    { tool: "voice", label: "Voice" },
-    { tool: "distress", label: "Distress" },
+function ShieldSubNav({ active, onSelect }) {
+  const tools = [
+    { id: null, label: "Overview" },
+    { id: "dm", label: "DM Scan" },
+    { id: "deepfake", label: "Deepfake" },
+    { id: "voice", label: "Voice" },
+    { id: "distress", label: "Distress" },
   ];
   return (
     <div className="border-t border-white/5 bg-black/20">
-      <nav className="flex gap-1 overflow-x-auto px-2 py-2 scrollbar-thin max-w-7xl mx-auto" aria-label="Main sections">
-        {mainTabs.map((t) => {
-          const Icon = t.icon;
-          const on = activeMain(t.id);
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onNavigate(t.id)}
-              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors ${
-                on ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md" : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5 opacity-90" />
-              {t.label}
-            </button>
-          );
-        })}
+      <nav className="flex gap-1 overflow-x-auto px-3 py-2 scrollbar-thin" aria-label="AI Shield tools">
+        {tools.map((t) => (
+          <button
+            key={t.label}
+            type="button"
+            onClick={() => onSelect(t.id)}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-colors ${
+              active === t.id
+                ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md"
+                : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </nav>
-      {screen === "shield" ? (
-        <nav className="flex gap-1 overflow-x-auto px-2 pb-2 border-t border-white/5 max-w-7xl mx-auto" aria-label="AI Shield tools">
-          {shieldSubs.map((s) => {
-            const on = shieldTool === s.tool;
-            return (
-              <button
-                key={s.label}
-                type="button"
-                onClick={() => onSelectShieldTool(s.tool)}
-                className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${
-                  on ? "bg-violet-500/30 text-violet-100 border border-violet-400/40" : "text-slate-500 hover:text-slate-300"
-                }`}
-              >
-                {s.label}
-              </button>
-            );
-          })}
-        </nav>
-      ) : null}
     </div>
   );
 }
 
 function BottomNav({ active, onNavigate, onSOS }) {
-  const tabBtn = (id, Icon, label) => {
-    const activeTab = active === id;
+  const btn = (id, Icon, label) => {
+    const on = active === id || (id === "shield" && active === "shield");
     return (
       <button
         key={id}
         type="button"
         onClick={() => onNavigate(id)}
-        className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2 rounded-xl transition-all duration-200 ${
-          activeTab ? "text-purple-300 bg-white/10 shadow-lg shadow-purple-500/10" : "text-slate-400 hover:text-slate-200"
-        }`}
+        className="flex flex-col items-center gap-1 px-3 py-1 min-w-0 group"
       >
-        <Icon className="w-5 h-5 shrink-0" />
-        <span className="text-[9px] font-semibold truncate max-w-full px-0.5">{label}</span>
+        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${on ? "bg-white/12 shadow-md shadow-purple-900/30" : "group-hover:bg-white/5"}`}>
+          <Icon className={`w-[22px] h-[22px] transition-colors ${on ? "text-pink-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+        </div>
+        <span className={`text-[9px] font-bold tracking-wide transition-colors ${on ? "text-pink-300" : "text-slate-600 group-hover:text-slate-400"}`}>{label}</span>
       </button>
     );
   };
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-dark border-t border-white/10 pt-1 pb-[max(0.4rem,env(safe-area-inset-bottom))]">
-      <div className="w-full max-w-lg mx-auto flex items-end justify-between gap-0 px-2">
-        {tabBtn("home", Home, "Home")}
-        {tabBtn("map", MapPin, "Map")}
-        <div className="flex flex-col items-center shrink-0 px-1">
+    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#0b0c18]/96 backdrop-blur-2xl border-t border-white/[0.07] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="w-full max-w-md mx-auto flex items-end justify-around pt-2">
+        {btn("home", Home, "Home")}
+        {btn("community", Activity, "Community")}
+
+        {/* SOS — elevated centre pill */}
+        <div className="flex flex-col items-center -mt-6">
           <button
             type="button"
             onClick={onSOS}
-            className="-mt-7 mb-0.5 w-14 h-14 rounded-full bg-gradient-to-br from-rose-600 to-red-700 border-[3px] border-[#0a0b12] shadow-xl shadow-rose-900/45 flex flex-col items-center justify-center text-white active:scale-95 transition-transform sos-pulse"
             aria-label="Emergency SOS"
+            className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-red-600 border-[3px] border-[#0b0c18] shadow-[0_0_28px_rgba(239,68,68,0.45)] flex flex-col items-center justify-center text-white active:scale-95 transition-transform sos-pulse"
           >
-            <AlertTriangle className="w-5 h-5" />
-            <span className="text-[8px] font-black leading-none mt-0.5">SOS</span>
+            <AlertTriangle className="w-6 h-6" />
           </button>
+          <span className="text-[9px] font-black text-rose-400 mt-1 tracking-widest uppercase">SOS</span>
         </div>
-        {tabBtn("community", Activity, "Community")}
-        {tabBtn("more", UserCircle, "Profile")}
+
+        {btn("shield", Shield, "Shield")}
+        {btn("more", UserCircle, "Profile")}
       </div>
     </nav>
   );
@@ -334,11 +302,7 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
 
 function HomeScreen({
   onNavigate,
-  onSOS,
-  lang,
-  contactsCount,
-  canInstall,
-  onInstall,
+  contacts,
   timelineEntries,
   timelineText,
   setTimelineText,
@@ -346,282 +310,208 @@ function HomeScreen({
   timelineSaving,
   communityFeed,
 }) {
-  const quickChecklist = [
-    { id: "contacts", label: "Add 3 trusted contacts", done: contactsCount >= 3, action: "more" },
-    { id: "timeline", label: "Create a safety note", done: timelineEntries.length > 0, action: "home" },
-    { id: "community", label: "Check city alerts", done: communityFeed.length > 0, action: "community" },
-  ];
+  const { error: hsError } = useToast();
+  const siren = useSiren();
+  const [fakeCallOpen, setFakeCallOpen] = useState(false);
 
-  const tagline = lang === "ur" ? BRAND_TAGLINE_UR : BRAND_TAGLINE_EN;
+  const highCount = communityFeed.filter((i) => i.level === "high").length;
+  const watchCount = communityFeed.filter((i) => i.level === "watch").length;
+  const statusLevel = highCount > 0 ? "high" : watchCount > 0 ? "watch" : "clear";
 
-  const capabilityPillars = [
-    { title: "Emergency SOS", detail: "One tap, trusted contacts, optional police dial." },
-    { title: "Groq + legal & scan", detail: "Fast AI for rights guidance; DM and media checks (Gemini vision where used)." },
-    { title: "Safe transit", detail: "Check-ins and journey notes you control." },
-    { title: "City pulse", detail: "Community reports so you can avoid hot spots." },
-  ];
+  const buildAlertBody = (lat, lng) =>
+    `🆘 NIgaban ALERT — I may need help. Location: https://www.google.com/maps?q=${lat},${lng} — Call me or contact police (15) if I don't respond.`;
+
+  const sendAlertSms = () => {
+    if (!contacts.length) { hsError("Add trusted contacts in Profile first."); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const nums = contacts.slice(0, 3).map((c) => String(c.phone || "").replace(/[^\d+]/g, "").trim()).filter(Boolean);
+        if (!nums.length) { hsError("Add phone numbers with country code (+92…) in Profile."); return; }
+        window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(buildAlertBody(pos.coords.latitude, pos.coords.longitude))}`;
+      },
+      () => hsError("Allow location so your SMS includes live GPS."),
+      { enableHighAccuracy: true, timeout: 14000, maximumAge: 30000 },
+    );
+  };
+
+  const sendWhatsAppSos = () => {
+    if (!contacts.length) { hsError("Add trusted contacts in Profile first."); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const num = String(contacts[0].phone || "").replace(/[^\d+]/g, "").replace(/^\+/, "").trim();
+        if (!num) { hsError("Add a phone number with country code (+92…) in Profile."); return; }
+        window.open(`https://wa.me/${num}?text=${encodeURIComponent(buildAlertBody(pos.coords.latitude, pos.coords.longitude))}`, "_blank", "noopener");
+      },
+      () => hsError("Allow location so your WhatsApp message includes live GPS."),
+      { enableHighAccuracy: true, timeout: 14000, maximumAge: 30000 },
+    );
+  };
 
   return (
-    <div className="pb-28 animate-in fade-in overflow-x-hidden">
-      {/* Hero Section */}
-      <div className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0a0b12] via-[#1a1530] to-[#141523] px-6 pt-12 pb-20 text-center">
-        <div className="pointer-events-none absolute inset-0 hero-grid opacity-70" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500/5 blur-[100px] rounded-full pointer-events-none" />
-        
-        <div className="relative z-10 space-y-8 max-w-4xl mx-auto">
-          <div className="space-y-3 animate-in slide-up">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-[10px] font-semibold uppercase tracking-[0.2em] text-purple-300/90">
-              <Shield className="w-3.5 h-3.5 shrink-0" /> NIgaban · {BRAND_TAGLINE_SHORT}
-            </div>
-            <p className="text-sm md:text-base text-slate-400 max-w-2xl mx-auto leading-relaxed">{tagline}</p>
-          </div>
-          
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white leading-[0.95] tracking-tight animate-in slide-up duration-500">
-            Safe. <br/>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400">Informed.</span> <br/>
-            Unstoppable.
-          </h1>
+    <div className="pb-24 animate-in fade-in overflow-x-hidden">
+      <FakeCallOverlay open={fakeCallOpen} onClose={() => setFakeCallOpen(false)} />
+      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-3">
 
-          <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-2xl mx-auto animate-in slide-up duration-700">
-            Silent SOS, incident heatmaps, AI legal guidance, and one-tap evidence exports — Pakistan's safety companion for women.
-          </p>
-          
-          <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4 animate-in slide-up duration-1000">
-            <button type="button" onClick={onSOS} className="group w-full sm:w-auto px-10 py-4 rounded-2xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold text-base shadow-[0_0_40px_rgba(225,29,72,0.25)] hover:shadow-[0_0_48px_rgba(225,29,72,0.4)] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
-              <AlertTriangle className="w-5 h-5 shrink-0" /> Emergency SOS
-            </button>
-            <button type="button" onClick={() => onNavigate("shield")} className="w-full sm:w-auto px-10 py-4 rounded-2xl surface-card text-white font-bold text-base active:scale-[0.98] transition-all">
-              AI Threat Shield
-            </button>
-            {canInstall ? (
-              <button type="button" onClick={onInstall} className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/15 bg-white/5 text-sm font-semibold text-slate-200 hover:bg-white/10 active:scale-[0.98] transition-all">
-                Install app
-              </button>
-            ) : null}
+        {/* ── 1. Status strip ── */}
+        <div className={`rounded-2xl px-4 py-3 flex items-center gap-3 border ${
+          statusLevel === "high" ? "border-rose-500/25 bg-rose-500/[0.07]" :
+          statusLevel === "watch" ? "border-amber-500/20 bg-amber-500/[0.06]" :
+          "border-emerald-500/20 bg-emerald-500/[0.07]"
+        }`}>
+          <div className={`w-2.5 h-2.5 rounded-full shrink-0 animate-pulse ${
+            statusLevel === "high" ? "bg-rose-500" : statusLevel === "watch" ? "bg-amber-500" : "bg-emerald-500"
+          }`} />
+          <div className="flex-1 min-w-0">
+            <p className={`text-xs font-bold ${
+              statusLevel === "high" ? "text-rose-300" : statusLevel === "watch" ? "text-amber-300" : "text-emerald-300"
+            }`}>
+              {statusLevel === "high"
+                ? `${highCount} high-alert report${highCount !== 1 ? "s" : ""} nearby`
+                : statusLevel === "watch"
+                ? `${watchCount} watch-level report${watchCount !== 1 ? "s" : ""} nearby`
+                : "No active alerts in your area"}
+            </p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Community feed · Lahore · Live</p>
           </div>
-          
-          <div className="pt-10 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto animate-in slide-up duration-1000 delay-150 text-left">
-            {capabilityPillars.map((c) => (
-              <div key={c.title} className="surface-card surface-card-interactive px-5 py-4">
-                <p className="text-sm font-semibold text-white">{c.title}</p>
-                <p className="text-xs text-slate-400 mt-1 leading-snug">{c.detail}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Safety Score & Live Feed Overlay */}
-      <div className="px-6 -mt-16 relative z-20 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="surface-card p-8 md:rounded-[2rem]">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Safety Readiness</p>
-              <h3 className="text-2xl font-bold text-white mt-1">Profile Strength</h3>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl font-black text-purple-400">{Math.min(100, 40 + contactsCount * 15 + (timelineEntries.length > 0 ? 20 : 0))}%</p>
-            </div>
-          </div>
-          <div className="h-4 rounded-full bg-white/5 overflow-hidden p-1 border border-white/5">
-            <div 
-              className="h-full rounded-full bg-gradient-to-r from-pink-500 via-purple-600 to-violet-600 transition-all duration-1000 shadow-[0_0_15px_rgba(139,92,246,0.5)]" 
-              style={{ width: `${Math.min(100, 40 + contactsCount * 15 + (timelineEntries.length > 0 ? 20 : 0))}%` }} 
-            />
-          </div>
-          <div className="mt-8 flex flex-wrap gap-3">
-            {quickChecklist.map(item => (
-              <div key={item.id} className={`px-4 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all ${item.done ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10"}`}>
-                {item.done ? <CheckCircle2 className="w-4 h-4" /> : <div className="w-2.5 h-2.5 rounded-full bg-amber-500/40 animate-pulse" />}
-                {item.label}
-              </div>
-            ))}
-          </div>
+          <button type="button" onClick={() => onNavigate("community")} className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors shrink-0">
+            Map →
+          </button>
         </div>
 
-        <div className="surface-card p-8 md:rounded-[2rem]">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Community Pulse</p>
-              <h3 className="text-2xl font-bold text-white mt-1">Live Safety Alerts</h3>
-            </div>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black animate-pulse border border-emerald-500/20">
-              <Activity className="w-3 h-3" /> LIVE
-            </div>
-          </div>
-          <div className="space-y-4">
-            {communityFeed.slice(0, 2).map((item) => (
-              <div key={item.id} className="group flex items-center gap-4 p-4 rounded-3xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer border border-transparent hover:border-white/10" onClick={() => onNavigate("community")}>
-                <div className={`w-3 h-3 rounded-full shrink-0 shadow-[0_0_10px] ${item.level === "high" ? "bg-red-500 shadow-red-500/50" : "bg-amber-500 shadow-amber-500/50"}`} />
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-slate-200 line-clamp-1">{item.title}</p>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-1">{item.description}</p>
+        {/* ── 2. Quick action grid ── */}
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2.5">Quick tools</p>
+          <div className="grid grid-cols-4 gap-2.5">
+            {[
+              { label: "Fake\nCall",   Icon: Phone,         bg: "bg-emerald-500/12", ic: "text-emerald-400", glow: "shadow-emerald-900/20", active: fakeCallOpen,  action: () => setFakeCallOpen(true) },
+              { label: siren.active ? "Stop\nSiren" : "Siren", Icon: Volume2, bg: "bg-rose-500/12",    ic: "text-rose-400",    glow: "shadow-rose-900/20",    active: siren.active, action: () => siren.active ? siren.stop() : siren.start() },
+              { label: "Hifazat\nGuide",  Icon: MessageCircle, bg: "bg-violet-500/12", ic: "text-violet-400", glow: "shadow-violet-900/20", active: false,         action: () => onNavigate("hifazat") },
+              { label: "Safe\nTransit",   Icon: MapPin,        bg: "bg-blue-500/12",   ic: "text-blue-400",   glow: "shadow-blue-900/20",   active: false,         action: () => onNavigate("transit") },
+            ].map(({ label, Icon, bg, ic, active: isActive, action }) => (
+              <button
+                key={label}
+                type="button"
+                onClick={action}
+                className={`flex flex-col items-center gap-2.5 py-4 rounded-2xl border transition-all active:scale-[0.93] ${
+                  isActive ? `${bg} border-white/15` : "bg-white/[0.04] border-white/[0.07] hover:bg-white/[0.08]"
+                }`}
+              >
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${bg}`}>
+                  <Icon className={`w-5 h-5 ${ic}`} />
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-white transition-colors" />
-              </div>
+                <span className="text-[10px] font-bold text-white leading-tight text-center whitespace-pre-line px-1">{label}</span>
+              </button>
             ))}
-            {communityFeed.length === 0 && (
-              <div className="text-center py-6">
-                <p className="text-sm text-slate-500 italic">Scanning for local activity...</p>
+          </div>
+        </div>
+
+        {/* ── 3. Safety circle ── */}
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] overflow-hidden">
+          <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2">
+              <Heart className="w-4 h-4 text-rose-400" />
+              <p className="text-sm font-bold text-white">Safety circle</p>
+              <span className="text-[9px] font-bold text-slate-600">({contacts.length})</span>
+            </div>
+            <div className="flex gap-1.5">
+              <button type="button" onClick={sendAlertSms} className="rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-[10px] font-bold px-2.5 py-1.5 flex items-center gap-1 transition-colors active:scale-95">
+                <Phone className="w-3 h-3" /> SMS
+              </button>
+              <button type="button" onClick={sendWhatsAppSos} className="rounded-xl text-white text-[10px] font-bold px-2.5 py-1.5 active:scale-95 transition-transform" style={{ background: "#25D366" }}>
+                WA SOS
+              </button>
+            </div>
+          </div>
+          {contacts.length === 0 ? (
+            <button type="button" onClick={() => onNavigate("more")} className="w-full px-4 py-4 flex items-center gap-3 hover:bg-white/[0.03] transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-dashed border-white/15 flex items-center justify-center shrink-0">
+                <Plus className="w-4 h-4 text-slate-500" />
               </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-slate-400">Add trusted contacts</p>
+                <p className="text-[10px] text-slate-600 mt-0.5">They'll receive your live GPS on SOS</p>
+              </div>
+            </button>
+          ) : (
+            <div className="px-4 py-3 flex items-center gap-2.5 flex-wrap">
+              {contacts.slice(0, 6).map((c, i) => (
+                <div key={c.id} className="flex flex-col items-center gap-1">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white"
+                    style={{ background: ["linear-gradient(135deg,#ec4899,#8b5cf6)","linear-gradient(135deg,#8b5cf6,#06b6d4)","linear-gradient(135deg,#f59e0b,#ec4899)","linear-gradient(135deg,#10b981,#3b82f6)","linear-gradient(135deg,#f97316,#ec4899)","linear-gradient(135deg,#a78bfa,#34d399)"][i % 6] }}>
+                    {(c.name || "?")[0].toUpperCase()}
+                  </div>
+                  <p className="text-[9px] text-slate-500 truncate max-w-[2.5rem]">{c.name.split(" ")[0]}</p>
+                </div>
+              ))}
+              <button type="button" onClick={() => onNavigate("more")} className="w-10 h-10 rounded-xl bg-white/5 border border-dashed border-white/15 flex items-center justify-center">
+                <Plus className="w-3.5 h-3.5 text-slate-500" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── 4. City pulse ── */}
+        <div>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">City pulse · Lahore</p>
+            <button type="button" onClick={() => onNavigate("community")} className="text-[10px] text-purple-400 hover:text-purple-300 font-bold transition-colors">All →</button>
+          </div>
+          <div className="space-y-2">
+            {communityFeed.length === 0 ? (
+              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-6 text-center">
+                <Activity className="w-5 h-5 text-slate-600 mx-auto mb-2" />
+                <p className="text-xs text-slate-500 italic">Scanning for local reports…</p>
+              </div>
+            ) : (
+              communityFeed.slice(0, 3).map((item) => (
+                <button key={item.id} type="button" onClick={() => onNavigate("community")}
+                  className={`w-full text-left rounded-2xl px-3.5 py-3 border flex items-start gap-3 hover:opacity-90 active:scale-[0.99] transition-all ${
+                    item.level === "high" ? "border-rose-500/20 bg-rose-500/[0.06]" :
+                    item.level === "watch" ? "border-amber-500/15 bg-amber-500/[0.05]" :
+                    "border-white/[0.07] bg-white/[0.02]"
+                  }`}>
+                  <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${item.level === "high" ? "bg-rose-500" : item.level === "watch" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-white truncate">{item.title}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{item.description}</p>
+                  </div>
+                  <span className={`shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
+                    item.level === "high" ? "bg-rose-500/20 text-rose-400" :
+                    item.level === "watch" ? "bg-amber-500/20 text-amber-400" :
+                    "bg-emerald-500/20 text-emerald-400"
+                  }`}>{item.level}</span>
+                </button>
+              ))
             )}
           </div>
         </div>
-      </div>
 
-      {/* What We Do Section */}
-      <div className="px-6 mt-24 max-w-6xl mx-auto w-full text-center space-y-8 animate-in slide-up">
-        <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">What Nigehbaan does</h2>
-        <p className="text-slate-400 text-base md:text-lg max-w-3xl mx-auto leading-relaxed">
-          The app keeps your safety workflow in one place: emergency SOS, trusted contacts, a private timeline for notes, legal-style guidance (not a substitute for a lawyer), AI-assisted scans of messages and media, safe transit check-ins, and a local alert feed—so you can respond with context instead of panic.
-        </p>
-      </div>
-
-      {/* Feature Grid - Cards Section */}
-      <div className="px-6 mt-24 max-w-6xl mx-auto w-full space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">One app, one calm flow</h2>
-          <p className="text-slate-400 text-base max-w-2xl mx-auto leading-relaxed">
-            Core modules use Groq (Llama 3.3) for chat and incident insights; vision scans may use Gemini—plain UI for everything else.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-          {[
-            { id: "hifazat", title: "Hifazat Guide", desc: "Full-page legal safety Q&A for Pakistan (works offline for common topics when the API is down).", icon: MessageCircle, color: "text-teal-400" },
-            { id: "shield", title: "AI Threat Shield", desc: "Scan messages or audio for red flags before you reply or meet.", icon: Shield, color: "text-purple-400" },
-            { id: "transit", title: "Safe Transit", desc: "Share trip context and check in with people you trust.", icon: MapPin, color: "text-emerald-400" },
-            { id: "legal", title: "Legal AI desk", desc: "Orient on rights and paperwork—then speak with a qualified lawyer for decisions.", icon: Scale, color: "text-blue-400" },
-          ].map((f) => (
-            <button 
-              key={f.id} 
-              type="button"
-              onClick={() => onNavigate(f.id)}
-              className="group surface-card surface-card-interactive p-8 md:p-10 text-center flex flex-col items-center space-y-5"
-            >
-              <div className="w-16 h-16 rounded-2xl border border-white/10 bg-white/[0.04] flex items-center justify-center group-hover:scale-[1.04] transition-transform">
-                <f.icon className={`w-8 h-8 ${f.color}`} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">{f.title}</h3>
-                <p className="text-slate-400 leading-relaxed text-sm">{f.desc}</p>
-              </div>
+        {/* ── 5. Safety timeline ── */}
+        <div className="pb-2">
+          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2.5">Safety log</p>
+          <div className="flex gap-2 mb-2">
+            <input
+              value={timelineText}
+              onChange={(e) => setTimelineText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && onAddTimeline()}
+              placeholder="e.g. Boarding bus #42 at Gulberg…"
+              className="flex-1 rounded-xl glass-dark px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:ring-1 focus:ring-purple-500/50 outline-none"
+            />
+            <button type="button" onClick={onAddTimeline} disabled={timelineSaving || !timelineText.trim()}
+              className="shrink-0 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50 active:scale-95 transition-transform flex items-center">
+              {timelineSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log"}
             </button>
-          ))}
-        </div>
-      </div>
-
-      {/* How to Use Section - Cards */}
-      <div className="px-6 mt-32 max-w-6xl mx-auto w-full space-y-12">
-        <div className="text-center space-y-4">
-          <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">How to use it</h2>
-          <p className="text-slate-400 text-base max-w-2xl mx-auto leading-relaxed">Three steps—set up once, then each outing takes seconds.</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { step: "01", title: "Set up your circle", desc: "Add 2–3 trusted contacts in Profile → Safety Circle. Set a 4-digit SOS cancel PIN.", icon: Heart, bg: "bg-rose-500/10", border: "border-rose-500/25", color: "text-rose-400" },
-            { step: "02", title: "Know your tools", desc: "Use Safe Transit for commutes, Hifazat for legal questions, and AI Shield to verify suspicious media.", icon: Smartphone, bg: "bg-blue-500/10", border: "border-blue-500/25", color: "text-blue-400" },
-            { step: "03", title: "Act fast if threatened", desc: "Tap SOS or press S three times — your circle is alerted with your live location instantly.", icon: AlertCircle, bg: "bg-emerald-500/10", border: "border-emerald-500/25", color: "text-emerald-400" },
-          ].map((s) => (
-            <div key={s.step} className={`group relative overflow-hidden surface-card surface-card-interactive p-8 border ${s.border}`}>
-              <div className={`w-16 h-16 rounded-2xl ${s.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-                <s.icon className={`w-8 h-8 ${s.color}`} />
+          </div>
+          <div className="space-y-1.5">
+            {timelineEntries.slice(0, 2).map((entry) => (
+              <div key={entry.id} className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2.5">
+                <p className="text-xs text-slate-200 leading-relaxed">{entry.text}</p>
+                <p className="text-[9px] text-slate-600 mt-1 font-mono">{new Date(entry.createdAt).toLocaleTimeString()} · #{entry.id.slice(-4)}</p>
               </div>
-              <h4 className="text-2xl font-black text-white mb-2">{s.title}</h4>
-              <p className="text-slate-400 leading-relaxed mb-6">{s.desc}</p>
-              <div className="text-7xl font-black text-white/5 group-hover:text-white/10 transition-colors absolute -bottom-4 -right-2 pointer-events-none">{s.step}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Safety Timeline Section */}
-      <div className="px-6 mt-32 max-w-6xl mx-auto w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-1 space-y-4">
-            <h3 className="text-3xl font-black text-white">Safety Timeline</h3>
-            <p className="text-slate-400 text-sm leading-relaxed">
-              Create a "Digital Paper Trail" of your journey. Useful for evidence or just peace of mind. Every entry is hashed and encrypted.
-            </p>
-            <div className="p-4 rounded-2xl glass border-emerald-500/20 bg-emerald-500/5 flex items-center gap-3">
-              <Lock className="w-5 h-5 text-emerald-400" />
-              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">End-to-End Encrypted</p>
-            </div>
-          </div>
-          
-          <div className="lg:col-span-2 surface-card p-8 space-y-6 md:rounded-[2rem]">
-            <div className="flex gap-3">
-              <input
-                value={timelineText}
-                onChange={(e) => setTimelineText(e.target.value)}
-                placeholder="e.g. Boarding bus #42 at Gulberg..."
-                className="flex-1 rounded-2xl glass-dark px-6 py-4 text-white placeholder:text-slate-600 focus:ring-2 focus:ring-purple-500/50 outline-none border-white/5"
-              />
-              <button
-                onClick={onAddTimeline}
-                disabled={timelineSaving || !timelineText.trim()}
-                className="px-8 py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold shadow-xl shadow-purple-900/40 active:scale-95 transition-all disabled:opacity-50"
-              >
-                {timelineSaving ? "Saving..." : "Log Note"}
-              </button>
-            </div>
-
-            <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-              {timelineEntries.map((entry) => (
-                <div key={entry.id} className="group rounded-2xl glass-dark p-4 border border-white/5 hover:border-white/10 transition-all animate-in slide-up">
-                  <div className="flex items-start justify-between gap-4">
-                    <p className="text-sm text-slate-200">{entry.text}</p>
-                    <span className="text-[9px] font-mono text-slate-600 group-hover:text-purple-500 transition-colors">#{entry.id.slice(-4)}</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-                    <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5">
-                      <Activity className="w-3 h-3" /> {new Date(entry.createdAt).toLocaleString()}
-                    </p>
-                    <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">Secured</p>
-                  </div>
-                </div>
-              ))}
-              {timelineEntries.length === 0 && (
-                <div className="text-center py-12 space-y-2">
-                  <div className="w-12 h-12 rounded-full bg-white/5 mx-auto flex items-center justify-center">
-                    <Plus className="w-6 h-6 text-slate-600" />
-                  </div>
-                  <p className="text-sm text-slate-500 italic">Your secure journey log starts here.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Local Help & Emergency - Pakistan Specific */}
-      <div className="px-6 mt-32 max-w-6xl mx-auto w-full pb-12">
-        <div className="surface-card p-8 md:p-10 md:rounded-[2rem]">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-10">
-            <div>
-              <h3 className="text-3xl font-black text-white">Emergency Hotline</h3>
-              <p className="text-slate-400 mt-2">Instant access to Pakistan's verified emergency services.</p>
-            </div>
-            <div className="flex gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-[10px] font-black text-white uppercase tracking-widest">Active Nationwide</span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { label: "Police", phone: "15", desc: "Local Police Rescue", color: "from-blue-600/20 to-blue-900/20 text-blue-400 border-blue-500/20" },
-              { label: "Cybercrime", phone: "1991", desc: "FIA Cyber Wing", color: "from-purple-600/20 to-purple-900/20 text-purple-400 border-purple-500/20" },
-              { label: "Rescue", phone: "1122", desc: "Medical & Fire", color: "from-rose-600/20 to-rose-900/20 text-rose-400 border-rose-500/20" },
-              { label: "Women Help", phone: "1099", desc: "Govt. Helpline", color: "from-pink-600/20 to-pink-900/20 text-pink-400 border-pink-500/20" },
-            ].map((item) => (
-              <a key={item.label} href={`tel:${item.phone}`} className={`group rounded-3xl bg-gradient-to-br p-6 border transition-all hover:-translate-y-1 hover:shadow-xl ${item.color}`}>
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{item.label}</p>
-                <p className="text-3xl font-black mb-1">{item.phone}</p>
-                <p className="text-[11px] font-medium opacity-80">{item.desc}</p>
-              </a>
             ))}
+            {timelineEntries.length === 0 && (
+              <p className="text-[10px] text-slate-600 py-1 italic">Your secure journey log starts here.</p>
+            )}
           </div>
         </div>
       </div>
@@ -3233,40 +3123,86 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
   );
 }
 
-function ShieldHub({ onSelectTool }) {
-  const tools = [
-    { id: "dm", title: "DM Harassment Scanner", icon: MessageSquare, desc: "Scan screenshots for threats" },
-    { id: "deepfake", title: "Deepfake Detector", icon: ImageIcon, desc: "Verify image authenticity" },
-    { id: "voice", title: "Voice Clone Detector", icon: Volume2, desc: "Analyze suspicious audio" },
-    { id: "distress", title: "Distress Listener", icon: Ear, desc: "Auto-SOS on scream/keywords" },
+function ShieldHub({ onSelectTool, onNavigate }) {
+  const aiTools = [
+    { id: "dm",       title: "DM Harassment Scanner", icon: MessageSquare, desc: "Scan screenshots for threats · PECA 2016 citations", accent: "text-pink-400",   bg: "bg-pink-500/10" },
+    { id: "deepfake", title: "Deepfake Detector",      icon: ImageIcon,     desc: "Verify image authenticity with Gemini vision",         accent: "text-violet-400", bg: "bg-violet-500/10" },
+    { id: "voice",    title: "Voice Clone Detector",   icon: Volume2,       desc: "Analyze suspicious audio for manipulation",            accent: "text-blue-400",   bg: "bg-blue-500/10" },
+    { id: "distress", title: "Distress Listener",      icon: Ear,           desc: "Auto-SOS when a scream or keyword is detected",        accent: "text-rose-400",   bg: "bg-rose-500/10" },
   ];
+
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-5 pb-28 space-y-4 animate-in fade-in">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white tracking-tight">AI Threat Shield</h2>
-        <p className="text-sm text-slate-400 mt-1 leading-snug max-w-3xl">Gemini-backed checks where configured—use alongside your own judgment.</p>
+    <div className="max-w-2xl mx-auto px-4 pt-5 pb-28 space-y-6 animate-in fade-in">
+
+      {/* AI Protection */}
+      <div>
+        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">AI protection tools</p>
+        <p className="text-[11px] text-slate-600 mb-3">Groq Llama 3.3 · Gemini Vision — use alongside your own judgment</p>
+        <div className="space-y-2">
+          {aiTools.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button key={t.id} type="button" onClick={() => onSelectTool(t.id)}
+                className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] p-4 text-left flex items-center gap-4 group transition-all active:scale-[0.99]">
+                <div className={`w-11 h-11 rounded-xl ${t.bg} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
+                  <Icon className={`w-5 h-5 ${t.accent}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white">{t.title}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{t.desc}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors shrink-0" />
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <div className="grid grid-cols-1 gap-3">
-        {tools.map((t) => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onSelectTool(t.id)}
-              className="w-full surface-card surface-card-interactive p-4 text-left flex items-center gap-4 group rounded-2xl"
-            >
-              <div className="w-12 h-12 rounded-xl border border-white/10 bg-white/[0.04] flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Icon className="w-6 h-6 text-purple-400" />
+
+      {/* Legal Protection */}
+      <div>
+        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Legal protection · Pakistan</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {[
+            { id: "hifazat", title: "Hifazat Legal Guide", icon: MessageCircle, desc: "Safety legal Q&A in English & Urdu. Works offline for common topics.", accent: "text-teal-400", bg: "bg-teal-500/10" },
+            { id: "legal",   title: "Legal AI Desk",        icon: Scale,         desc: "Draft FIR, rights guidance, PECA 2016 · request lawyer consult.",   accent: "text-indigo-400", bg: "bg-indigo-500/10" },
+          ].map((t) => {
+            const Icon = t.icon;
+            return (
+              <button key={t.id} type="button" onClick={() => onNavigate(t.id)}
+                className="rounded-2xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] p-4 text-left group transition-all active:scale-[0.99]">
+                <div className={`w-10 h-10 rounded-xl ${t.bg} flex items-center justify-center mb-3 group-hover:scale-105 transition-transform`}>
+                  <Icon className={`w-5 h-5 ${t.accent}`} />
+                </div>
+                <p className="text-sm font-bold text-white">{t.title}</p>
+                <p className="text-[11px] text-slate-400 mt-1 leading-snug">{t.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Emergency quick-dial strip */}
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Emergency hotlines</p>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { name: "Police", no: "15", color: "from-rose-600 to-red-700" },
+            { name: "Madadgaar", no: "1099", color: "from-pink-600 to-rose-600" },
+            { name: "FIA Cyber", no: "1991", color: "from-violet-600 to-purple-700" },
+            { name: "Rescue", no: "1122", color: "from-blue-600 to-indigo-700" },
+          ].map((h) => (
+            <a key={h.name} href={`tel:${h.no}`}
+              className="rounded-xl border border-white/8 bg-white/[0.03] hover:bg-white/[0.07] px-3 py-2.5 flex items-center gap-2.5 no-underline group transition-colors active:scale-[0.97]">
+              <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${h.color} flex items-center justify-center shrink-0`}>
+                <Phone className="w-3.5 h-3.5 text-white" />
               </div>
-              <div className="flex-1">
-                <p className="font-semibold text-sm text-white">{t.title}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{t.desc}</p>
+              <div>
+                <p className="text-[9px] text-slate-500">{h.name}</p>
+                <p className="text-base font-black text-white leading-tight">{h.no}</p>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors" />
-            </button>
-          );
-        })}
+            </a>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -3698,7 +3634,7 @@ export default function App() {
   };
 
   const rendered = useMemo(() => {
-    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} onSOS={() => setSosActive(true)} lang={lang} contactsCount={contacts.length} stealthMode={settings.stealthMode} canInstall={Boolean(installPromptEvent)} onInstall={handleInstallApp} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} communityFeed={communityFeed} />;
+    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} contacts={contacts} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} communityFeed={communityFeed} />;
     if (screen === "map") return <SafetyMapScreen />;
     if (screen === "hifazat") return <HifazatGuide variant="page" />;
     if (screen === "legal") return <LegalChat />;
@@ -3710,22 +3646,22 @@ export default function App() {
       if (shieldTool === "deepfake") return <DeepfakeDetector />;
       if (shieldTool === "voice") return <VoiceDetector />;
       if (shieldTool === "distress") return <DistressListener onTriggerSOS={() => setSosActive(true)} />;
-      return <ShieldHub onSelectTool={setShieldTool} />;
+      return <ShieldHub onSelectTool={setShieldTool} onNavigate={handleNavigate} />;
     }
     return null;
-  }, [screen, shieldTool, lang, contacts, settings, installPromptEvent, timelineEntries, timelineText, timelineSaving, communityFeed]);
+  }, [screen, shieldTool, contacts, settings, timelineEntries, timelineText, timelineSaving, communityFeed]);
 
   const title =
     screen === "map"
-      ? "Safety map"
+      ? "Safety Map"
       : screen === "transit"
       ? "Safe Transit"
       : screen === "community"
       ? "Community"
       : screen === "more"
-      ? "Resources"
+      ? "Profile"
       : screen === "legal"
-      ? "Legal AI desk"
+      ? "Legal AI Desk"
       : screen === "hifazat"
       ? "Hifazat Guide"
       : screen === "shield" && shieldTool === "dm"
@@ -3737,7 +3673,7 @@ export default function App() {
       : screen === "shield" && shieldTool === "distress"
       ? "Distress Listener"
       : screen === "shield" && !shieldTool
-      ? "AI Threat Shield"
+      ? "AI Shield"
       : null;
 
   const authShellLoading = !clerkLoaded || !supabaseAuthReady;
@@ -3780,9 +3716,18 @@ export default function App() {
               lang={lang}
               setLang={setLang}
               title={title}
-              showBack={(screen === "shield" && shieldTool !== null) || screen === "hifazat"}
+              showBack={
+                (screen === "shield" && shieldTool !== null) ||
+                screen === "hifazat" ||
+                screen === "legal" ||
+                screen === "transit" ||
+                screen === "map"
+              }
               onBack={() => {
                 if (screen === "hifazat") handleNavigate("home");
+                else if (screen === "legal") handleNavigate("shield");
+                else if (screen === "transit") handleNavigate("home");
+                else if (screen === "map") handleNavigate("home");
                 else setShieldTool(null);
               }}
               userProfile={userProfile}
@@ -3790,15 +3735,15 @@ export default function App() {
               isClerk={clerkSignedIn}
               stealthMode={settings.stealthMode}
             />
-            <FeatureNavTabs
-              screen={screen}
-              shieldTool={shieldTool}
-              onNavigate={handleNavigate}
-              onSelectShieldTool={(tool) => {
-                setScreen("shield");
-                setShieldTool(tool);
-              }}
-            />
+            {screen === "shield" ? (
+              <ShieldSubNav
+                active={shieldTool}
+                onSelect={(tool) => {
+                  setScreen("shield");
+                  setShieldTool(tool);
+                }}
+              />
+            ) : null}
           </div>
         ) : null}
         <main
@@ -3825,7 +3770,6 @@ export default function App() {
               </div>
             ) : null}
             <BottomNav active={screen} onNavigate={handleNavigate} onSOS={() => setSosActive(true)} />
-            {screen !== "hifazat" && screen !== "legal" ? <FloatingChatbot /> : null}
           </>
         ) : null}
         {shakeSosSecs !== null ? (
