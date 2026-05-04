@@ -1804,6 +1804,19 @@ app.post("/api/transit/deviation", async (req, res) => {
   res.json({ trip });
 });
 
+app.post("/api/transit/end", async (req, res) => {
+  const data = await readData();
+  const trip = data.trips.find((t) => t.id === req.body?.tripId);
+  if (!trip) return res.status(404).json({ error: "Trip not found" });
+  const reason = String(req.body?.reason || "completed");
+  trip.status = reason === "cancelled" ? "cancelled" : "completed";
+  trip.endedAt = new Date().toISOString();
+  trip.events.push(reason === "cancelled" ? "Trip cancelled by user" : "Trip completed safely");
+  logActivity(data, "trip_ended", { tripId: trip.id, status: trip.status });
+  await writeData(data);
+  res.json({ trip });
+});
+
 app.post("/api/sos/start", async (req, res) => {
   const data = await readData();
   const lat = Number(req.body?.lat);

@@ -4,7 +4,6 @@ import { supabase, supabaseEnabled } from "./lib/authClients";
 import { api, configureApiAuth } from "./lib/api.js";
 import AuthHub from "./components/AuthHub.jsx";
 import SafeZonesMap from "./components/SafeZonesMap.jsx";
-import SafetyMapScreen from "./components/SafetyMapScreen.jsx";
 import MarketingLanding from "./components/MarketingLanding.jsx";
 import FakeCallOverlay from "./components/FakeCallOverlay.jsx";
 import VoiceNoteRecorder from "./components/VoiceNoteRecorder.jsx";
@@ -801,7 +800,7 @@ function CommunityScreen() {
   };
 
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4">
+    <div className="max-w-2xl mx-auto px-4 pt-4 pb-24 space-y-4 animate-in fade-in">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <select
@@ -882,8 +881,10 @@ function CommunityScreen() {
             <button onClick={() => loadNgos(city)} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0">Refresh</button>
           </div>
           {ngoLoading ? (
-            <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading organisations…
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map((n) => (
+                <div key={n} className="skeleton h-24 w-full" />
+              ))}
             </div>
           ) : null}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -975,7 +976,11 @@ function CommunityScreen() {
               <button onClick={() => loadChat(city)} className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors">Refresh chat</button>
             </div>
             {chatLoading ? (
-              <p className="text-xs text-slate-400">Loading chat messages...</p>
+              <div className="space-y-2">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="skeleton h-16 w-full" />
+                ))}
+              </div>
             ) : (
               <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
                 {chatMessages.map((msg) => (
@@ -1162,6 +1167,13 @@ function CommunityScreen() {
             </div>
           </div>
         ))}
+        {loading && items.length === 0 ? (
+          <div className="space-y-2">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="skeleton h-20 w-full" />
+            ))}
+          </div>
+        ) : null}
         {!loading && items.length === 0 ? (
           <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-8 text-center space-y-3">
             <Activity className="w-8 h-8 text-slate-600 mx-auto" />
@@ -2106,13 +2118,29 @@ function SafeTransit({ contacts, autoDialPolice }) {
     setNextCheckInAt(new Date(Date.now() + checkInTimerMinutes * 60 * 1000).toISOString());
   };
 
-  const markSafeArrival = () => {
+  const markSafeArrival = async () => {
     if (!trip) return;
-    setTrip((prev) => ({
-      ...prev,
-      status: "completed",
-      events: [...(prev?.events || []), "Arrived safely"],
-    }));
+    if (tripMode === "online" && !String(trip.id).startsWith("local-")) {
+      try {
+        const data = await api("/transit/end", {
+          method: "POST",
+          body: JSON.stringify({ tripId: trip.id, reason: "completed" }),
+        });
+        if (data.trip) setTrip(data.trip);
+      } catch {
+        setTrip((prev) => ({
+          ...prev,
+          status: "completed",
+          events: [...(prev?.events || []), "Arrived safely (local)"],
+        }));
+      }
+    } else {
+      setTrip((prev) => ({
+        ...prev,
+        status: "completed",
+        events: [...(prev?.events || []), "Arrived safely"],
+      }));
+    }
     setStatusMessage("Trip marked as completed.");
     setNextCheckInAt(null);
   };
@@ -3160,11 +3188,13 @@ function ShieldHub({ onSelectTool, onNavigate }) {
 
       {/* Legal Protection */}
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Legal protection · Pakistan</p>
+        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Legal & journey protection</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[
             { id: "hifazat", title: "Hifazat Legal Guide", icon: MessageCircle, desc: "Safety legal Q&A in English & Urdu. Works offline for common topics.", accent: "text-teal-400", bg: "bg-teal-500/10" },
             { id: "legal",   title: "Legal AI Desk",        icon: Scale,         desc: "Draft FIR, rights guidance, PECA 2016 · request lawyer consult.",   accent: "text-indigo-400", bg: "bg-indigo-500/10" },
+            { id: "transit", title: "Safe Transit",         icon: MapPin,        desc: "Live trip share, route deviation alerts, scheduled check-ins.",     accent: "text-emerald-400", bg: "bg-emerald-500/10" },
+            { id: "more",    title: "Evidence Vault",       icon: Lock,          desc: "Encrypted upload & export of incident evidence (in Profile).",      accent: "text-amber-400", bg: "bg-amber-500/10" },
           ].map((t) => {
             const Icon = t.icon;
             return (
@@ -3204,97 +3234,6 @@ function ShieldHub({ onSelectTool, onNavigate }) {
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-function FloatingChatbot() {
-  const { error: chatToastError } = useToast();
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([{ role: "assistant", content: "Hi! I'm Nigehbaan AI. How can I help you stay safe today?" }]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const scrollRef = useRef(null);
-
-  useEffect(() => {
-    if (isOpen) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, isOpen]);
-
-  const send = async (e) => {
-    e?.preventDefault();
-    if (!input.trim() || loading) return;
-    const userText = input.trim();
-    const next = [...messages, { role: "user", content: userText }];
-    setMessages(next);
-    setInput("");
-    setLoading(true);
-    try {
-      const data = await api("/legal/chat", { method: "POST", body: JSON.stringify({ message: userText, history: next.slice(0, -1) }) });
-      setMessages([...next, { role: "assistant", content: data.reply || "No reply returned." }]);
-    } catch (e) {
-      chatToastError(e?.message || "Legal chat unreachable.");
-      setMessages([...next, { role: "assistant", content: "Sorry, I'm having trouble connecting. Please try again later." }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed bottom-24 right-4 sm:right-6 z-[100] flex flex-col items-end">
-      {isOpen && (
-        <div className="mb-4 w-[350px] h-[500px] rounded-3xl glass shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-white/10 flex flex-col overflow-hidden animate-in slide-up zoom-in duration-300">
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Shield className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="font-bold text-white text-sm leading-tight">Nigehbaan AI</p>
-                <p className="text-[10px] text-white/75 font-medium">Groq (Llama 3.3) · Gemini fallback</p>
-              </div>
-            </div>
-            <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white transition-colors">
-              <ChevronLeft className="w-5 h-5 rotate-180" />
-            </button>
-          </div>
-          
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-[#141523]/50">
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${m.role === "user" ? "bg-indigo-600 text-white rounded-br-none" : "bg-white/10 text-slate-200 border border-white/10 rounded-bl-none"}`}>
-                  {m.content}
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="bg-white/10 border border-white/10 rounded-2xl rounded-bl-none px-4 py-2.5 text-slate-400 text-xs flex items-center gap-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" /> Thinking...
-                </div>
-              </div>
-            )}
-          </div>
-
-          <form onSubmit={send} className="p-4 bg-white/5 border-t border-white/5 flex gap-2">
-            <input 
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-indigo-500"
-            />
-            <button disabled={!input.trim() || loading} className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white active:scale-95 transition-transform disabled:opacity-50">
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
-      )}
-      
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 shadow-[0_10px_30px_rgba(99,102,241,0.4)] flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-all duration-300"
-      >
-        {isOpen ? <ChevronLeft className="w-8 h-8 rotate-180" /> : <MessageSquare className="w-8 h-8" />}
-      </button>
     </div>
   );
 }
@@ -3412,32 +3351,12 @@ export default function App() {
       try {
         const token = await getToken();
         if (!token || cancelled) return;
-        const res = await fetch("/api/auth/clerk-sync", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        const raw = await res.text().catch(() => "");
-        let body = {};
-        try {
-          body = raw ? JSON.parse(raw) : {};
-        } catch {
-          body = {};
-        }
-        if (!res.ok) {
-          const msg =
-            typeof body.error === "string"
-              ? body.error
-              : raw?.trim() || `Profile sync failed (${res.status})`;
-          setClerkProfileSyncHint(msg);
-          if (import.meta.env.DEV) console.warn("[clerk-sync]", res.status, raw);
-        } else {
-          setClerkProfileSyncHint(null);
-        }
+        await api("/auth/clerk-sync", { method: "POST" });
+        if (!cancelled) setClerkProfileSyncHint(null);
       } catch (e) {
-        setClerkProfileSyncHint("Could not reach server for profile sync. Use npm run dev:full.");
+        if (cancelled) return;
+        const msg = e?.message || "Could not reach server for profile sync. Use npm run dev:full.";
+        setClerkProfileSyncHint(msg);
         if (import.meta.env.DEV) console.warn("[clerk-sync]", e);
       }
     })();
@@ -3635,7 +3554,6 @@ export default function App() {
 
   const rendered = useMemo(() => {
     if (screen === "home") return <HomeScreen onNavigate={handleNavigate} contacts={contacts} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} communityFeed={communityFeed} />;
-    if (screen === "map") return <SafetyMapScreen />;
     if (screen === "hifazat") return <HifazatGuide variant="page" />;
     if (screen === "legal") return <LegalChat />;
     if (screen === "transit") return <SafeTransit contacts={contacts} autoDialPolice={settings.autoDialPolice} />;
@@ -3652,9 +3570,7 @@ export default function App() {
   }, [screen, shieldTool, contacts, settings, timelineEntries, timelineText, timelineSaving, communityFeed]);
 
   const title =
-    screen === "map"
-      ? "Safety Map"
-      : screen === "transit"
+    screen === "transit"
       ? "Safe Transit"
       : screen === "community"
       ? "Community"
@@ -3720,14 +3636,12 @@ export default function App() {
                 (screen === "shield" && shieldTool !== null) ||
                 screen === "hifazat" ||
                 screen === "legal" ||
-                screen === "transit" ||
-                screen === "map"
+                screen === "transit"
               }
               onBack={() => {
-                if (screen === "hifazat") handleNavigate("home");
+                if (screen === "hifazat") handleNavigate("shield");
                 else if (screen === "legal") handleNavigate("shield");
                 else if (screen === "transit") handleNavigate("home");
-                else if (screen === "map") handleNavigate("home");
                 else setShieldTool(null);
               }}
               userProfile={userProfile}
@@ -3754,7 +3668,7 @@ export default function App() {
         {!sosActive ? (
           <>
             {installPromptEvent ? (
-              <div className="fixed bottom-[4.25rem] left-0 right-0 z-[45] px-3 pointer-events-none max-w-7xl mx-auto">
+              <div className="fixed bottom-[5.75rem] left-0 right-0 z-[45] px-3 pointer-events-none max-w-7xl mx-auto">
                 <div className="pointer-events-auto flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-[#1e1040]/95 backdrop-blur-md px-3 py-2 shadow-lg">
                   <p className="text-[11px] text-slate-200 leading-snug">
                     <span className="font-bold text-white">Install NIgaban</span> — works offline after first load.
