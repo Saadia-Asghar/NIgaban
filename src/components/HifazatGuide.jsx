@@ -217,20 +217,21 @@ export default function HifazatGuide({ variant = "fab" }) {
 
   if (blockedByWelcome) return null;
 
-  const bubbleUser = "max-w-[90%] rounded-2xl px-3 py-2.5 text-sm leading-relaxed bg-violet-600 text-white rounded-br-md";
+  const bubbleUser =
+    "max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed aurora-bg text-white rounded-br-md shadow-[0_6px_18px_-8px_rgba(168,85,247,0.55)]";
   const bubbleBot =
-    "max-w-[90%] rounded-2xl px-3 py-2.5 text-sm leading-relaxed bg-white/10 text-slate-100 border border-white/10 rounded-bl-md whitespace-pre-wrap";
+    "max-w-[90%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed bg-white/[0.06] text-slate-100 border border-white/[0.08] rounded-bl-md whitespace-pre-wrap";
 
   const chatPanel = (
     <>
       {!isPage ? (
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/10 bg-gradient-to-r from-violet-900/50 to-purple-900/40">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 border border-white/10">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-white/[0.08] bg-gradient-to-r from-indigo-900/45 via-violet-900/45 to-pink-900/35">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.08] border border-white/[0.1]">
             <Shield className="w-4 h-4 text-emerald-300" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-white leading-tight">Hifazat Guide</p>
-            <p className="text-[10px] text-slate-400">Legal safety · Pakistan</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Pakistan legal safety · AI</p>
           </div>
           <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1.5 hover:bg-white/10 text-slate-400" aria-label="Close chat">
             <X className="w-4 h-4" />

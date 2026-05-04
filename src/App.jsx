@@ -9,6 +9,7 @@ import FakeCallOverlay from "./components/FakeCallOverlay.jsx";
 import VoiceNoteRecorder from "./components/VoiceNoteRecorder.jsx";
 import FirstVisitWelcome from "./components/FirstVisitWelcome.jsx";
 import HifazatGuide from "./components/HifazatGuide.jsx";
+import { NigabanLogo, NigabanWordmark } from "./components/Brand.jsx";
 import { BRAND_TAGLINE_EN, BRAND_TAGLINE_UR, BRAND_TAGLINE_SHORT } from "./lib/brand.js";
 import { buildIncidentReportText, downloadIncidentReport, printIncidentReportAsPdf } from "./lib/incidentReport.js";
 import { useToast } from "./lib/toastContext.jsx";
@@ -50,34 +51,49 @@ const DM_SCAN_SYSTEM_PROMPT = `Return only JSON with classification, severity, p
 
 function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut, isClerk, stealthMode }) {
   const displayTitle = stealthMode ? "Personal Notes" : title || "NIgaban";
-  const displaySubtitle = stealthMode ? "Drafts · your notes" : lang === "ur" ? BRAND_TAGLINE_UR : BRAND_TAGLINE_EN;
+  const showTagline = !title;
   return (
     <div className="px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5 min-w-0">
         {showBack ? (
-          <button onClick={onBack} className="rounded-full p-1.5 hover:bg-white/10 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
-        ) : (
-          <div className={`w-9 h-9 rounded-full ${stealthMode ? "bg-slate-700" : "bg-violet-800"} text-white flex items-center justify-center font-bold logo-glow`}>
-            {stealthMode ? <FileText className="w-5 h-5" /> : "ن"}
+          <button onClick={onBack} aria-label="Back" className="rounded-full p-1.5 hover:bg-white/10 transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        ) : stealthMode ? (
+          <div className="w-9 h-9 rounded-2xl bg-slate-700/60 border border-white/10 text-slate-300 flex items-center justify-center">
+            <FileText className="w-4 h-4" />
           </div>
+        ) : (
+          <NigabanLogo size={36} className="logo-glow shrink-0" />
         )}
-        <div>
-          <h1 className="text-lg font-semibold text-white">{displayTitle}</h1>
-          {!title ? (
-            <p className="text-[8px] sm:text-[9px] text-slate-400 leading-snug max-w-[14rem] sm:max-w-2xl">{displaySubtitle}</p>
+        <div className="min-w-0">
+          <h1 className="text-[15px] font-bold text-white tracking-tight truncate">{displayTitle}</h1>
+          {showTagline ? (
+            <p className="text-[10px] text-slate-500 leading-snug truncate">
+              {stealthMode ? "Drafts · your notes" : (lang === "ur" ? BRAND_TAGLINE_UR : "AI safety companion · Pakistan")}
+            </p>
           ) : null}
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <button onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))} className="text-xs font-semibold px-2.5 py-1 rounded-full glass text-purple-300 flex items-center gap-1 hover:bg-white/10 transition-colors">
+      <div className="flex items-center gap-2 shrink-0">
+        <button
+          onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))}
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-violet-300 flex items-center gap-1 hover:bg-white/10 transition-colors"
+          aria-label="Toggle language"
+        >
           <Languages className="w-3.5 h-3.5" />{lang === "en" ? "EN" : "اردو"}
         </button>
         {isClerk ? (
           <UserButton afterSignOutUrl="/" />
         ) : userProfile ? (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-300 hidden sm:inline">{userProfile}</span>
-            <button onClick={onSignOut} className="rounded-full p-1.5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors" title="Sign out">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-slate-400 hidden md:inline max-w-[10rem] truncate">{userProfile}</span>
+            <button
+              onClick={onSignOut}
+              aria-label="Sign out"
+              className="rounded-full p-1.5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              title="Sign out"
+            >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -97,17 +113,17 @@ function ShieldSubNav({ active, onSelect }) {
     { id: "distress", label: "Distress" },
   ];
   return (
-    <div className="border-t border-white/5 bg-black/20">
-      <nav className="flex gap-1 overflow-x-auto px-3 py-2 scrollbar-thin" aria-label="AI Shield tools">
+    <div className="border-t border-white/[0.05] bg-[#07091a]/60">
+      <nav className="flex gap-1.5 overflow-x-auto px-3 py-2.5 scrollbar-thin" aria-label="AI Shield tools">
         {tools.map((t) => (
           <button
             key={t.label}
             type="button"
             onClick={() => onSelect(t.id)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-colors ${
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold tracking-wide transition-all ${
               active === t.id
-                ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md"
-                : "bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200"
+                ? "aurora-bg text-white shadow-[0_6px_16px_-6px_rgba(168,85,247,0.5)]"
+                : "bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200 border border-white/[0.06]"
             }`}
           >
             {t.label}
@@ -126,33 +142,38 @@ function BottomNav({ active, onNavigate, onSOS }) {
         key={id}
         type="button"
         onClick={() => onNavigate(id)}
+        aria-label={label}
+        aria-current={on ? "page" : undefined}
         className="flex flex-col items-center gap-1 px-3 py-1 min-w-0 group"
       >
-        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${on ? "bg-white/12 shadow-md shadow-purple-900/30" : "group-hover:bg-white/5"}`}>
-          <Icon className={`w-[22px] h-[22px] transition-colors ${on ? "text-pink-400" : "text-slate-500 group-hover:text-slate-300"}`} />
+        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 ${on ? "bg-white/[0.10] shadow-[0_8px_24px_-12px_rgba(168,85,247,0.5)] ring-1 ring-violet-400/25" : "group-hover:bg-white/[0.04]"}`}>
+          <Icon className={`w-[22px] h-[22px] transition-colors ${on ? "text-violet-300" : "text-slate-500 group-hover:text-slate-300"}`} />
         </div>
-        <span className={`text-[9px] font-bold tracking-wide transition-colors ${on ? "text-pink-300" : "text-slate-600 group-hover:text-slate-400"}`}>{label}</span>
+        <span className={`text-[9px] font-bold tracking-[0.05em] uppercase transition-colors ${on ? "text-violet-200" : "text-slate-600 group-hover:text-slate-400"}`}>{label}</span>
       </button>
     );
   };
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#0b0c18]/96 backdrop-blur-2xl border-t border-white/[0.07] pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <nav
+      aria-label="Primary navigation"
+      className="fixed bottom-0 inset-x-0 z-40 bg-[#07091a]/95 backdrop-blur-2xl border-t border-white/[0.06] pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+    >
       <div className="w-full max-w-md mx-auto flex items-end justify-around pt-2">
         {btn("home", Home, "Home")}
-        {btn("community", Activity, "Community")}
+        {btn("community", Activity, "Pulse")}
 
         {/* SOS — elevated centre pill */}
-        <div className="flex flex-col items-center -mt-6">
+        <div className="flex flex-col items-center -mt-7">
           <button
             type="button"
             onClick={onSOS}
             aria-label="Emergency SOS"
-            className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-red-600 border-[3px] border-[#0b0c18] shadow-[0_0_28px_rgba(239,68,68,0.45)] flex flex-col items-center justify-center text-white active:scale-95 transition-transform sos-pulse"
+            className="w-[68px] h-[68px] rounded-full bg-gradient-to-br from-rose-500 via-rose-600 to-red-700 border-[4px] border-[#07091a] shadow-[0_10px_32px_-6px_rgba(239,68,68,0.7),0_0_28px_rgba(239,68,68,0.45)] flex flex-col items-center justify-center text-white active:scale-95 transition-transform sos-pulse"
           >
-            <AlertTriangle className="w-6 h-6" />
+            <AlertTriangle className="w-7 h-7" strokeWidth={2.6} />
           </button>
-          <span className="text-[9px] font-black text-rose-400 mt-1 tracking-widest uppercase">SOS</span>
+          <span className="text-[9px] font-black text-rose-400 mt-1 tracking-[0.2em] uppercase">SOS</span>
         </div>
 
         {btn("shield", Shield, "Shield")}
@@ -188,7 +209,7 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
 
   if (showMarketing) {
     return (
-      <div className="min-h-screen bg-[#07080f] w-full animate-in fade-in overflow-y-auto">
+      <div className="min-h-screen bg-[#07091a] w-full animate-in fade-in overflow-y-auto">
         <MarketingLanding
           onTryBrowser={() => setShowMarketing(false)}
           onBypass={onBypass}
@@ -200,18 +221,20 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#07080f] flex flex-col lg:flex-row animate-in fade-in">
+    <div className="min-h-[100dvh] bg-[#07091a] flex flex-col lg:flex-row animate-in fade-in">
       {/* LEFT PANEL — branding + features (desktop only / top on mobile) */}
-      <div className="lg:flex-1 lg:min-h-screen relative overflow-hidden bg-gradient-to-br from-[#0d0b1a] via-[#150f2a] to-[#0a0b12] flex flex-col justify-between px-6 pt-10 pb-8 lg:px-12 lg:pt-16">
+      <div className="lg:flex-1 lg:min-h-screen relative overflow-hidden bg-gradient-to-br from-[#07091a] via-[#0d1027] to-[#07091a] flex flex-col justify-between px-6 pt-10 pb-8 lg:px-12 lg:pt-16">
         <div className="pointer-events-none absolute inset-0 hero-grid opacity-30" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3 mb-8 lg:mb-0">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-900/50 text-white font-black text-lg">ن</div>
+          <NigabanLogo size={44} className="logo-glow" />
           <div>
-            <p className="text-white font-black text-lg leading-none">NIgaban</p>
-            <p className="text-purple-400/80 text-xs font-medium" dir="rtl">نگہبان</p>
+            <p className="text-white font-black text-lg leading-none tracking-tight">
+              NI<span className="aurora-text">gaban</span>
+            </p>
+            <p className="text-purple-400/80 text-xs font-medium mt-0.5" dir="rtl">نگہبان · AI</p>
           </div>
         </div>
 
@@ -258,11 +281,15 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
       </div>
 
       {/* RIGHT PANEL — auth form */}
-      <div className="lg:w-[480px] lg:min-h-screen flex flex-col justify-center px-6 py-8 lg:px-12 lg:py-16 bg-[#0a0b12] border-t border-white/5 lg:border-t-0 lg:border-l">
+      <div className="lg:w-[480px] lg:min-h-screen flex flex-col justify-center px-6 py-8 lg:px-12 lg:py-16 bg-[#07091a] border-t border-white/5 lg:border-t-0 lg:border-l">
         <div className="w-full max-w-sm mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight">Sign in to NIgaban</h1>
-            <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">Your safety companion for Pakistan. Free, private, and always with you.</p>
+            <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight">
+              Welcome to <span className="aurora-text">NIgaban</span>
+            </h1>
+            <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">
+              AI safety, in your hand. Free, private, encrypted by default — built for women in Pakistan.
+            </p>
           </div>
 
           <AuthHub />
@@ -270,7 +297,7 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
           <div className="relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/8" /></div>
             <div className="relative flex justify-center">
-              <span className="bg-[#0a0b12] px-3 text-[10px] text-slate-600 uppercase tracking-widest">or</span>
+              <span className="bg-[#07091a] px-3 text-[10px] text-slate-600 uppercase tracking-widest">or</span>
             </div>
           </div>
 
@@ -346,103 +373,135 @@ function HomeScreen({
     );
   };
 
+  const hour = new Date().getHours();
+  const greeting = hour < 5 ? "Stay safe tonight" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 21 ? "Good evening" : "Stay safe tonight";
+
+  const statusCopy =
+    statusLevel === "high"
+      ? { eyebrow: "High alert", heading: `${highCount} urgent report${highCount !== 1 ? "s" : ""} near you`, sub: "Avoid affected areas. Keep your circle informed.", pill: "pill-danger", dot: "bg-rose-500" }
+      : statusLevel === "watch"
+      ? { eyebrow: "Watch", heading: `${watchCount} watch-level report${watchCount !== 1 ? "s" : ""} near you`, sub: "Stay aware. Share live trip if travelling alone.", pill: "pill-watch", dot: "bg-amber-500" }
+      : { eyebrow: "All clear", heading: "No active alerts in your area", sub: "Have a calm day. Hifazat is here if you need it.", pill: "pill-safe", dot: "bg-emerald-500" };
+
   return (
     <div className="pb-24 animate-in fade-in overflow-x-hidden">
       <FakeCallOverlay open={fakeCallOpen} onClose={() => setFakeCallOpen(false)} />
-      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-3">
+      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
 
-        {/* ── 1. Status strip ── */}
-        <div className={`rounded-2xl px-4 py-3 flex items-center gap-3 border ${
-          statusLevel === "high" ? "border-rose-500/25 bg-rose-500/[0.07]" :
-          statusLevel === "watch" ? "border-amber-500/20 bg-amber-500/[0.06]" :
-          "border-emerald-500/20 bg-emerald-500/[0.07]"
-        }`}>
-          <div className={`w-2.5 h-2.5 rounded-full shrink-0 animate-pulse ${
-            statusLevel === "high" ? "bg-rose-500" : statusLevel === "watch" ? "bg-amber-500" : "bg-emerald-500"
-          }`} />
-          <div className="flex-1 min-w-0">
-            <p className={`text-xs font-bold ${
-              statusLevel === "high" ? "text-rose-300" : statusLevel === "watch" ? "text-amber-300" : "text-emerald-300"
-            }`}>
-              {statusLevel === "high"
-                ? `${highCount} high-alert report${highCount !== 1 ? "s" : ""} nearby`
-                : statusLevel === "watch"
-                ? `${watchCount} watch-level report${watchCount !== 1 ? "s" : ""} nearby`
-                : "No active alerts in your area"}
-            </p>
-            <p className="text-[10px] text-slate-500 mt-0.5">Community feed · Lahore · Live</p>
+        {/* ── 1. Hero — greeting + status ── */}
+        <div className="surface-elev relative overflow-hidden p-5">
+          <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 rounded-full aurora-bg-soft blur-3xl opacity-70" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-bold">{greeting}</p>
+              <h2 className="text-[19px] font-bold text-white tracking-tight mt-0.5 leading-snug">{statusCopy.heading}</h2>
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{statusCopy.sub}</p>
+            </div>
+            <span className={`pill ${statusCopy.pill} shrink-0`}>
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${statusCopy.dot}`} />
+              {statusCopy.eyebrow}
+            </span>
           </div>
-          <button type="button" onClick={() => onNavigate("community")} className="text-[10px] font-bold text-slate-400 hover:text-white transition-colors shrink-0">
-            Map →
-          </button>
+          <div className="relative mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => onNavigate("community")}
+              className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] px-3 py-2 text-[11px] font-bold text-white hover:bg-white/[0.08] transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Activity className="w-3.5 h-3.5 text-violet-300" /> Community pulse
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate("shield")}
+              className="flex-1 rounded-xl aurora-bg px-3 py-2 text-[11px] font-bold text-white shadow-[0_6px_18px_-6px_rgba(168,85,247,0.55)] active:scale-[0.97] transition-transform flex items-center justify-center gap-1.5"
+            >
+              <Shield className="w-3.5 h-3.5" /> AI Shield
+            </button>
+          </div>
         </div>
 
         {/* ── 2. Quick action grid ── */}
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2.5">Quick tools</p>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="section-eyebrow">Quick tools</p>
+            <p className="text-[10px] text-slate-600">Tap to activate</p>
+          </div>
           <div className="grid grid-cols-4 gap-2.5">
             {[
-              { label: "Fake\nCall",   Icon: Phone,         bg: "bg-emerald-500/12", ic: "text-emerald-400", glow: "shadow-emerald-900/20", active: fakeCallOpen,  action: () => setFakeCallOpen(true) },
-              { label: siren.active ? "Stop\nSiren" : "Siren", Icon: Volume2, bg: "bg-rose-500/12",    ic: "text-rose-400",    glow: "shadow-rose-900/20",    active: siren.active, action: () => siren.active ? siren.stop() : siren.start() },
-              { label: "Hifazat\nGuide",  Icon: MessageCircle, bg: "bg-violet-500/12", ic: "text-violet-400", glow: "shadow-violet-900/20", active: false,         action: () => onNavigate("hifazat") },
-              { label: "Safe\nTransit",   Icon: MapPin,        bg: "bg-blue-500/12",   ic: "text-blue-400",   glow: "shadow-blue-900/20",   active: false,         action: () => onNavigate("transit") },
-            ].map(({ label, Icon, bg, ic, active: isActive, action }) => (
-              <button
-                key={label}
-                type="button"
-                onClick={action}
-                className={`flex flex-col items-center gap-2.5 py-4 rounded-2xl border transition-all active:scale-[0.93] ${
-                  isActive ? `${bg} border-white/15` : "bg-white/[0.04] border-white/[0.07] hover:bg-white/[0.08]"
-                }`}
-              >
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${bg}`}>
-                  <Icon className={`w-5 h-5 ${ic}`} />
-                </div>
-                <span className="text-[10px] font-bold text-white leading-tight text-center whitespace-pre-line px-1">{label}</span>
-              </button>
-            ))}
+              { label: "Fake\nCall",   Icon: Phone,         tone: "emerald", active: fakeCallOpen,  action: () => setFakeCallOpen(true) },
+              { label: siren.active ? "Stop\nSiren" : "Siren", Icon: Volume2, tone: "rose",         active: siren.active, action: () => siren.active ? siren.stop() : siren.start() },
+              { label: "Hifazat\nGuide",  Icon: MessageCircle, tone: "violet", active: false,        action: () => onNavigate("hifazat") },
+              { label: "Safe\nTransit",   Icon: MapPin,        tone: "blue",   active: false,        action: () => onNavigate("transit") },
+            ].map(({ label, Icon, tone, active: isActive, action }) => {
+              const ring = {
+                emerald: { bg: "bg-emerald-500/12", ic: "text-emerald-300", glow: "shadow-emerald-900/30", border: "border-emerald-500/30" },
+                rose:    { bg: "bg-rose-500/12",    ic: "text-rose-300",    glow: "shadow-rose-900/30",    border: "border-rose-500/30" },
+                violet:  { bg: "bg-violet-500/14",  ic: "text-violet-300",  glow: "shadow-violet-900/30",  border: "border-violet-500/30" },
+                blue:    { bg: "bg-blue-500/12",    ic: "text-blue-300",    glow: "shadow-blue-900/30",    border: "border-blue-500/30" },
+              }[tone];
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={action}
+                  className={`group flex flex-col items-center gap-2.5 py-4 rounded-2xl border transition-all active:scale-[0.93] ${
+                    isActive ? `${ring.bg} ${ring.border}` : "bg-white/[0.035] border-white/[0.07] hover:bg-white/[0.07] hover:border-white/[0.12]"
+                  }`}
+                >
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${ring.bg} group-hover:scale-105 transition-transform`}>
+                    <Icon className={`w-5 h-5 ${ring.ic}`} />
+                  </div>
+                  <span className="text-[10px] font-bold text-white leading-tight text-center whitespace-pre-line px-1 tracking-wide">{label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* ── 3. Safety circle ── */}
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] overflow-hidden">
+        <div className="surface-strong overflow-hidden">
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5 border-b border-white/[0.06]">
             <div className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-rose-400" />
-              <p className="text-sm font-bold text-white">Safety circle</p>
-              <span className="text-[9px] font-bold text-slate-600">({contacts.length})</span>
+              <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/25 flex items-center justify-center">
+                <Heart className="w-3.5 h-3.5 text-rose-400" fill="currentColor" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white leading-tight">Safety circle</p>
+                <p className="text-[9px] text-slate-500 font-medium mt-0.5">{contacts.length} trusted contact{contacts.length === 1 ? "" : "s"}</p>
+              </div>
             </div>
             <div className="flex gap-1.5">
-              <button type="button" onClick={sendAlertSms} className="rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-[10px] font-bold px-2.5 py-1.5 flex items-center gap-1 transition-colors active:scale-95">
+              <button type="button" onClick={sendAlertSms} className="rounded-lg bg-rose-600/85 hover:bg-rose-600 text-white text-[10px] font-bold px-2.5 py-1.5 flex items-center gap-1 transition-colors active:scale-95">
                 <Phone className="w-3 h-3" /> SMS
               </button>
-              <button type="button" onClick={sendWhatsAppSos} className="rounded-xl text-white text-[10px] font-bold px-2.5 py-1.5 active:scale-95 transition-transform" style={{ background: "#25D366" }}>
-                WA SOS
+              <button type="button" onClick={sendWhatsAppSos} className="rounded-lg text-white text-[10px] font-bold px-2.5 py-1.5 active:scale-95 transition-transform flex items-center gap-1" style={{ background: "#25D366" }}>
+                <MessageCircle className="w-3 h-3" /> WA
               </button>
             </div>
           </div>
           {contacts.length === 0 ? (
-            <button type="button" onClick={() => onNavigate("more")} className="w-full px-4 py-4 flex items-center gap-3 hover:bg-white/[0.03] transition-colors">
-              <div className="w-10 h-10 rounded-xl bg-white/5 border border-dashed border-white/15 flex items-center justify-center shrink-0">
+            <button type="button" onClick={() => onNavigate("more")} className="w-full px-4 py-4 flex items-center gap-3 hover:bg-white/[0.03] transition-colors text-left">
+              <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-dashed border-white/15 flex items-center justify-center shrink-0">
                 <Plus className="w-4 h-4 text-slate-500" />
               </div>
-              <div className="text-left">
-                <p className="text-xs font-bold text-slate-400">Add trusted contacts</p>
-                <p className="text-[10px] text-slate-600 mt-0.5">They'll receive your live GPS on SOS</p>
+              <div>
+                <p className="text-xs font-bold text-slate-300">Add trusted contacts</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">They receive live GPS the moment you trigger SOS</p>
               </div>
+              <ChevronRight className="w-4 h-4 text-slate-600 ml-auto" />
             </button>
           ) : (
             <div className="px-4 py-3 flex items-center gap-2.5 flex-wrap">
               {contacts.slice(0, 6).map((c, i) => (
                 <div key={c.id} className="flex flex-col items-center gap-1">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white"
-                    style={{ background: ["linear-gradient(135deg,#ec4899,#8b5cf6)","linear-gradient(135deg,#8b5cf6,#06b6d4)","linear-gradient(135deg,#f59e0b,#ec4899)","linear-gradient(135deg,#10b981,#3b82f6)","linear-gradient(135deg,#f97316,#ec4899)","linear-gradient(135deg,#a78bfa,#34d399)"][i % 6] }}>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black text-white shadow-[0_4px_10px_-3px_rgba(0,0,0,0.5)]"
+                    style={{ background: ["linear-gradient(135deg,#ec4899,#a855f7)","linear-gradient(135deg,#6366f1,#06b6d4)","linear-gradient(135deg,#f59e0b,#ec4899)","linear-gradient(135deg,#10b981,#3b82f6)","linear-gradient(135deg,#f97316,#ec4899)","linear-gradient(135deg,#a78bfa,#34d399)"][i % 6] }}>
                     {(c.name || "?")[0].toUpperCase()}
                   </div>
                   <p className="text-[9px] text-slate-500 truncate max-w-[2.5rem]">{c.name.split(" ")[0]}</p>
                 </div>
               ))}
-              <button type="button" onClick={() => onNavigate("more")} className="w-10 h-10 rounded-xl bg-white/5 border border-dashed border-white/15 flex items-center justify-center">
+              <button type="button" onClick={() => onNavigate("more")} aria-label="Add contact" className="w-10 h-10 rounded-xl bg-white/[0.04] border border-dashed border-white/15 flex items-center justify-center hover:bg-white/[0.08] transition-colors">
                 <Plus className="w-3.5 h-3.5 text-slate-500" />
               </button>
             </div>
@@ -452,32 +511,37 @@ function HomeScreen({
         {/* ── 4. City pulse ── */}
         <div>
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">City pulse · Lahore</p>
-            <button type="button" onClick={() => onNavigate("community")} className="text-[10px] text-purple-400 hover:text-purple-300 font-bold transition-colors">All →</button>
+            <p className="section-eyebrow">City pulse · Lahore</p>
+            <button type="button" onClick={() => onNavigate("community")} className="text-[10px] text-violet-300 hover:text-violet-200 font-bold transition-colors flex items-center gap-1">
+              See all <ChevronRight className="w-3 h-3" />
+            </button>
           </div>
           <div className="space-y-2">
             {communityFeed.length === 0 ? (
-              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-6 text-center">
-                <Activity className="w-5 h-5 text-slate-600 mx-auto mb-2" />
-                <p className="text-xs text-slate-500 italic">Scanning for local reports…</p>
+              <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-4 py-7 text-center">
+                <div className="w-9 h-9 rounded-full bg-white/[0.04] mx-auto flex items-center justify-center mb-2">
+                  <Activity className="w-4 h-4 text-slate-500" />
+                </div>
+                <p className="text-xs text-slate-400 font-medium">Scanning for local reports…</p>
+                <p className="text-[10px] text-slate-600 mt-1">New community alerts appear here</p>
               </div>
             ) : (
               communityFeed.slice(0, 3).map((item) => (
                 <button key={item.id} type="button" onClick={() => onNavigate("community")}
                   className={`w-full text-left rounded-2xl px-3.5 py-3 border flex items-start gap-3 hover:opacity-90 active:scale-[0.99] transition-all ${
                     item.level === "high" ? "border-rose-500/20 bg-rose-500/[0.06]" :
-                    item.level === "watch" ? "border-amber-500/15 bg-amber-500/[0.05]" :
-                    "border-white/[0.07] bg-white/[0.02]"
+                    item.level === "watch" ? "border-amber-500/20 bg-amber-500/[0.05]" :
+                    "border-white/[0.07] bg-white/[0.025]"
                   }`}>
                   <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${item.level === "high" ? "bg-rose-500" : item.level === "watch" ? "bg-amber-500" : "bg-emerald-500"}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-white truncate">{item.title}</p>
                     <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{item.description}</p>
                   </div>
-                  <span className={`shrink-0 text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
-                    item.level === "high" ? "bg-rose-500/20 text-rose-400" :
-                    item.level === "watch" ? "bg-amber-500/20 text-amber-400" :
-                    "bg-emerald-500/20 text-emerald-400"
+                  <span className={`pill shrink-0 ${
+                    item.level === "high" ? "pill-danger" :
+                    item.level === "watch" ? "pill-watch" :
+                    "pill-safe"
                   }`}>{item.level}</span>
                 </button>
               ))
@@ -487,29 +551,38 @@ function HomeScreen({
 
         {/* ── 5. Safety timeline ── */}
         <div className="pb-2">
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2.5">Safety log</p>
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="section-eyebrow">Safety log</p>
+            <p className="text-[10px] text-slate-600 flex items-center gap-1">
+              <Lock className="w-2.5 h-2.5" /> Encrypted
+            </p>
+          </div>
           <div className="flex gap-2 mb-2">
             <input
               value={timelineText}
               onChange={(e) => setTimelineText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && onAddTimeline()}
               placeholder="e.g. Boarding bus #42 at Gulberg…"
-              className="flex-1 rounded-xl glass-dark px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:ring-1 focus:ring-purple-500/50 outline-none"
+              className="flex-1 rounded-xl glass-dark px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:ring-1 focus:ring-violet-500/50 focus:border-violet-500/40 outline-none transition-all"
             />
             <button type="button" onClick={onAddTimeline} disabled={timelineSaving || !timelineText.trim()}
-              className="shrink-0 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50 active:scale-95 transition-transform flex items-center">
+              className="shrink-0 rounded-xl aurora-bg px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40 active:scale-95 transition-transform flex items-center shadow-[0_6px_18px_-6px_rgba(168,85,247,0.55)]">
               {timelineSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Log"}
             </button>
           </div>
           <div className="space-y-1.5">
             {timelineEntries.slice(0, 2).map((entry) => (
-              <div key={entry.id} className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3 py-2.5">
+              <div key={entry.id} className="rounded-xl bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5">
                 <p className="text-xs text-slate-200 leading-relaxed">{entry.text}</p>
-                <p className="text-[9px] text-slate-600 mt-1 font-mono">{new Date(entry.createdAt).toLocaleTimeString()} · #{entry.id.slice(-4)}</p>
+                <p className="text-[9px] text-slate-600 mt-1 font-mono flex items-center gap-1.5">
+                  <span>{new Date(entry.createdAt).toLocaleTimeString()}</span>
+                  <span>·</span>
+                  <span>#{entry.id.slice(-4)}</span>
+                </p>
               </div>
             ))}
             {timelineEntries.length === 0 && (
-              <p className="text-[10px] text-slate-600 py-1 italic">Your secure journey log starts here.</p>
+              <p className="text-[10px] text-slate-600 py-2 italic text-center">Your secure journey log starts here.</p>
             )}
           </div>
         </div>
@@ -917,8 +990,8 @@ function CommunityScreen() {
                 onChange={(e) => setChatForm((prev) => ({ ...prev, mode: e.target.value }))}
                 className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
               >
-                <option value="chat" className="bg-[#1e1b4b]">General chat</option>
-                <option value="incident" className="bg-[#1e1b4b]">Report incident</option>
+                <option value="chat" className="bg-[#0d1027]">General chat</option>
+                <option value="incident" className="bg-[#0d1027]">Report incident</option>
               </select>
               <select
                 value={chatForm.category}
@@ -926,7 +999,7 @@ function CommunityScreen() {
                 className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
               >
                 {["Harassment", "Unsafe Transit", "Suspicious Activity", "Cyber Abuse", "Other"].map((cat) => (
-                  <option key={cat} value={cat} className="bg-[#1e1b4b]">{cat}</option>
+                  <option key={cat} value={cat} className="bg-[#0d1027]">{cat}</option>
                 ))}
               </select>
             </div>
@@ -1036,7 +1109,7 @@ function CommunityScreen() {
             className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
           >
             {["Harassment", "Unsafe Transit", "Suspicious Activity", "Cyber Abuse", "Other"].map((cat) => (
-              <option key={cat} value={cat} className="bg-[#1e1b4b]">{cat}</option>
+              <option key={cat} value={cat} className="bg-[#0d1027]">{cat}</option>
             ))}
           </select>
           <input
@@ -1424,7 +1497,7 @@ function LegalChat() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#141523] text-white animate-in fade-in">
+    <div className="flex flex-col h-full bg-[#07091a] text-white animate-in fade-in">
       <div className="glass-dark border-b border-white/8 px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Scale className="w-4 h-4 text-purple-400" />
@@ -1461,7 +1534,7 @@ function LegalChat() {
               className="text-xs rounded-lg glass px-2 py-1 text-slate-300 focus:ring-2 focus:ring-purple-500/50 outline-none"
             >
               {["Lahore", "Karachi", "Islamabad", "Peshawar"].map((city) => (
-                <option key={city} value={city} className="bg-[#1e1b4b] text-white">{city}</option>
+                <option key={city} value={city} className="bg-[#0d1027] text-white">{city}</option>
               ))}
             </select>
           </div>
@@ -1560,7 +1633,7 @@ function LegalChat() {
               <input value={consultForm.city} onChange={(e) => setConsultForm((prev) => ({ ...prev, city: e.target.value }))} placeholder="City" className="rounded-lg glass-dark px-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:ring-1 focus:ring-purple-500/50" />
               <select value={consultForm.issueType} onChange={(e) => setConsultForm((prev) => ({ ...prev, issueType: e.target.value }))} className="rounded-lg glass-dark px-2.5 py-2 text-xs text-slate-300 outline-none focus:ring-1 focus:ring-purple-500/50">
                 {["Harassment", "Cyber Abuse", "Blackmail", "Domestic Violence", "FIR Filing", "Other"].map((issue) => (
-                  <option key={issue} value={issue} className="bg-[#1e1b4b]">{issue}</option>
+                  <option key={issue} value={issue} className="bg-[#0d1027]">{issue}</option>
                 ))}
               </select>
             </div>
@@ -1574,7 +1647,7 @@ function LegalChat() {
       ) : null}
       {showDraft ? (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center sm:justify-center p-4">
-          <div className="w-full max-w-md bg-[#1a1b2e] border border-white/10 shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md bg-[#0d1027] border border-white/10 shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-5 py-4">
               <p className="font-semibold text-white">FIR Draft</p>
               <button onClick={() => setShowDraft(false)} className="text-slate-400 hover:text-white transition-colors">
@@ -2348,67 +2421,64 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#7f1d1d] text-white flex flex-col animate-in fade-in">
+    <div className="fixed inset-0 z-50 text-white flex flex-col animate-in fade-in"
+         style={{ background: "radial-gradient(ellipse at top, #7f1d1d 0%, #450a0a 60%, #1a0408 100%)" }}>
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
         {phase === "countdown" ? (
           <>
-            <p className="text-sm uppercase tracking-[0.4em] text-red-200 font-bold">SOS TRIGER IN</p>
-            <p className="text-[10rem] font-black leading-none mt-2 text-white animate-pulse">{countdown}</p>
-            <p className="text-xs text-red-200 mt-4 max-w-[200px]">Hold cancel to stop. Emergency contacts will be notified automatically.</p>
+            <p className="text-xs uppercase tracking-[0.4em] text-red-200 font-bold">SOS triggers in</p>
+            <p className="text-[9rem] font-black leading-none mt-3 text-white animate-pulse drop-shadow-[0_0_24px_rgba(239,68,68,0.6)]">{countdown}</p>
+            <p className="text-[11px] text-red-200/90 mt-6 max-w-[260px] leading-relaxed">
+              Tap <span className="font-bold text-white">Cancel</span> to stop. Otherwise your trusted contacts and police will be alerted automatically.
+            </p>
           </>
         ) : (
           <>
-            <div className="w-40 h-40 rounded-full glass flex items-center justify-center mb-8 sos-pulse">
-              <AlertTriangle className="w-20 h-20 text-white" />
+            <div className="w-40 h-40 rounded-full bg-white/[0.08] border border-white/20 backdrop-blur-md flex items-center justify-center mb-7 sos-pulse">
+              <AlertTriangle className="w-20 h-20 text-white" strokeWidth={2.4} />
             </div>
-            <h2 className="text-4xl font-black uppercase tracking-tighter">SOS Active</h2>
-            <div className="mt-6 space-y-1">
-              <p className="text-sm text-red-100">Alerted: <span className="font-bold">{contacts.map((c) => c.name).join(", ") || "No contacts set"}</span></p>
-              <p className="text-xs text-red-200">Police (15) {autoDialPolice ? "Auto-dialed" : "Notified"}</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-red-200">Emergency dispatched</p>
+            <h2 className="text-4xl font-black tracking-tight mt-1">SOS active</h2>
+            <div className="mt-5 space-y-1.5 max-w-sm">
+              <p className="text-sm text-red-100">
+                Alerted · <span className="font-bold text-white">{contacts.map((c) => c.name).join(", ") || "No contacts set"}</span>
+              </p>
+              <p className="text-xs text-red-200">Police (15) — {autoDialPolice ? "auto-dialed" : "notified"}</p>
               {sosMeta.location?.lat != null && sosMeta.location?.lon != null ? (
                 <p className="text-[11px] text-red-100/90 font-mono mt-2 break-all">
-                  GPS: {Number(sosMeta.location.lat).toFixed(5)}, {Number(sosMeta.location.lon).toFixed(5)}
+                  GPS · {Number(sosMeta.location.lat).toFixed(5)}, {Number(sosMeta.location.lon).toFixed(5)}
                 </p>
               ) : (
-                <p className="text-[11px] text-red-200/80 mt-2">GPS unavailable — SOS still logged without coordinates.</p>
+                <p className="text-[11px] text-red-200/70 mt-2">GPS unavailable · SOS still logged.</p>
               )}
               {sosMeta.aiTip ? (
-                <div className="mt-3 max-w-sm mx-auto rounded-xl border border-white/20 bg-black/20 px-3 py-2 text-left">
-                  <p className="text-[10px] uppercase tracking-wide text-red-200 font-bold">AI tip</p>
+                <div className="mt-3 rounded-xl border border-white/20 bg-black/30 px-3 py-2 text-left">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-red-200 font-bold">AI guidance</p>
                   <p className="text-xs text-red-50 mt-1 leading-relaxed">{sosMeta.aiTip}</p>
                 </div>
               ) : null}
             </div>
-            
+
             <button
               type="button"
               onClick={() => siren.active ? siren.stop() : siren.start()}
-              className="mt-6 flex items-center gap-2 rounded-full border-2 border-white/40 px-5 py-2.5 text-sm font-bold text-white hover:bg-white/10 transition-all"
+              className="mt-6 flex items-center gap-2 rounded-full border border-white/30 bg-white/[0.06] px-5 py-2.5 text-sm font-bold text-white hover:bg-white/[0.12] transition-all"
             >
-              {siren.active ? (
-                <>
-                  <svg className="w-4 h-4 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                  Mute siren
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                  Sound alarm
-                </>
-              )}
+              <Volume2 className={`w-4 h-4 ${siren.active ? "animate-pulse" : ""}`} />
+              {siren.active ? "Mute siren" : "Sound alarm"}
             </button>
 
-            <div className="mt-6 w-full max-w-[240px] space-y-2">
-              <p className="text-[10px] uppercase tracking-widest font-bold text-red-200">Enter PIN to cancel</p>
+            <div className="mt-6 w-full max-w-[260px] space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-red-200">Enter PIN to cancel</p>
               <input
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                 maxLength={4}
                 type="password"
                 placeholder="• • • •"
-                className="w-full rounded-2xl glass text-center text-2xl font-bold py-4 outline-none focus:ring-2 focus:ring-white/50 transition-all placeholder:text-red-400/50"
+                className="w-full rounded-2xl bg-white/[0.08] border border-white/15 text-center text-2xl font-bold py-4 outline-none focus:ring-2 focus:ring-white/50 focus:border-white/40 transition-all placeholder:text-red-400/50 tracking-[0.5em]"
               />
-              {error ? <p className="text-xs text-white font-bold bg-red-900/50 py-1 rounded-full">{error}</p> : null}
+              {error ? <p className="text-xs text-white font-bold bg-red-900/60 py-1.5 rounded-lg">{error}</p> : null}
             </div>
           </>
         )}
@@ -2416,9 +2486,13 @@ function SOSScreen({ onClose, contacts, autoDialPolice, cancelPin }) {
       <div className="px-6 pb-10">
         <button
           onClick={stopSOS}
-          className={`w-full py-5 rounded-2xl font-bold text-lg transition-all duration-300 ${phase === "countdown" ? "glass hover:bg-white/10" : "bg-white text-red-900 shadow-xl active:scale-95"}`}
+          className={`w-full py-5 rounded-2xl font-bold text-lg transition-all duration-300 ${
+            phase === "countdown"
+              ? "bg-white/[0.08] border border-white/20 hover:bg-white/[0.14]"
+              : "bg-white text-red-900 shadow-[0_18px_40px_-10px_rgba(0,0,0,0.6)] active:scale-95"
+          }`}
         >
-          {phase === "countdown" ? "CANCEL SOS" : "I AM SAFE"}
+          {phase === "countdown" ? "Cancel SOS" : "I am safe"}
         </button>
       </div>
     </div>
@@ -2660,7 +2734,7 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
       <FakeCallOverlay open={fakeCallOpen} onClose={() => setFakeCallOpen(false)} />
 
       {/* ── 1. Profile Hero ── */}
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-violet-900/25 via-[#141523]/90 to-pink-950/20 p-5">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-violet-900/25 via-[#07091a]/90 to-pink-950/20 p-5">
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <div className="relative shrink-0">
@@ -3162,16 +3236,38 @@ function ShieldHub({ onSelectTool, onNavigate }) {
   return (
     <div className="max-w-2xl mx-auto px-4 pt-5 pb-28 space-y-6 animate-in fade-in">
 
+      {/* Hero */}
+      <div className="surface-elev relative overflow-hidden p-5">
+        <div className="pointer-events-none absolute -top-12 -right-12 w-48 h-48 rounded-full aurora-bg-soft blur-3xl opacity-80" />
+        <div className="relative flex items-start gap-4">
+          <div className="w-12 h-12 rounded-2xl aurora-bg flex items-center justify-center shadow-[0_8px_24px_-8px_rgba(168,85,247,0.55)] shrink-0">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="section-eyebrow mb-1">AI Shield</p>
+            <h2 className="text-lg font-bold text-white tracking-tight">Verify before you trust.</h2>
+            <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+              Scan messages, images, voice, and ambient sound — all on demand. Your evidence stays on this device unless you choose to share it.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* AI Protection */}
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">AI protection tools</p>
-        <p className="text-[11px] text-slate-600 mb-3">Groq Llama 3.3 · Gemini Vision — use alongside your own judgment</p>
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <p className="section-eyebrow">AI protection tools</p>
+            <p className="text-[10px] text-slate-600 mt-0.5">Groq Llama 3.3 · Gemini Vision</p>
+          </div>
+          <span className="pill pill-info">Beta</span>
+        </div>
         <div className="space-y-2">
           {aiTools.map((t) => {
             const Icon = t.icon;
             return (
               <button key={t.id} type="button" onClick={() => onSelectTool(t.id)}
-                className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08] p-4 text-left flex items-center gap-4 group transition-all active:scale-[0.99]">
+                className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.035] hover:bg-white/[0.07] hover:border-white/[0.14] p-4 text-left flex items-center gap-4 group transition-all active:scale-[0.99]">
                 <div className={`w-11 h-11 rounded-xl ${t.bg} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
                   <Icon className={`w-5 h-5 ${t.accent}`} />
                 </div>
@@ -3188,7 +3284,7 @@ function ShieldHub({ onSelectTool, onNavigate }) {
 
       {/* Legal Protection */}
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Legal & journey protection</p>
+        <p className="section-eyebrow mb-3">Legal & journey protection</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {[
             { id: "hifazat", title: "Hifazat Legal Guide", icon: MessageCircle, desc: "Safety legal Q&A in English & Urdu. Works offline for common topics.", accent: "text-teal-400", bg: "bg-teal-500/10" },
@@ -3212,27 +3308,37 @@ function ShieldHub({ onSelectTool, onNavigate }) {
       </div>
 
       {/* Emergency quick-dial strip */}
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
-        <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Emergency hotlines</p>
+      <div className="surface-strong p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="section-eyebrow">Emergency hotlines</p>
+          <span className="pill pill-danger">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+            24/7
+          </span>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { name: "Police", no: "15", color: "from-rose-600 to-red-700" },
-            { name: "Madadgaar", no: "1099", color: "from-pink-600 to-rose-600" },
-            { name: "FIA Cyber", no: "1991", color: "from-violet-600 to-purple-700" },
-            { name: "Rescue", no: "1122", color: "from-blue-600 to-indigo-700" },
+            { name: "Police",    no: "15",   color: "from-rose-600 to-red-700",     desc: "Emergency" },
+            { name: "Madadgaar", no: "1099", color: "from-pink-600 to-rose-600",    desc: "Women's helpline" },
+            { name: "FIA Cyber", no: "1991", color: "from-violet-600 to-purple-700", desc: "Cybercrime" },
+            { name: "Rescue",    no: "1122", color: "from-blue-600 to-indigo-700",  desc: "Medical · fire" },
           ].map((h) => (
-            <a key={h.name} href={`tel:${h.no}`}
-              className="rounded-xl border border-white/8 bg-white/[0.03] hover:bg-white/[0.07] px-3 py-2.5 flex items-center gap-2.5 no-underline group transition-colors active:scale-[0.97]">
-              <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${h.color} flex items-center justify-center shrink-0`}>
+            <a
+              key={h.name}
+              href={`tel:${h.no}`}
+              className="rounded-xl border border-white/[0.08] bg-white/[0.025] hover:bg-white/[0.06] hover:border-white/[0.16] px-3 py-2.5 flex items-center gap-2.5 no-underline group transition-all active:scale-[0.97]"
+            >
+              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${h.color} flex items-center justify-center shrink-0 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6)]`}>
                 <Phone className="w-3.5 h-3.5 text-white" />
               </div>
-              <div>
-                <p className="text-[9px] text-slate-500">{h.name}</p>
+              <div className="min-w-0">
+                <p className="text-[9px] text-slate-500 truncate">{h.desc}</p>
                 <p className="text-base font-black text-white leading-tight">{h.no}</p>
               </div>
             </a>
           ))}
         </div>
+        <p className="text-[10px] text-slate-600 mt-3 text-center">Tap to dial · numbers vary slightly by city</p>
       </div>
     </div>
   );
@@ -3601,7 +3707,7 @@ export default function App() {
     return (
       <>
         {firstVisitOverlay}
-        <div className="min-h-screen bg-[#141523] flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-screen bg-[#07091a] flex flex-col items-center justify-center px-6 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
           <p className="mt-4 text-xs text-slate-500 max-w-sm">
             Loading sign-in… If this never finishes, check <span className="text-slate-400">VITE_CLERK_PUBLISHABLE_KEY</span>, Supabase URL/keys, and network. Run{" "}
@@ -3624,10 +3730,10 @@ export default function App() {
   return (
     <>
       {firstVisitOverlay}
-    <div className="min-h-[100dvh] bg-[#141523] text-white w-full">
-      <div className="w-full min-h-[100dvh] bg-[#141523] overflow-hidden flex flex-col relative z-0">
+    <div className="min-h-[100dvh] bg-[#07091a] text-white w-full">
+      <div className="w-full min-h-[100dvh] bg-[#07091a] overflow-hidden flex flex-col relative z-0">
         {!sosActive ? (
-          <div className="sticky top-0 z-20 shrink-0 glass-dark border-b border-white/10 backdrop-blur-md">
+          <div className="sticky top-0 z-20 shrink-0 bg-[#07091a]/85 border-b border-white/[0.06] backdrop-blur-xl">
             <Header
               lang={lang}
               setLang={setLang}
@@ -3668,15 +3774,17 @@ export default function App() {
         {!sosActive ? (
           <>
             {installPromptEvent ? (
-              <div className="fixed bottom-[5.75rem] left-0 right-0 z-[45] px-3 pointer-events-none max-w-7xl mx-auto">
-                <div className="pointer-events-auto flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-[#1e1040]/95 backdrop-blur-md px-3 py-2 shadow-lg">
-                  <p className="text-[11px] text-slate-200 leading-snug">
-                    <span className="font-bold text-white">Install NIgaban</span> — works offline after first load.
+              <div className="fixed bottom-[5.75rem] left-0 right-0 z-[45] px-3 pointer-events-none max-w-md mx-auto">
+                <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-white/[0.10] bg-[#0d1027]/95 backdrop-blur-xl px-3 py-2.5 shadow-[0_18px_42px_-12px_rgba(0,0,0,0.7)]">
+                  <NigabanLogo size={28} className="shrink-0" />
+                  <p className="text-[11px] text-slate-200 leading-snug flex-1 min-w-0">
+                    <span className="font-bold text-white">Install NIgaban</span>
+                    <span className="text-slate-400"> · works offline</span>
                   </p>
                   <button
                     type="button"
                     onClick={handleInstallApp}
-                    className="shrink-0 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 px-3 py-1.5 text-[10px] font-bold text-white"
+                    className="shrink-0 rounded-lg aurora-bg px-3 py-1.5 text-[10px] font-bold text-white shadow-[0_6px_16px_-6px_rgba(168,85,247,0.55)]"
                   >
                     Install
                   </button>
@@ -3688,7 +3796,7 @@ export default function App() {
         ) : null}
         {shakeSosSecs !== null ? (
           <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/75 px-5">
-            <div className="w-full max-w-sm rounded-2xl border border-rose-500/35 bg-[#141523] p-6 text-center space-y-4 shadow-2xl">
+            <div className="w-full max-w-sm rounded-2xl border border-rose-500/35 bg-[#07091a] p-6 text-center space-y-4 shadow-2xl">
               <p className="text-sm font-bold text-white uppercase tracking-wide">Shake SOS</p>
               <p className="text-5xl font-black text-rose-400 tabular-nums">{shakeSosSecs}</p>
               <p className="text-xs text-slate-400 leading-relaxed">
