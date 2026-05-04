@@ -5,17 +5,108 @@
     "cancelPin": "1234"
   },
   "contacts": [
-    { "id": "c1", "name": "Ammi", "phone": "+923001112233" },
-    { "id": "c2", "name": "Maham", "phone": "+923002223344" }
+    {
+      "id": "c1",
+      "name": "Ammi",
+      "phone": "+923001112233"
+    },
+    {
+      "id": "c2",
+      "name": "Maham",
+      "phone": "+923002223344"
+    },
+    {
+      "id": "ba478e1d-1d62-4f38-9dcb-939b7ce0b73b",
+      "name": "Test User",
+      "phone": "+923009998877"
+    }
   ],
-  "trips": [],
+  "trips": [
+    {
+      "id": "c309d6f1-df43-4493-8392-387940277183",
+      "destination": "Liberty Market",
+      "destinationCoords": null,
+      "startedAt": "2026-05-04T07:59:43.405Z",
+      "status": "active",
+      "events": [
+        "Trip started",
+        "Tracking link sent to trusted contacts"
+      ],
+      "locationHistory": [],
+      "noMovementSince": null,
+      "distanceTrendUpCount": 0,
+      "lastDistanceToDestinationKm": null
+    }
+  ],
   "sosLogs": [],
-  "communityReports": [],
+  "communityReports": [
+    {
+      "id": "5eccef86-e98c-4550-a0b4-b7a787957be4",
+      "city": "Lahore",
+      "category": "Suspicious Activity",
+      "area": "Gulberg",
+      "description": "Verifying API connectivity",
+      "anonymous": true,
+      "level": "watch",
+      "title": "Suspicious Activity reported near Gulberg",
+      "tags": [
+        "general-safety"
+      ],
+      "verified": false,
+      "status": "pending",
+      "moderationReason": "Pending moderator review",
+      "time": "2026-05-04T07:59:43.508Z",
+      "aiSummary": "AI is temporarily unavailable. If you are unsafe, call 15 (police) or 1099 (women's helpline) and move toward crowds and light.",
+      "lat": null,
+      "lon": null
+    }
+  ],
   "legalQueue": [],
   "legalConsultRequests": [],
   "evidenceVault": [],
   "evidenceTimeline": [],
-  "activityLogs": [],
+  "activityLogs": [
+    {
+      "id": "40a68719-22c8-4f98-a062-c942de52c499",
+      "action": "safety_timeline_added",
+      "metadata": {
+        "entryId": "06d669a6-91a0-4b19-bf62-a12cceff9361"
+      },
+      "at": "2026-05-04T07:59:43.070Z"
+    },
+    {
+      "id": "8dfd8a71-202f-4f90-9525-80d29a96b3a0",
+      "action": "contact_added",
+      "metadata": {
+        "contactId": "ba478e1d-1d62-4f38-9dcb-939b7ce0b73b"
+      },
+      "at": "2026-05-04T07:59:43.300Z"
+    },
+    {
+      "id": "1e8bf144-673f-4efa-a528-d8aad7cbc1af",
+      "action": "trip_started",
+      "metadata": {
+        "tripId": "c309d6f1-df43-4493-8392-387940277183"
+      },
+      "at": "2026-05-04T07:59:43.405Z"
+    },
+    {
+      "id": "bd276320-5636-4944-8752-f4a3d11a7675",
+      "action": "community_report_created",
+      "metadata": {
+        "reportId": "5eccef86-e98c-4550-a0b4-b7a787957be4",
+        "status": "pending"
+      },
+      "at": "2026-05-04T07:59:43.509Z"
+    }
+  ],
   "communityChatMessages": [],
-  "safetyTimeline": []
+  "safetyTimeline": [
+    {
+      "id": "06d669a6-91a0-4b19-bf62-a12cceff9361",
+      "text": "market-test entry",
+      "context": "final-verify",
+      "createdAt": "2026-05-04T07:59:43.070Z"
+    }
+  ]
 }

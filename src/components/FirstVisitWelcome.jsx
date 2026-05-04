@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Keyboard, Layers, MapPin, Shield, Sparkles, X } from "lucide-react";
-import { BRAND_TAGLINE_EN } from "../lib/brand.js";
+import { ArrowRight, CheckCircle2, Keyboard, Layers, Lock, MapPin, Shield, Sparkles, X } from "lucide-react";
+import { NigabanLogo } from "./Brand.jsx";
 
 const PAGES = [
-  { id: "mission", label: "Mission", short: "Why we exist" },
-  { id: "features", label: "Capabilities", short: "What you get" },
-  { id: "impact", label: "Impact", short: "Why it matters" },
-  { id: "start", label: "Get started", short: "Sign in" },
+  { id: "mission",  label: "Mission",       short: "Why we exist" },
+  { id: "features", label: "Capabilities",  short: "What you get" },
+  { id: "impact",   label: "Impact",        short: "Why it matters" },
+  { id: "start",    label: "Get started",   short: "Sign in" },
 ];
 
 function scrollAuthIntoViewSoon() {
@@ -21,18 +21,14 @@ export default function FirstVisitWelcome({ onComplete }) {
   const finish = useCallback(() => {
     try {
       localStorage.setItem("nigaban_welcomed", "true");
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
     window.dispatchEvent(new Event("nigaban-welcomed"));
     onComplete?.();
     scrollAuthIntoViewSoon();
   }, [onComplete]);
 
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") finish();
-    };
+    const onKey = (e) => { if (e.key === "Escape") finish(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [finish]);
@@ -45,64 +41,73 @@ export default function FirstVisitWelcome({ onComplete }) {
         key={id}
         type="button"
         onClick={() => setActive(id)}
-        className={`w-full text-left rounded-xl px-4 py-3 transition-colors border ${
+        className={`w-full text-left rounded-xl px-3.5 py-2.5 transition-all border ${
           isActive
-            ? "bg-gradient-to-r from-pink-500/25 to-purple-600/25 border-white/20 text-white shadow-lg shadow-purple-900/20"
-            : "border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            ? "aurora-bg-soft border-violet-500/30 text-white"
+            : "border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
         }`}
       >
-        <span className="block text-sm font-bold">{p.label}</span>
-        <span className="block text-[11px] text-slate-500 mt-0.5">{p.short}</span>
+        <span className="block text-sm font-bold tracking-tight">{p.label}</span>
+        <span className="block text-[10px] text-slate-500 mt-0.5">{p.short}</span>
       </button>
     );
   };
 
   return (
-    <div className="fixed inset-0 z-[500] flex flex-col bg-gradient-to-br from-[#0a0614] via-[#120a1c] to-[#07080f] text-white animate-in fade-in duration-200">
-      {/* Top bar — website width */}
-      <header className="shrink-0 border-b border-white/10 bg-black/20 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4 flex items-center justify-between gap-4">
+    <div
+      className="fixed inset-0 z-[500] flex flex-col text-white animate-in fade-in duration-200"
+      style={{
+        background:
+          "radial-gradient(ellipse 70% 60% at 12% 0%, rgba(99,102,241,0.16) 0%, transparent 55%)," +
+          "radial-gradient(ellipse 70% 60% at 88% 8%, rgba(168,85,247,0.12) 0%, transparent 55%)," +
+          "radial-gradient(ellipse 70% 60% at 50% 100%, rgba(236,72,153,0.08) 0%, transparent 55%)," +
+          "#07091a",
+      }}
+    >
+      {/* ── Top bar ──────────────────────────────────────────── */}
+      <header className="shrink-0 border-b border-white/[0.06] bg-[#07091a]/85 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/5">
-              <Shield className="h-6 w-6 text-pink-400" />
-            </div>
+            <NigabanLogo size={36} className="logo-glow shrink-0" />
             <div className="min-w-0">
-              <p className="text-lg sm:text-xl font-black tracking-tight truncate">NIgaban</p>
-              <p className="text-xs text-violet-300/90 truncate" dir="rtl">
-                نگہبان
+              <p className="text-base font-black tracking-tight truncate">
+                NI<span className="aurora-text">gaban</span>
               </p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">AI Safety</p>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={finish}
-              className="text-[11px] sm:text-xs font-semibold text-slate-400 hover:text-white px-2 py-1.5 rounded-lg hover:bg-white/5"
+              className="text-[11px] font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors"
             >
               Skip intro
             </button>
             <button
               type="button"
               onClick={finish}
-              className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white"
+              className="rounded-lg p-2 text-slate-400 hover:bg-white/[0.06] hover:text-white transition-colors"
               aria-label="Close intro"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile tab strip */}
-      <div className="md:hidden shrink-0 border-b border-white/10 bg-[#0c0a14]/90 overflow-x-auto">
-        <div className="flex gap-1 px-3 py-2 min-w-max">
+      {/* ── Mobile tab strip ────────────────────────────────── */}
+      <div className="md:hidden shrink-0 border-b border-white/[0.05] bg-[#0d1027]/70 overflow-x-auto">
+        <div className="flex gap-1.5 px-3 py-2 min-w-max">
           {PAGES.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => setActive(p.id)}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold transition-colors ${
-                active === p.id ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white" : "bg-white/5 text-slate-400 border border-white/10"
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] font-bold transition-all ${
+                active === p.id
+                  ? "aurora-bg text-white shadow-[0_6px_16px_-6px_rgba(168,85,247,0.5)]"
+                  : "bg-white/[0.04] text-slate-400 border border-white/[0.06] hover:bg-white/[0.08]"
               }`}
             >
               {p.label}
@@ -113,105 +118,117 @@ export default function FirstVisitWelcome({ onComplete }) {
 
       <div className="flex flex-1 min-h-0 max-w-7xl mx-auto w-full">
         {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-64 lg:w-72 shrink-0 flex-col border-r border-white/10 p-4 lg:p-5 gap-1 bg-black/15">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/90 px-2 mb-2">Tour</p>
+        <aside className="hidden md:flex w-60 lg:w-72 shrink-0 flex-col border-r border-white/[0.06] p-4 lg:p-5 gap-1 bg-[#07091a]/40">
+          <p className="section-eyebrow px-2 mb-2.5">Tour</p>
           {PAGES.map((p) => navBtn(p.id))}
+          <div className="mt-auto pt-6 px-2">
+            <p className="text-[10px] text-slate-600 leading-relaxed">
+              In immediate danger, dial <span className="text-slate-400 font-semibold">15</span> · <span className="text-slate-400 font-semibold">1099</span>.
+            </p>
+          </div>
         </aside>
 
-        {/* Main content — scrollable, generous padding */}
+        {/* Main content */}
         <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           <div className="px-5 sm:px-8 lg:px-14 py-8 lg:py-12 max-w-3xl">
+
             {active === "mission" ? (
               <article className="space-y-6">
-                <div className="inline-flex items-center gap-2 text-purple-300 text-sm font-semibold">
-                  <Sparkles className="w-4 h-4" /> Mission
+                <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/[0.07] px-3.5 py-1.5 text-[11px] font-bold tracking-wide text-violet-200">
+                  <Sparkles className="w-3.5 h-3.5" /> Mission
                 </div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight">Pakistan&apos;s first AI-powered legal safety companion</h1>
-                <p className="text-base sm:text-lg text-slate-300 leading-relaxed">{BRAND_TAGLINE_EN}</p>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-[0.98] tracking-tight">
+                  Safety that <br />
+                  <span className="aurora-text aurora-drift">thinks ahead.</span>
+                </h1>
+                <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-xl">
+                  NI<span className="aurora-text font-bold">gaban</span> turns your phone into a guardian — live trip share,
+                  encrypted SOS, AI-aware legal guidance, and a fake call ready when you need to leave the room.
+                </p>
                 <ul className="space-y-3 text-slate-300 text-sm sm:text-base leading-relaxed">
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-                    <span>Know your rights fast with Hifazat and the legal desk — plain language, Pakistan-focused.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-                    <span>Trigger help with SOS, silent shortcuts, and trusted-circle SMS when seconds matter.</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
-                    <span>Document and export incidents so nothing important is lost in the stress of the moment.</span>
-                  </li>
+                  {[
+                    "Know your rights with Hifazat — Pakistan-specific, plain language, in English & Urdu.",
+                    "Trigger help via SOS, silent shortcuts, and trusted-circle SMS when seconds matter.",
+                    "Document & export incidents so nothing important is lost in the stress of the moment.",
+                  ].map((line) => (
+                    <li key={line} className="flex gap-3">
+                      <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+                      <span>{line}</span>
+                    </li>
+                  ))}
                 </ul>
               </article>
             ) : null}
 
             {active === "features" ? (
-              <article className="space-y-8">
+              <article className="space-y-7">
                 <div>
-                  <div className="inline-flex items-center gap-2 text-purple-300 text-sm font-semibold mb-2">
-                    <MapPin className="w-4 h-4" /> Capabilities
+                  <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/[0.07] px-3.5 py-1.5 text-[11px] font-bold tracking-wide text-violet-200 mb-3">
+                    <MapPin className="w-3.5 h-3.5" /> Capabilities
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">Built for real pressure</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Built for real pressure.</h2>
                 </div>
 
-                <div className="grid gap-5 sm:gap-6">
-                  <section className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 sm:p-6 space-y-3">
-                    <div className="flex items-center gap-3 text-white font-bold text-lg">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/20 border border-violet-500/30">
-                        <Keyboard className="w-5 h-5 text-violet-200" />
-                      </span>
-                      Silent mode SOS
-                    </div>
-                    <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                      In this browser demo, press the <kbd className="px-1.5 py-0.5 rounded bg-white/15 text-white font-mono text-xs">S</kbd> key three times (not while typing in a field). That starts the same cancel countdown as shake-to-SOS. On phones, the product vision is volume-down three times from pocket — no unlock required.
-                    </p>
-                  </section>
-
-                  <section className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 sm:p-6 space-y-3">
-                    <div className="flex items-center gap-3 text-white font-bold text-lg">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 border border-emerald-500/30">
-                        <Layers className="w-5 h-5 text-emerald-200" />
-                      </span>
-                      Incident heatmap
-                    </div>
-                    <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                      Approved community reports with GPS appear on Google Maps. Switch between pin view and a heatmap layer so density is obvious in demos and in the field (data comes from the same backend as Supabase when configured).
-                    </p>
-                  </section>
-
-                  <section className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 sm:p-6 space-y-3">
-                    <div className="flex items-center gap-3 text-white font-bold text-lg">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-500/20 border border-pink-500/30">
-                        <Shield className="w-5 h-5 text-pink-200" />
-                      </span>
-                      Safety report export
-                    </div>
-                    <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-                      After you submit a community incident, generate a dated text file or use print-to-PDF. Each export includes time, optional GPS, AI summary, and general legal orientation — for your records (not a substitute for a lawyer or FIR).
-                    </p>
-                  </section>
+                <div className="grid gap-4">
+                  {[
+                    {
+                      icon: Keyboard,
+                      tone: "violet",
+                      title: "Silent SOS",
+                      body: <>In this browser demo, press <kbd className="px-1.5 py-0.5 rounded bg-white/15 text-white font-mono text-xs">S</kbd> three times (not while typing). On phones, the vision is volume-down ×3 from pocket — no unlock required.</>,
+                    },
+                    {
+                      icon: Layers,
+                      tone: "emerald",
+                      title: "Incident heatmap",
+                      body: "Approved community reports with GPS cluster on a live map. Toggle between pins and heatmap density.",
+                    },
+                    {
+                      icon: Shield,
+                      tone: "rose",
+                      title: "Evidence export",
+                      body: "Generate a dated incident report — GPS, AI summary, and Pakistan law citations. Use it as your record (not a substitute for a lawyer).",
+                    },
+                  ].map(({ icon: Icon, tone, title, body }) => {
+                    const ring = {
+                      violet:  "bg-violet-500/15 border-violet-500/25 text-violet-200",
+                      emerald: "bg-emerald-500/15 border-emerald-500/25 text-emerald-200",
+                      rose:    "bg-rose-500/15 border-rose-500/25 text-rose-200",
+                    }[tone];
+                    return (
+                      <section key={title} className="rounded-2xl border border-white/[0.08] bg-white/[0.035] p-5 sm:p-6 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <span className={`flex h-10 w-10 items-center justify-center rounded-xl border ${ring}`}>
+                            <Icon className="w-5 h-5" />
+                          </span>
+                          <p className="text-base sm:text-lg font-bold text-white">{title}</p>
+                        </div>
+                        <p className="text-sm text-slate-300 leading-relaxed">{body}</p>
+                      </section>
+                    );
+                  })}
                 </div>
               </article>
             ) : null}
 
             {active === "impact" ? (
               <article className="space-y-6">
-                <div className="inline-flex items-center gap-2 text-purple-300 text-sm font-semibold">
-                  <Sparkles className="w-4 h-4" /> Impact (demo figures)
+                <div className="inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/[0.07] px-3.5 py-1.5 text-[11px] font-bold tracking-wide text-violet-200">
+                  <Sparkles className="w-3.5 h-3.5" /> Impact
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">Why the problem is urgent</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">The numbers behind the need.</h2>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Figures below are hardcoded for hackathon storytelling — replace with verified citations for production.
+                  Figures below are advocacy estimates — replace with verified citations for production.
                 </p>
-                <div className="grid sm:grid-cols-3 gap-4">
+                <div className="grid sm:grid-cols-3 gap-3">
                   {[
-                    { k: "1 in 3", d: "Pakistani women face harassment in public spaces (HRCP-style estimates)." },
-                    { k: "93%", d: "of harassment cases go unreported — NIgaban lowers friction to document and reach help." },
-                    { k: "18 min vs 1 tap", d: "Police response varies by city; your SOS and circle alerts fire in one tap." },
+                    { k: "1 in 3",   d: "Pakistani women face harassment in public spaces" },
+                    { k: "93%",      d: "of harassment cases go unreported — NIgaban lowers friction to document & reach help" },
+                    { k: "1 tap",    d: "to send live GPS to your circle vs ~18 min average urban response" },
                   ].map((box) => (
-                    <div key={box.k} className="rounded-2xl border border-rose-500/30 bg-gradient-to-b from-rose-950/50 to-purple-950/30 p-5 min-h-[140px] flex flex-col">
-                      <p className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-violet-300">{box.k}</p>
-                      <p className="text-sm text-slate-200 mt-3 leading-snug flex-1">{box.d}</p>
+                    <div key={box.k} className="surface-elev p-5 min-h-[140px] flex flex-col">
+                      <p className="text-3xl sm:text-4xl font-black aurora-text leading-none">{box.k}</p>
+                      <p className="text-sm text-slate-300 mt-3 leading-snug flex-1">{box.d}</p>
                     </div>
                   ))}
                 </div>
@@ -219,29 +236,41 @@ export default function FirstVisitWelcome({ onComplete }) {
             ) : null}
 
             {active === "start" ? (
-              <article className="space-y-8">
+              <article className="space-y-7">
                 <div>
-                  <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">You&apos;re one step from the full app</h2>
-                  <p className="text-base text-slate-300 mt-3 leading-relaxed max-w-2xl">
-                    Sign in (or create an account with your provider) to sync trusted contacts, community reports, and settings. Guest mode stays available for demos.
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight tracking-tight">
+                    You're one step from the full app.
+                  </h2>
+                  <p className="text-base text-slate-300 mt-3 leading-relaxed max-w-xl">
+                    Sign in to sync trusted contacts, community reports, and your safety log across devices. Guest mode is always available for demos.
                   </p>
                 </div>
-                <ul className="space-y-2 text-slate-300 text-sm sm:text-base">
-                  <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" /> Mission, silent SOS, heatmaps, and exports — all in one shell.</li>
-                  <li className="flex gap-2"><CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" /> Scrolls to <strong className="text-white">Sign in</strong> below the marketing page after you continue.</li>
+                <ul className="space-y-2.5 text-slate-300 text-sm">
+                  <li className="flex gap-3 items-start">
+                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+                    <span>Email, Google, or phone OTP — pick what's fastest for you.</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <Lock className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+                    <span>Voice notes and timeline entries are encrypted on-device.</span>
+                  </li>
+                  <li className="flex gap-3 items-start">
+                    <Sparkles className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+                    <span>You can always continue as a guest if you'd rather not sign in.</span>
+                  </li>
                 </ul>
-                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <div className="flex flex-col sm:flex-row gap-3 pt-3">
                   <button
                     type="button"
                     onClick={finish}
-                    className="rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 px-8 py-4 text-base font-black text-white shadow-xl shadow-purple-900/30 hover:opacity-95 active:scale-[0.99] transition-transform"
+                    className="rounded-2xl aurora-bg px-7 py-3.5 text-sm font-bold text-white shadow-[0_18px_36px_-14px_rgba(168,85,247,0.7)] active:scale-[0.99] transition-transform inline-flex items-center justify-center gap-2"
                   >
-                    Continue to sign in
+                    Continue to sign in <ArrowRight className="w-4 h-4" />
                   </button>
                   <button
                     type="button"
                     onClick={finish}
-                    className="rounded-2xl border border-white/20 px-8 py-4 text-base font-semibold text-slate-200 hover:bg-white/5"
+                    className="rounded-2xl border border-white/[0.12] bg-white/[0.04] px-7 py-3.5 text-sm font-semibold text-slate-200 hover:bg-white/[0.08] transition-colors"
                   >
                     Skip intro
                   </button>

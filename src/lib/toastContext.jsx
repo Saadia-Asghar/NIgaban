@@ -40,12 +40,12 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg backdrop-blur-md animate-in slide-up duration-200 ${
+            className={`pointer-events-auto flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-[0_18px_42px_-12px_rgba(0,0,0,0.7)] backdrop-blur-xl animate-in slide-up duration-200 ${
               t.variant === "success"
-                ? "border-emerald-500/40 bg-emerald-950/90 text-emerald-50"
+                ? "border-emerald-500/30 bg-emerald-950/85 text-emerald-50"
                 : t.variant === "error"
-                  ? "border-rose-500/40 bg-rose-950/90 text-rose-50"
-                  : "border-white/15 bg-[#1a1b2e]/95 text-slate-100"
+                  ? "border-rose-500/35 bg-rose-950/90 text-rose-50"
+                  : "border-white/[0.10] bg-[#0d1027]/95 text-slate-100"
             }`}
             role="status"
           >

@@ -5,33 +5,68 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#5b21b6" />
+    <meta name="theme-color" content="#0d1027" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#0d1027" />
     <meta name="color-scheme" content="dark" />
+
     <!-- PWA / iOS -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="نگہبان" />
+    <meta name="apple-mobile-web-app-title" content="NIgaban" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
+
     <!-- SEO / Social -->
-    <meta name="description" content="Pakistan's first AI-powered legal safety companion for women — know your rights, trigger help, leave no trace. NIgaban (نگہبان)." />
-    <meta property="og:title" content="NIgaban — نگہبان" />
-    <meta property="og:description" content="Pakistan's first AI-powered legal safety companion for women." />
+    <meta name="description" content="AI-powered safety in your hand. Live trip share, encrypted SOS, fake call, and Pakistan-aware legal guidance — built for women." />
+    <meta property="og:title" content="NIgaban — AI Safety Companion" />
+    <meta property="og:description" content="Live trip share, encrypted SOS, fake call, and Pakistan-aware legal guidance — built for women in Pakistan." />
     <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="NIgaban — نگہبان" />
-    <meta name="twitter:description" content="Pakistan's first AI-powered legal safety companion for women." />
-    <title>NIgaban — نگہبان</title>
-    <!-- Preconnect for performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <meta property="og:image" content="/favicon.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="NIgaban — AI Safety Companion" />
+    <meta name="twitter:description" content="Pakistan-aware safety in your hand. Free, private, encrypted by default." />
+    <title>NIgaban — AI Safety Companion</title>
+
+    <!-- Preload Inter for typography consistency -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
     <!-- Inline critical style to prevent flash -->
     <style>
-      html, body { margin: 0; background: #07080f; color: #e2e8f0; }
+      html, body { margin: 0; background: #07091a; color: #f1f5f9; font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
       #root { min-height: 100dvh; }
+      /* boot splash */
+      .boot {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        min-height: 100dvh; gap: 1rem;
+        background:
+          radial-gradient(ellipse 70% 60% at 12% 0%,    rgba(99,102,241,0.14) 0%, transparent 55%),
+          radial-gradient(ellipse 70% 60% at 88% 8%,    rgba(168,85,247,0.10) 0%, transparent 55%),
+          radial-gradient(ellipse 70% 60% at 50% 100%,  rgba(236,72,153,0.08) 0%, transparent 55%),
+          #07091a;
+      }
+      .boot svg { filter: drop-shadow(0 0 14px rgba(168, 85, 247, 0.55)); }
+      .boot p { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #64748b; font-weight: 700; }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" aria-hidden="true">
+        <svg width="56" height="56" viewBox="0 0 48 48">
+          <defs>
+            <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#6366f1"/>
+              <stop offset="50%" stop-color="#a855f7"/>
+              <stop offset="100%" stop-color="#ec4899"/>
+            </linearGradient>
+          </defs>
+          <path d="M24 3.5 4.5 9.8v12.7c0 11.5 8.1 20.7 19.5 22 11.4-1.3 19.5-10.5 19.5-22V9.8L24 3.5Z" fill="url(#b)"/>
+          <path d="M16.5 32V16h3.4l8.2 10.3V16h3.4v16h-3.4l-8.2-10.3V32h-3.4Z" fill="white"/>
+        </svg>
+        <p>Loading NIgaban…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

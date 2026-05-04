@@ -1,41 +1,41 @@
 {
-  "name": "NIgaban — نگہبان",
-  "short_name": "نگہبان",
-  "description": "Pakistan's first AI-powered legal safety companion for women — SOS, maps, trusted circle, legal guide.",
+  "name": "NIgaban — AI Safety Companion",
+  "short_name": "NIgaban",
+  "description": "AI-powered safety in your hand. Live trip share, encrypted SOS, fake call, and Pakistan-aware legal guidance — built for women.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "theme_color": "#5b21b6",
-  "background_color": "#07080f",
+  "theme_color": "#0d1027",
+  "background_color": "#07091a",
   "lang": "en",
-  "categories": ["utilities", "lifestyle", "social"],
+  "dir": "ltr",
+  "categories": ["utilities", "lifestyle", "social", "health"],
   "shortcuts": [
     {
-      "name": "SOS Emergency",
+      "name": "Emergency SOS",
       "short_name": "SOS",
-      "description": "Trigger emergency SOS",
-      "url": "/?sos=1"
+      "description": "Trigger emergency SOS countdown",
+      "url": "/?sos=1",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     },
     {
       "name": "Hifazat Legal Guide",
       "short_name": "Hifazat",
-      "description": "Get legal guidance",
-      "url": "/?screen=hifazat"
+      "description": "Pakistan-specific legal Q&A",
+      "url": "/?screen=hifazat",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Safe Transit",
+      "short_name": "Transit",
+      "description": "Share live trip with trusted contacts",
+      "url": "/?screen=transit",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     }
   ],
   "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
-    }
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
   ]
 }
