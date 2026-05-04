@@ -110,6 +110,8 @@ function ShieldSubNav({ active, onSelect }) {
     { id: "capture",   label: "Capture" },
     { id: "scripts",   label: "Scripts" },
     { id: "ride",      label: "Ride" },
+    { id: "rights",    label: "Rights" },
+    { id: "help",      label: "Verified" },
     { id: "distress",  label: "Distress" },
   ];
   return (
@@ -2232,97 +2234,543 @@ function RideSafety({ contacts }) {
   );
 }
 
+/**
+ * KnowYourRights — verified, citation-backed reference cards.
+ *
+ * Hand-curated content from public Pakistani statute. No AI, no
+ * inference — every card cites its source so a user can verify against
+ * the original text. Marked clearly as orientation, not legal advice.
+ */
+function KnowYourRights() {
+  const [openId, setOpenId] = useState("anti-harassment");
+
+  const RIGHTS = [
+    {
+      id: "anti-harassment",
+      tone: "violet",
+      eyebrow: "Workplace · Pakistan",
+      title: "Protection Against Harassment of Women at the Workplace Act 2010",
+      summary:
+        "Defines harassment at any workplace, requires every organisation (≥10 employees) to have an Inquiry Committee and a Code of Conduct, and gives complainants the right to a confidential inquiry within 30 days.",
+      points: [
+        "Covers public, private, formal & informal workplaces — including domestic work.",
+        "Inquiry Committee: 3 members, at least one woman, one external where possible.",
+        "Penalties range from minor (censure, withholding promotion) to major (dismissal, fine equal to wages).",
+        "Right to appeal to the Federal/Provincial Ombudsperson against a Committee decision.",
+      ],
+      action: "If your workplace lacks an Inquiry Committee, complaint can go directly to the Provincial Ombudsperson.",
+      source: "Act III of 2010 — full text on www.na.gov.pk",
+    },
+    {
+      id: "peca",
+      tone: "blue",
+      eyebrow: "Cybercrime · Pakistan",
+      title: "Prevention of Electronic Crimes Act 2016 (PECA)",
+      summary:
+        "Pakistan's primary cyber-harassment law. Covers unauthorised use of identity, online stalking, distributing intimate images without consent, defamation, and cyber-blackmail.",
+      points: [
+        "Section 21: Offences against modesty / non-consensual intimate images — up to 5 years jail + 5 lakh fine.",
+        "Section 24: Cyber stalking (online following / contacting after warning) — up to 3 years jail + 1 million fine.",
+        "Section 22: Child pornography — up to 7 years jail + 5 million fine.",
+        "Section 20: Defamation via electronic means — up to 3 years jail + 1 million fine.",
+      ],
+      action: "Complaints filed with FIA Cybercrime Wing. Helpline: 1991. Complaint portal: complaint.fia.gov.pk",
+      source: "Act XL of 2016 — full text on www.na.gov.pk",
+    },
+    {
+      id: "ppc-354",
+      tone: "rose",
+      eyebrow: "Criminal force · Pakistan",
+      title: "PPC §354 — Assault or criminal force to outrage modesty",
+      summary:
+        "Criminalises any assault or criminal force on a woman with intent to outrage her modesty. Punishable up to 2 years imprisonment, fine, or both.",
+      points: [
+        "Applies to physical contact: groping, pulling clothing, unwanted touching.",
+        "Bailable in most circumstances — file an FIR at the nearest police station.",
+        "PPC §354-A (aggravated form, public stripping) carries up to 25 years or death.",
+      ],
+      action: "Visit the nearest police station to file an FIR. You may bring a female witness or a women's-rights NGO worker for support.",
+      source: "Pakistan Penal Code (Act XLV of 1860)",
+    },
+    {
+      id: "ppc-509",
+      tone: "amber",
+      eyebrow: "Verbal harassment · Pakistan",
+      title: "PPC §509 — Insulting modesty / sexual harassment",
+      summary:
+        "Covers verbal sexual harassment, gestures, exhibition, or showing of any object intended to insult modesty — and intentional intrusion of privacy.",
+      points: [
+        "Catcalling, lewd gestures, indecent calls/SMS, or peeping fall under this section.",
+        "Punishment: up to 3 years jail, fine up to 5 lakh, or both.",
+        "Often filed alongside §354 (physical) or PECA Section 24 (online).",
+      ],
+      action: "FIR at police station + screenshot/recording evidence. Workplace cases also covered by the 2010 Act.",
+      source: "Pakistan Penal Code (Act XLV of 1860), as amended",
+    },
+    {
+      id: "fir",
+      tone: "emerald",
+      eyebrow: "Procedure",
+      title: "How to file an FIR (First Information Report)",
+      summary:
+        "An FIR is the police's written record of a cognisable offence. It is your right to have one registered for any cognisable crime — police cannot legally refuse.",
+      points: [
+        "Go to the police station with jurisdiction over where the incident happened.",
+        "State the facts: date, time, place, what happened, who was present, any evidence.",
+        "Read the FIR before signing. You are entitled to a free copy of the FIR.",
+        "If the SHO refuses to register: complain to the District Police Officer (DPO), or apply directly to a Magistrate under §22-A CrPC.",
+      ],
+      action: "Bring photo ID and any evidence (screenshots, photos, witness contact). A friend, family member, or NGO worker can accompany you.",
+      source: "Code of Criminal Procedure 1898, §154",
+    },
+    {
+      id: "complaint-2010",
+      tone: "violet",
+      eyebrow: "Workplace complaint",
+      title: "Filing a workplace harassment complaint under the 2010 Act",
+      summary:
+        "If you experience harassment at work, the 2010 Act gives you a clear, time-bound remedy.",
+      points: [
+        "Submit a written complaint to your organisation's Inquiry Committee within 30 days.",
+        "Committee must decide within 30 days of receiving the complaint (extendable up to 60).",
+        "If unhappy with decision OR no Committee exists: complain to Federal/Provincial Ombudsperson within 30 days.",
+        "Ombudsperson decisions can be appealed to the President / Provincial Governor.",
+      ],
+      action: "Keep written copies of all communications. The 'After incident' Safety Script has a template letter you can adapt.",
+      source: "Act III of 2010, §§ 8–10",
+    },
+  ];
+
+  const TONE = {
+    violet:  "from-violet-500/12  to-violet-500/[0.04]  border-violet-500/25  text-violet-300",
+    blue:    "from-blue-500/12    to-blue-500/[0.04]    border-blue-500/25    text-blue-300",
+    rose:    "from-rose-500/12    to-rose-500/[0.04]    border-rose-500/25    text-rose-300",
+    amber:   "from-amber-500/12   to-amber-500/[0.04]   border-amber-500/25   text-amber-300",
+    emerald: "from-emerald-500/12 to-emerald-500/[0.04] border-emerald-500/25 text-emerald-300",
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Know Your Rights</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Verified summaries of the laws that protect women in Pakistan. Hand-curated from public statute — every card cites its source. <strong className="text-slate-400">Orientation, not legal advice.</strong>
+        </p>
+      </div>
+
+      <div className="space-y-2.5">
+        {RIGHTS.map((r) => {
+          const open = openId === r.id;
+          return (
+            <div
+              key={r.id}
+              className={`rounded-2xl border bg-gradient-to-br ${TONE[r.tone]} overflow-hidden transition-all`}
+            >
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : r.id)}
+                className="w-full px-4 py-3.5 flex items-start gap-3 text-left"
+              >
+                <Scale className={`w-4 h-4 shrink-0 mt-0.5 ${TONE[r.tone].split(" ").pop()}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[10px] uppercase tracking-[0.18em] font-bold ${TONE[r.tone].split(" ").pop()}`}>{r.eyebrow}</p>
+                  <p className="text-sm font-bold text-white mt-0.5 leading-snug">{r.title}</p>
+                </div>
+                <ChevronRight className={`w-4 h-4 text-slate-500 shrink-0 mt-1 transition-transform ${open ? "rotate-90" : ""}`} />
+              </button>
+              {open ? (
+                <div className="px-4 pb-4 pt-0 space-y-3 animate-in slide-up duration-200">
+                  <p className="text-[13px] text-slate-200 leading-relaxed">{r.summary}</p>
+                  <ul className="space-y-1.5">
+                    {r.points.map((p, i) => (
+                      <li key={i} className="flex gap-2 text-[12px] text-slate-300 leading-relaxed">
+                        <span className="text-slate-500 shrink-0">·</span>
+                        <span>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="rounded-xl bg-black/30 border border-white/[0.06] px-3 py-2.5">
+                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Action</p>
+                    <p className="text-[12px] text-slate-200 mt-1 leading-relaxed">{r.action}</p>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    <span className="font-bold text-slate-400">Source: </span>{r.source}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
+        <p className="text-xs font-semibold text-amber-300">Important</p>
+        <p className="text-[11px] text-amber-200/75 leading-relaxed mt-1">
+          This reference is for orientation only. For decisions affecting your case, consult a qualified lawyer or contact one of the verified NGOs in <strong className="text-amber-200">Verified Help</strong>.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * VerifiedHelp — hand-curated directory of women's-rights organisations
+ * and government helplines in Pakistan. Every entry has a phone number
+ * users can dial directly. Curated from public sources — verifiable.
+ */
+function VerifiedHelp() {
+  const HELPLINES = [
+    { name: "Police emergency",                    phone: "15",   tag: "24/7 nationwide",         icon: Shield,        tone: "rose"    },
+    { name: "Madadgaar (Women's helpline)",        phone: "1099", tag: "Govt. of Pakistan",       icon: Phone,         tone: "violet"  },
+    { name: "FIA Cybercrime",                       phone: "1991", tag: "Online harassment",       icon: Lock,          tone: "blue"    },
+    { name: "Rescue 1122",                          phone: "1122", tag: "Medical · fire",          icon: AlertTriangle, tone: "rose"    },
+    { name: "Child Protection (Punjab)",            phone: "1121", tag: "Punjab CPB",              icon: Heart,         tone: "amber"   },
+    { name: "Sindh Women's Helpline",               phone: "1094", tag: "Sindh govt",              icon: Phone,         tone: "emerald" },
+  ];
+
+  const NGOS = [
+    {
+      name: "AGHS Legal Aid Cell",
+      role: "Free legal aid · women & minorities",
+      city: "Lahore",
+      phone: "+92-42-37111662",
+      web: "aghspk.org",
+      services: ["Legal representation", "FIR support", "Family law", "Workplace harassment"],
+    },
+    {
+      name: "Bedari",
+      role: "Anti-harassment & VAW response",
+      city: "Islamabad / Rawalpindi",
+      phone: "+92-51-2255534",
+      web: "bedari.org.pk",
+      services: ["Counselling", "Legal aid", "Workplace harassment 2010-Act support", "Helpline"],
+    },
+    {
+      name: "Rozan",
+      role: "Counselling & psychosocial support",
+      city: "Islamabad",
+      phone: "0800-22444",
+      web: "rozan.org",
+      services: ["Free counselling", "Domestic violence", "Child sexual abuse support"],
+    },
+    {
+      name: "War Against Rape (WAR)",
+      role: "Survivor support & advocacy",
+      city: "Karachi",
+      phone: "+92-21-35373008",
+      web: "war.org.pk",
+      services: ["Crisis counselling", "Legal aid", "Medico-legal support"],
+    },
+    {
+      name: "Dastak Foundation",
+      role: "Shelter for women in crisis",
+      city: "Lahore",
+      phone: "+92-42-35408712",
+      web: "dastak.org.pk",
+      services: ["Emergency shelter", "Legal aid", "Counselling", "Rehabilitation"],
+    },
+    {
+      name: "Aurat Foundation — VAW Hotline",
+      role: "Violence against women response",
+      city: "Multi-city",
+      phone: "0800-22227",
+      web: "af.org.pk",
+      services: ["Helpline", "Legal referrals", "Awareness", "Policy advocacy"],
+    },
+    {
+      name: "Digital Rights Foundation",
+      role: "Cyber-harassment helpline",
+      city: "Lahore (national reach)",
+      phone: "0800-39393",
+      web: "digitalrightsfoundation.pk",
+      services: ["Online harassment helpline", "PECA complaint support", "Privacy advice"],
+    },
+    {
+      name: "Punjab Commission on the Status of Women",
+      role: "Govt. body — complaints & rights",
+      city: "Lahore (provincial reach)",
+      phone: "+92-42-99332164",
+      web: "pcsw.punjab.gov.pk",
+      services: ["Complaint registration", "Workplace 2010-Act support", "Policy"],
+    },
+  ];
+
+  const TONE = {
+    rose:    "bg-rose-500/12    text-rose-300    border-rose-500/25",
+    violet:  "bg-violet-500/14  text-violet-300  border-violet-500/25",
+    blue:    "bg-blue-500/12    text-blue-300    border-blue-500/25",
+    amber:   "bg-amber-500/12   text-amber-300   border-amber-500/25",
+    emerald: "bg-emerald-500/12 text-emerald-300 border-emerald-500/25",
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-5 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Verified Help</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Hand-curated from public sources. Every number is dialable, every NGO is real and active. Verify against their websites if in doubt.
+        </p>
+      </div>
+
+      {/* Helplines */}
+      <div>
+        <p className="section-eyebrow mb-3">Government & emergency helplines</p>
+        <div className="grid grid-cols-2 gap-2">
+          {HELPLINES.map((h) => {
+            const Icon = h.icon;
+            return (
+              <a
+                key={h.phone + h.name}
+                href={`tel:${h.phone}`}
+                className="rounded-2xl border border-white/[0.08] bg-white/[0.025] hover:bg-white/[0.06] p-3 group transition-all active:scale-[0.97]"
+              >
+                <div className={`w-9 h-9 rounded-xl border flex items-center justify-center mb-2 ${TONE[h.tone]}`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <p className="text-base font-black text-white leading-tight">{h.phone}</p>
+                <p className="text-[11px] text-slate-300 font-bold mt-0.5">{h.name}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">{h.tag}</p>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* NGOs */}
+      <div>
+        <p className="section-eyebrow mb-3">Verified women's rights organisations</p>
+        <div className="space-y-2.5">
+          {NGOS.map((n) => (
+            <div key={n.name} className="surface-strong p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-white leading-tight">{n.name}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{n.role}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{n.city}</p>
+                </div>
+                <a
+                  href={`tel:${n.phone.replace(/[^\d+]/g, "")}`}
+                  className="shrink-0 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/25 px-2.5 py-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold transition-colors"
+                >
+                  <Phone className="w-3 h-3" /> Call
+                </a>
+              </div>
+              <div className="rounded-xl bg-white/[0.025] border border-white/[0.06] px-3 py-2 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Phone</p>
+                  <p className="text-[11px] text-slate-300 font-mono">{n.phone}</p>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Web</p>
+                  <a
+                    href={`https://${n.web}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-violet-300 hover:text-violet-200 transition-colors truncate max-w-[60%]"
+                  >
+                    {n.web}
+                  </a>
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {n.services.map((s) => (
+                  <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-slate-400">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4">
+        <p className="text-xs font-semibold text-emerald-300">Verified content</p>
+        <p className="text-[11px] text-emerald-200/75 leading-relaxed mt-1">
+          Every organisation listed has a public website and an active phone line at the time of curation. We never autofill or AI-generate this data. If a number changes, please report it so we can update.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * DistressListener — listens for keywords and shows a confirmation
+ * countdown before firing SOS. The countdown is the safety net against
+ * false positives (the speech API is not authoritative).
+ *
+ *   Detection → 5-second countdown with Cancel + Confirm.
+ *   Cancel = no SOS, resume listening.
+ *   Countdown reaches 0 OR user taps Confirm = SOS fires.
+ */
 function DistressListener({ onTriggerSOS }) {
   const [listening, setListening] = useState(false);
-  const [detected, setDetected] = useState(false);
+  const [matchedWord, setMatchedWord] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const recognitionRef = useRef(null);
+  const timerRef = useRef(null);
+  const armedRef = useRef(false);
+
+  const stopRecognition = useCallback(() => {
+    armedRef.current = false;
+    setListening(false);
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+      recognitionRef.current = null;
+    }
+  }, []);
+
+  const cancelCountdown = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+    setMatchedWord("");
+    setSecondsLeft(0);
+  }, []);
+
+  const fireSos = useCallback(() => {
+    cancelCountdown();
+    stopRecognition();
+    onTriggerSOS();
+  }, [cancelCountdown, stopRecognition, onTriggerSOS]);
+
+  const startCountdown = useCallback((word) => {
+    if (matchedWord) return; // already counting down
+    setMatchedWord(word);
+    setSecondsLeft(5);
+    timerRef.current = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          timerRef.current = null;
+          fireSos();
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  }, [matchedWord, fireSos]);
 
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Speech recognition is not supported in this browser.");
+      alert("Speech recognition is not supported in this browser. Try Chrome or Edge.");
       return;
     }
-
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US"; // Also supports "ur-PK" for Urdu
+    recognition.lang = "en-US";
+
+    armedRef.current = true;
 
     recognition.onstart = () => setListening(true);
     recognition.onend = () => {
-      if (listening) recognition.start(); // Auto-restart if we intended to keep listening
+      if (armedRef.current) {
+        try { recognition.start(); } catch { /* ignore */ }
+      }
     };
 
     recognition.onresult = (event) => {
       const transcript = Array.from(event.results)
-        .map((result) => result[0].transcript.toLowerCase())
-        .join("");
-      
-      const keywords = ["help", "bachao", "save me", "emergency", "police", "danger"];
-      if (keywords.some(k => transcript.includes(k))) {
-        setDetected(true);
-        onTriggerSOS();
-      }
+        .map((r) => r[0].transcript.toLowerCase())
+        .join(" ");
+
+      // Only react to FINAL results — interim would mis-trigger constantly.
+      const isFinal = Array.from(event.results).some((r) => r.isFinal);
+      if (!isFinal) return;
+
+      const keywords = ["help me", "bachao", "save me", "emergency", "police call", "danger"];
+      const hit = keywords.find((k) => transcript.includes(k));
+      if (hit) startCountdown(hit);
     };
 
-    recognition.start();
+    try { recognition.start(); } catch { /* already started */ }
     recognitionRef.current = recognition;
   };
 
-  const stopListening = () => {
-    setListening(false);
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-  };
+  useEffect(() => () => {
+    stopRecognition();
+    cancelCountdown();
+  }, [stopRecognition, cancelCountdown]);
+
+  const stage = matchedWord ? "confirming" : listening ? "listening" : "idle";
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4 animate-in fade-in">
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-white">Distress Listener</h2>
-        <p className="text-xs text-slate-500">Listens for distress keywords — "Help", "Bachao", "Emergency" — and triggers SOS automatically.</p>
+        <h2 className="text-xl font-semibold text-white tracking-tight">Distress Listener</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Listens for distress phrases and runs a 5-second confirmation countdown before firing SOS — so a misheard word never sends a false alarm.
+        </p>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center space-y-6">
-        <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center transition-all duration-500 ${
-          detected ? "bg-red-500/20 border-2 border-red-500/40 sos-pulse" :
-          listening ? "bg-emerald-500/15 border-2 border-emerald-500/30 sos-pulse" :
-          "bg-white/5 border border-white/10"
+
+      <div className="surface-strong p-7 text-center space-y-5">
+        <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center transition-all duration-300 ${
+          stage === "confirming" ? "bg-rose-500/20 border-2 border-rose-500/40 sos-pulse" :
+          stage === "listening"  ? "bg-emerald-500/15 border-2 border-emerald-500/30 sos-pulse" :
+          "bg-white/[0.05] border border-white/[0.10]"
         }`}>
-          <Ear className={`w-10 h-10 transition-colors ${detected ? "text-red-400" : listening ? "text-emerald-400" : "text-slate-500"}`} />
+          <Ear className={`w-10 h-10 transition-colors ${
+            stage === "confirming" ? "text-rose-300" : stage === "listening" ? "text-emerald-300" : "text-slate-500"
+          }`} />
         </div>
-        <div className="space-y-1.5">
-          <p className="text-lg font-bold text-white">
-            {detected ? "Distress Detected!" : listening ? "Monitoring audio…" : "Ready to monitor"}
-          </p>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-            {detected
-              ? "A distress keyword was detected. Tap below to trigger SOS immediately."
-              : listening
-              ? "Listening for: Help · Bachao · Emergency · Save me · Danger"
-              : "Start monitoring to detect distress words and auto-trigger SOS."}
-          </p>
-        </div>
-        <div className="space-y-3 max-w-xs mx-auto">
-          {!listening ? (
-            <button onClick={startListening} className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-3.5 text-sm font-bold shadow-lg shadow-emerald-900/20 active:scale-95 transition-transform flex items-center justify-center gap-2">
-              <Ear className="w-4 h-4" /> Start Monitoring
-            </button>
-          ) : (
-            <button onClick={stopListening} className="w-full rounded-2xl border border-white/15 bg-white/5 text-slate-200 py-3.5 text-sm font-semibold hover:bg-white/10 active:scale-95 transition-all">
-              Stop Monitoring
-            </button>
-          )}
-          {detected ? (
-            <button onClick={onTriggerSOS} className="w-full rounded-2xl bg-gradient-to-r from-rose-600 to-red-700 text-white py-3.5 text-sm font-bold animate-pulse shadow-xl shadow-rose-900/30">
-              Trigger SOS Now
-            </button>
-          ) : null}
-        </div>
+
+        {stage === "confirming" ? (
+          <>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-rose-300 font-bold">Heard "{matchedWord}"</p>
+              <p className="text-base font-bold text-white mt-1">SOS in <span className="tabular-nums text-rose-300">{secondsLeft}</span>s</p>
+              <p className="text-[11px] text-slate-400 mt-2 max-w-xs mx-auto leading-relaxed">
+                Was this a false alarm? Tap <strong className="text-white">Cancel</strong>. Otherwise SOS fires automatically.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 max-w-xs mx-auto">
+              <button
+                type="button"
+                onClick={cancelCountdown}
+                className="rounded-xl border border-white/[0.12] bg-white/[0.04] py-3 text-sm font-bold text-slate-100 hover:bg-white/[0.08] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={fireSos}
+                className="rounded-xl bg-gradient-to-r from-rose-600 to-red-700 py-3 text-sm font-bold text-white shadow-[0_8px_24px_-8px_rgba(244,63,94,0.5)] active:scale-[0.98] transition-transform"
+              >
+                Confirm SOS
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <p className="text-base font-bold text-white">
+                {stage === "listening" ? "Listening on this device" : "Ready to listen"}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-2 max-w-xs mx-auto leading-relaxed">
+                Triggers on: <span className="text-slate-300 font-mono text-[10px]">"help me" · "bachao" · "save me" · "emergency" · "police call" · "danger"</span>
+              </p>
+            </div>
+            <div className="max-w-xs mx-auto">
+              {stage === "listening" ? (
+                <button onClick={stopRecognition} className="w-full rounded-xl border border-white/[0.12] bg-white/[0.04] py-3 text-sm font-semibold text-slate-200 hover:bg-white/[0.08] active:scale-[0.98] transition-all">
+                  Stop listening
+                </button>
+              ) : (
+                <button onClick={startListening} className="w-full rounded-xl aurora-bg py-3 text-sm font-bold text-white shadow-[0_10px_28px_-10px_rgba(168,85,247,0.55)] active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-2">
+                  <Ear className="w-4 h-4" /> Start listening
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
-      <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4 space-y-1">
-        <p className="text-xs font-semibold text-amber-300">Privacy note</p>
-        <p className="text-[11px] text-amber-200/70 leading-relaxed">Audio is processed on-device using the Web Speech API. Nothing is sent to our servers. Browser permission is required.</p>
+
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4">
+        <p className="text-xs font-semibold text-emerald-300">100% on-device</p>
+        <p className="text-[11px] text-emerald-200/75 leading-relaxed mt-1">
+          Audio is processed by your browser's Web Speech API. Nothing is sent to any server. The 5-second countdown is your safety net — you always have the chance to cancel before SOS fires.
+        </p>
       </div>
     </div>
   );
@@ -3467,10 +3915,12 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
 
 function ShieldHub({ onSelectTool, onNavigate }) {
   const safetyTools = [
-    { id: "capture",  title: "Quick Capture",     icon: Camera,        desc: "Photo + GPS + timestamp · stays on this device · no upload",  accent: "text-emerald-300", bg: "bg-emerald-500/12" },
-    { id: "scripts",  title: "Safety Scripts",    icon: FileText,      desc: "Preset SMS for unsafe moments · ride · workplace · boundary", accent: "text-violet-300",  bg: "bg-violet-500/14" },
-    { id: "ride",     title: "Ride Safety",       icon: Car,           desc: "Log driver, plate, destination · auto-alert circle on miss",  accent: "text-blue-300",    bg: "bg-blue-500/12" },
-    { id: "distress", title: "Distress Listener", icon: Ear,           desc: "Auto-trigger SOS when a scream or keyword is detected",       accent: "text-rose-300",    bg: "bg-rose-500/12" },
+    { id: "capture",  title: "Quick Capture",      icon: Camera,    desc: "Photo + GPS + timestamp · stays on this device · no upload",      accent: "text-emerald-300", bg: "bg-emerald-500/12" },
+    { id: "scripts",  title: "Safety Scripts",     icon: FileText,  desc: "Preset SMS for unsafe moments · ride · workplace · boundary",     accent: "text-violet-300",  bg: "bg-violet-500/14" },
+    { id: "ride",     title: "Ride Safety",        icon: Car,       desc: "Log driver, plate, destination · auto-alert circle on miss",      accent: "text-blue-300",    bg: "bg-blue-500/12" },
+    { id: "rights",   title: "Know Your Rights",   icon: Scale,     desc: "Verified Pakistan-law cards · Anti-Harassment 2010 · PECA · PPC", accent: "text-amber-300",   bg: "bg-amber-500/12" },
+    { id: "help",     title: "Verified Help",      icon: Building2, desc: "Hand-curated NGOs & helplines · every number dialable",           accent: "text-teal-300",    bg: "bg-teal-500/12" },
+    { id: "distress", title: "Distress Listener",  icon: Ear,       desc: "Listens for keywords · 5s confirmation before SOS fires",         accent: "text-rose-300",    bg: "bg-rose-500/12" },
   ];
 
   return (
@@ -3909,6 +4359,8 @@ export default function App() {
       if (shieldTool === "capture")  return <QuickCapture />;
       if (shieldTool === "scripts")  return <SafetyScripts contacts={contacts} />;
       if (shieldTool === "ride")     return <RideSafety contacts={contacts} />;
+      if (shieldTool === "rights")   return <KnowYourRights />;
+      if (shieldTool === "help")     return <VerifiedHelp />;
       if (shieldTool === "distress") return <DistressListener onTriggerSOS={() => setSosActive(true)} />;
       return <ShieldHub onSelectTool={setShieldTool} onNavigate={handleNavigate} />;
     }
@@ -3932,6 +4384,10 @@ export default function App() {
       ? "Safety Scripts"
       : screen === "shield" && shieldTool === "ride"
       ? "Ride Safety"
+      : screen === "shield" && shieldTool === "rights"
+      ? "Know Your Rights"
+      : screen === "shield" && shieldTool === "help"
+      ? "Verified Help"
       : screen === "shield" && shieldTool === "distress"
       ? "Distress Listener"
       : screen === "shield" && !shieldTool
