@@ -18,6 +18,8 @@ import {
   AlertCircle,
   AlertTriangle,
   Building2,
+  Camera,
+  Car,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -27,14 +29,12 @@ import {
   FileText,
   Heart,
   Home,
-  Image as ImageIcon,
   Languages,
   Loader2,
   Lock,
   LogOut,
   MessageCircle,
   MapPin,
-  MessageSquare,
   Phone,
   Plus,
   Scale,
@@ -106,11 +106,11 @@ function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut
 /** Primary app sections — scrollable on small screens, complements bottom nav. */
 function ShieldSubNav({ active, onSelect }) {
   const tools = [
-    { id: null, label: "Overview" },
-    { id: "dm", label: "DM Scan" },
-    { id: "deepfake", label: "Deepfake" },
-    { id: "voice", label: "Voice" },
-    { id: "distress", label: "Distress" },
+    { id: null,        label: "Overview" },
+    { id: "capture",   label: "Capture" },
+    { id: "scripts",   label: "Scripts" },
+    { id: "ride",      label: "Ride" },
+    { id: "distress",  label: "Distress" },
   ];
   return (
     <div className="border-t border-white/[0.05] bg-[#07091a]/60">
@@ -1687,310 +1687,550 @@ function LegalChat() {
   );
 }
 
-function DMScanner() {
-  const [text, setText] = useState("");
-  const [imageBase64, setImageBase64] = useState(null);
-  const [imageMimeType, setImageMimeType] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setImageBase64(event.target.result.split(",")[1]);
-      setImageMimeType(file.type);
-    };
-    reader.readAsDataURL(file);
-  };
+/**
+ * QuickCapture — instant evidence photo with location & timestamp.
+ *
+ * Uses MediaDevices to grab a single frame from the rear camera,
+ * stamps it with date/time/GPS, and offers a download. Nothing
+ * uploads unless the user chooses Share. Works fully offline.
+ */
+function QuickCapture() {
+  const { error: toastError, success } = useToast();
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  const [streaming, setStreaming] = useState(false);
+  const [captures, setCaptures] = useState([]);
+  const [coords, setCoords] = useState(null);
 
-  const scan = async () => {
-    if ((!text.trim() && !imageBase64) || loading) return;
-    setLoading(true);
+  const stopStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    setStreaming(false);
+  }, []);
+
+  useEffect(() => () => stopStream(), [stopStream]);
+
+  const start = async () => {
+    if (streaming) return;
     try {
-      const data = await api("/dm/scan", { 
-        method: "POST", 
-        body: JSON.stringify({ 
-          text, 
-          imageBase64, 
-          imageMimeType,
-          systemPrompt: DM_SCAN_SYSTEM_PROMPT 
-        }) 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 960 } },
+        audio: false,
       });
-      setResult(data.result);
-    } finally {
-      setLoading(false);
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setStreaming(true);
+      navigator.geolocation?.getCurrentPosition(
+        (pos) => setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy }),
+        () => setCoords(null),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+      );
+    } catch (e) {
+      toastError(e?.message || "Could not access camera. Allow camera permission.");
     }
   };
 
+  const capture = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const v = videoRef.current;
+    const c = canvasRef.current;
+    c.width = v.videoWidth || 1280;
+    c.height = v.videoHeight || 960;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+
+    // Stamp overlay
+    const ts = new Date();
+    const stamp = ts.toLocaleString();
+    const gps = coords ? `GPS ${coords.lat.toFixed(5)}, ${coords.lon.toFixed(5)} (±${Math.round(coords.acc || 0)}m)` : "GPS unavailable";
+
+    const padX = 20;
+    const padY = 18;
+    const lineH = 28;
+    const boxW = Math.max(c.width * 0.75, 360);
+    const boxH = lineH * 3 + padY;
+    ctx.fillStyle = "rgba(7, 9, 26, 0.78)";
+    ctx.fillRect(padX, c.height - boxH - padY, boxW, boxH);
+    ctx.fillStyle = "#f1f5f9";
+    ctx.font = "bold 22px Inter, system-ui, sans-serif";
+    ctx.fillText(`NIgaban evidence — ${stamp}`, padX + 14, c.height - boxH - padY + 28);
+    ctx.font = "16px Inter, system-ui, sans-serif";
+    ctx.fillStyle = "#a5b4fc";
+    ctx.fillText(gps, padX + 14, c.height - boxH - padY + 56);
+    ctx.fillStyle = "#94a3b8";
+    ctx.fillText("Stored locally on this device.", padX + 14, c.height - boxH - padY + 80);
+
+    c.toBlob((blob) => {
+      const url = URL.createObjectURL(blob);
+      const id = `cap-${Date.now()}`;
+      setCaptures((prev) => [{ id, url, createdAt: ts.toISOString(), gps: coords }, ...prev].slice(0, 6));
+      success("Captured.");
+    }, "image/jpeg", 0.92);
+  };
+
+  const remove = (id) => {
+    setCaptures((prev) => {
+      const target = prev.find((c) => c.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter((c) => c.id !== id);
+    });
+  };
+
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
-      <h2 className="text-xl font-semibold">DM Harassment Scanner</h2>
-      <div className="space-y-3">
-        <textarea 
-          value={text} 
-          onChange={(e) => setText(e.target.value)} 
-          rows={4} 
-          className="w-full rounded-2xl glass-dark p-3 text-sm focus:ring-2 focus:ring-purple-500/50 outline-none" 
-          placeholder="Paste message text or upload a screenshot below..." 
-        />
-        <div className="flex flex-col gap-2">
-          <label className="text-xs text-slate-400 font-semibold">Upload Screenshot (Optional)</label>
-          <input 
-            type="file" 
-            accept="image/*" 
-            onChange={handleImageChange} 
-            className="text-xs text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-violet-600 file:text-white hover:file:bg-violet-700"
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Quick Capture</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Photo with date, time, and GPS stamped on it — saved on this device. No upload. Nothing leaves your phone unless you choose to share.
+        </p>
+      </div>
+
+      <div className="surface-strong overflow-hidden">
+        <div className="relative aspect-[4/3] bg-black/60">
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            className={`w-full h-full object-cover ${streaming ? "" : "opacity-0"}`}
           />
+          {!streaming ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-400">
+              <Camera className="w-10 h-10" />
+              <p className="text-xs font-semibold">Camera off</p>
+            </div>
+          ) : null}
+        </div>
+        <canvas ref={canvasRef} className="hidden" />
+
+        <div className="px-3 py-3 flex gap-2">
+          {!streaming ? (
+            <button type="button" onClick={start} className="flex-1 rounded-xl aurora-bg py-3 text-sm font-bold text-white shadow-[0_10px_28px_-10px_rgba(168,85,247,0.55)] active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-2">
+              <Camera className="w-4 h-4" /> Start camera
+            </button>
+          ) : (
+            <>
+              <button type="button" onClick={capture} className="flex-1 rounded-xl bg-white text-slate-900 py-3 text-sm font-bold shadow-[0_10px_28px_-10px_rgba(255,255,255,0.4)] active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-2">
+                <Camera className="w-4 h-4" /> Capture
+              </button>
+              <button type="button" onClick={stopStream} className="rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-white/[0.08] transition-colors">
+                Stop
+              </button>
+            </>
+          )}
         </div>
       </div>
-      <button 
-        onClick={scan} 
-        disabled={loading}
-        className="w-full rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 border-none shadow-lg shadow-purple-500/25 text-white py-3 text-sm font-semibold active:scale-95 transition-transform"
-      >
-        {loading ? "Analyzing with Gemini AI..." : "Scan for Harassment"}
-      </button>
-      {result && (
-        <div className="rounded-2xl glass p-4 text-sm space-y-3 animate-in slide-up">
-          <div className="flex items-center justify-between">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${result.severity > 6 ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"}`}>
-              {result.classification}
-            </span>
-            <span className="text-[10px] text-slate-400">Severity: {result.severity}/10</span>
-          </div>
-          <div className="space-y-2">
-            <p className="font-semibold text-purple-300">{result.summary}</p>
-            <div className="rounded-lg glass-dark p-2.5">
-              <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Legal Reference (PECA)</p>
-              <p className="text-xs text-slate-300 mt-1"><strong>{result.peca_section}:</strong> {result.peca_explanation}</p>
-            </div>
-            <div className="rounded-lg glass-dark p-2.5">
-              <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Recommended Action</p>
-              <p className="text-xs text-emerald-400 mt-1">{result.recommended_action}</p>
-            </div>
+
+      {captures.length > 0 ? (
+        <div>
+          <p className="section-eyebrow mb-2.5">Recent captures · stays on this device</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {captures.map((c) => (
+              <div key={c.id} className="rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.03] group">
+                <a href={c.url} download={`nigaban-evidence-${c.id}.jpg`} className="block">
+                  <img src={c.url} alt="Capture" className="w-full aspect-[4/3] object-cover" />
+                </a>
+                <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+                  <p className="text-[10px] text-slate-500 font-mono truncate">{new Date(c.createdAt).toLocaleTimeString()}</p>
+                  <div className="flex gap-1">
+                    <a href={c.url} download={`nigaban-evidence-${c.id}.jpg`} className="rounded-md p-1 hover:bg-white/[0.08] text-slate-400" aria-label="Download">
+                      <Download className="w-3.5 h-3.5" />
+                    </a>
+                    <button type="button" onClick={() => remove(c.id)} className="rounded-md p-1 hover:bg-white/[0.08] text-slate-400" aria-label="Discard">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      ) : null}
+
+      <div className="rounded-2xl border border-amber-500/15 bg-amber-500/[0.05] p-4">
+        <p className="text-xs font-semibold text-amber-300">Privacy note</p>
+        <p className="text-[11px] text-amber-200/75 leading-relaxed mt-1">
+          Captures are held only in this tab's memory. Download to keep them, or close this tab to discard. Nothing is sent to any server.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SafetyScripts — preset SMS templates for common unsafe situations.
+ *
+ * Plain copy + send buttons. No backend, no AI. Works offline.
+ */
+function SafetyScripts({ contacts }) {
+  const { success, info } = useToast();
+  const [activeTab, setActiveTab] = useState("extract");
+
+  const tabs = [
+    { id: "extract",   label: "Extract me",        eyebrow: "Polite exit" },
+    { id: "ride",      label: "Ride emergency",    eyebrow: "Cab / Uber" },
+    { id: "decline",   label: "Decline contact",   eyebrow: "Boundary" },
+    { id: "incident",  label: "After incident",    eyebrow: "Document" },
+  ];
+
+  const SCRIPTS = {
+    extract: [
+      {
+        title: "Fake work emergency call-out",
+        body: "Hi, I'm out with someone right now and I'd like a polite exit. Please call me in 3 minutes and pretend it's a work emergency that needs me back urgently.",
+      },
+      {
+        title: "Pick-up ask",
+        body: "Hi — I'm uncomfortable where I am. Can you come pick me up at [LOCATION] in the next 10 minutes? I'll send my live location next.",
+      },
+      {
+        title: "Quiet check-in",
+        body: "Heads up — I'm on a ride/meeting that doesn't feel right. I'll text 'OK' every 10 mins. If you don't hear from me, call me — and if no answer, call 15.",
+      },
+    ],
+    ride: [
+      {
+        title: "Driver detail share",
+        body: "I'm in [APP] ride. Driver: [NAME], plate: [PLATE], car: [MODEL/COLOR]. Headed to [DESTINATION]. Sharing live location next message.",
+      },
+      {
+        title: "Route deviation alert",
+        body: "🚨 Ride is going off-route. Driver: [NAME], plate: [PLATE]. My GPS: https://www.google.com/maps?q=[LAT],[LNG] — call me now or call 15.",
+      },
+      {
+        title: "Forced stop alert",
+        body: "🚨 Ride stopped somewhere unplanned. Sending GPS now: https://www.google.com/maps?q=[LAT],[LNG]. Please call 15 if you don't hear back in 5 minutes.",
+      },
+    ],
+    decline: [
+      {
+        title: "Polite firm decline",
+        body: "Thanks, but I'm not interested in continuing this conversation. Please don't message or call me again.",
+      },
+      {
+        title: "Workplace boundary",
+        body: "I'd like to keep our communication strictly work-related. Please use [OFFICIAL CHANNEL/EMAIL] for any future messages.",
+      },
+      {
+        title: "Block-and-document",
+        body: "I'm documenting these messages. Any further unwanted contact will be reported to FIA Cybercrime (1991) and to your workplace/family as relevant.",
+      },
+    ],
+    incident: [
+      {
+        title: "Incident timeline note",
+        body: "INCIDENT NOTE — [DATE] [TIME]\nLocation: [WHERE]\nWhat happened: [BRIEFLY]\nPeople involved: [NAMES/DESCRIPTIONS]\nWitnesses: [IF ANY]\nEvidence kept: [SCREENSHOTS / RECORDINGS / ITEMS]\nNext step: [POLICE / NGO / LAWYER / NONE YET]",
+      },
+      {
+        title: "Police complaint draft",
+        body: "I would like to register a complaint regarding [TYPE OF INCIDENT] that occurred on [DATE] at [LOCATION]. The person(s) involved: [DESCRIPTION]. I have the following evidence: [LIST]. I request an FIR be filed and an investigation initiated.",
+      },
+      {
+        title: "Workplace harassment report",
+        body: "Subject: Formal complaint under the Protection Against Harassment of Women at the Workplace Act 2010\n\nDear [INQUIRY COMMITTEE / OMBUDS],\n\nI wish to formally report incidents of harassment by [NAME / TITLE] occurring on [DATES]. Specifically: [DESCRIBE]. I have preserved [EVIDENCE]. I request a confidential inquiry as provided under the Act.\n\nRegards,\n[NAME]",
+      },
+    ],
+  };
+
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      success("Copied to clipboard.");
+    } catch {
+      info("Long-press to copy.");
+    }
+  };
+
+  const sendSms = (body) => {
+    const nums = (contacts || []).slice(0, 3).map((c) => String(c.phone || "").replace(/[^\d+]/g, "").trim()).filter(Boolean);
+    if (!nums.length) {
+      info("Add trusted contacts in Profile to send directly.");
+      return;
+    }
+    window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(body)}`;
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Safety Scripts</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Pre-written messages for moments when finding the right words is hard. Copy, edit, send.
+        </p>
+      </div>
+
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setActiveTab(t.id)}
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-bold tracking-wide transition-all ${
+              activeTab === t.id
+                ? "aurora-bg text-white shadow-[0_6px_16px_-6px_rgba(168,85,247,0.5)]"
+                : "bg-white/[0.04] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200 border border-white/[0.06]"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-2.5">
+        {SCRIPTS[activeTab].map((s, i) => (
+          <div key={`${activeTab}-${i}`} className="surface-strong p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="section-eyebrow mb-1">{tabs.find((t) => t.id === activeTab).eyebrow}</p>
+                <p className="text-sm font-bold text-white leading-tight">{s.title}</p>
+              </div>
+            </div>
+            <p className="text-[13px] text-slate-300 leading-relaxed whitespace-pre-line bg-white/[0.025] border border-white/[0.06] rounded-xl px-3.5 py-3">{s.body}</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => copy(s.body)}
+                className="flex-1 rounded-xl border border-white/[0.10] bg-white/[0.04] py-2.5 text-xs font-bold text-slate-200 hover:bg-white/[0.08] transition-colors inline-flex items-center justify-center gap-1.5"
+              >
+                <FileText className="w-3.5 h-3.5" /> Copy
+              </button>
+              <button
+                type="button"
+                onClick={() => sendSms(s.body)}
+                className="flex-1 rounded-xl aurora-bg py-2.5 text-xs font-bold text-white shadow-[0_6px_18px_-6px_rgba(168,85,247,0.55)] active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-1.5"
+              >
+                <Send className="w-3.5 h-3.5" /> Send to circle
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-violet-500/15 bg-violet-500/[0.05] p-4">
+        <p className="text-xs font-semibold text-violet-300">Tip</p>
+        <p className="text-[11px] text-violet-200/75 leading-relaxed mt-1">
+          Edit placeholders like <code className="text-violet-300">[NAME]</code> or <code className="text-violet-300">[LOCATION]</code> before sending. The Polite-exit scripts work best when set up <em>before</em> you go out.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * RideSafety — log driver / plate / start time, run a check-in countdown
+ * and notify circle if the check-in is missed.
+ *
+ * Pure local state + SMS dispatch + safety/timeline log entry.
+ */
+function RideSafety({ contacts }) {
+  const { success, error: toastError, info } = useToast();
+  const [form, setForm] = useState({ app: "Careem", driver: "", plate: "", model: "", destination: "" });
+  const [active, setActive] = useState(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    const id = setInterval(() => {
+      const left = Math.max(0, Math.round((active.checkInAt - Date.now()) / 1000));
+      setSecondsLeft(left);
+      if (left === 0) {
+        clearInterval(id);
+        info("Check-in window closed. Tap 'I'm safe' or alert circle.");
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [active, info]);
+
+  const buildBody = (lat, lng) => {
+    const gps = lat && lng ? ` Live: https://www.google.com/maps?q=${lat},${lng}` : "";
+    return `🚖 NIgaban ride share — ${form.app}. Driver: ${form.driver || "—"}, plate: ${form.plate || "—"} (${form.model || "—"}). Destination: ${form.destination || "—"}.${gps} If you don't hear from me by check-in time, please call me and then 15 if no answer.`;
+  };
+
+  const start = async () => {
+    if (!form.driver.trim() && !form.plate.trim()) {
+      toastError("Add at least driver name or plate number.");
+      return;
+    }
+    const checkIn = 15; // minutes
+    const startedAt = Date.now();
+    const checkInAt = startedAt + checkIn * 60 * 1000;
+    setActive({ ...form, startedAt, checkInAt });
+    setSecondsLeft(checkIn * 60);
+
+    // Push to safety/timeline best-effort
+    try {
+      await api("/safety/timeline", {
+        method: "POST",
+        body: JSON.stringify({
+          text: `Ride started · ${form.app} · driver ${form.driver || "—"} · plate ${form.plate || "—"} → ${form.destination || "—"}`,
+          context: "ride-safety",
+        }),
+      });
+    } catch { /* ignore offline */ }
+
+    // Compose SMS to circle (use geolocation if available)
+    if (navigator.geolocation && contacts?.length) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const nums = contacts.slice(0, 3).map((c) => String(c.phone || "").replace(/[^\d+]/g, "")).filter(Boolean);
+          if (nums.length) {
+            window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(buildBody(pos.coords.latitude, pos.coords.longitude))}`;
+          }
+        },
+        () => {
+          const nums = contacts.slice(0, 3).map((c) => String(c.phone || "").replace(/[^\d+]/g, "")).filter(Boolean);
+          if (nums.length) {
+            window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(buildBody())}`;
+          }
+        },
+        { enableHighAccuracy: true, timeout: 8000 },
+      );
+    }
+    success("Ride logged. Trusted circle notified by SMS.");
+  };
+
+  const finish = async () => {
+    try {
+      await api("/safety/timeline", {
+        method: "POST",
+        body: JSON.stringify({
+          text: `Ride completed safely · driver ${active?.driver || "—"} · plate ${active?.plate || "—"}`,
+          context: "ride-safety-end",
+        }),
+      });
+    } catch { /* ignore */ }
+    setActive(null);
+    setSecondsLeft(0);
+    success("Marked safe. Ride log saved.");
+  };
+
+  const alertCircle = () => {
+    if (!contacts?.length) {
+      toastError("Add trusted contacts in Profile first.");
+      return;
+    }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const nums = contacts.slice(0, 3).map((c) => String(c.phone || "").replace(/[^\d+]/g, "")).filter(Boolean);
+          window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(`🚨 NIgaban — I missed my ride check-in. Please call me. ${buildBody(pos.coords.latitude, pos.coords.longitude)}`)}`;
+        },
+        () => {
+          const nums = contacts.slice(0, 3).map((c) => String(c.phone || "").replace(/[^\d+]/g, "")).filter(Boolean);
+          window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(`🚨 NIgaban — I missed my ride check-in. Please call me. ${buildBody()}`)}`;
+        },
+      );
+    }
+  };
+
+  const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const ss = String(secondsLeft % 60).padStart(2, "0");
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Ride Safety</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Log driver and plate, alert your circle automatically, and run a check-in timer. Works fully on-device — no AI keys needed.
+        </p>
+      </div>
+
+      {!active ? (
+        <div className="surface-strong p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={form.app}
+              onChange={(e) => setForm({ ...form, app: e.target.value })}
+              className="rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500/40"
+            >
+              {["Careem", "InDrive", "Bykea", "Uber", "Yango", "Local taxi", "Friend's car"].map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+            <input
+              value={form.destination}
+              onChange={(e) => setForm({ ...form, destination: e.target.value })}
+              placeholder="Destination"
+              className="rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:border-violet-500/40"
+            />
+          </div>
+          <input
+            value={form.driver}
+            onChange={(e) => setForm({ ...form, driver: e.target.value })}
+            placeholder="Driver name"
+            className="w-full rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:border-violet-500/40"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={form.plate}
+              onChange={(e) => setForm({ ...form, plate: e.target.value.toUpperCase() })}
+              placeholder="Plate · e.g. LEA-1234"
+              className="rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm font-mono text-white placeholder-slate-600 outline-none focus:border-violet-500/40 tracking-wider"
+            />
+            <input
+              value={form.model}
+              onChange={(e) => setForm({ ...form, model: e.target.value })}
+              placeholder="Car (white Suzuki)"
+              className="rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2.5 text-sm text-white placeholder-slate-600 outline-none focus:border-violet-500/40"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={start}
+            className="w-full rounded-xl aurora-bg py-3 text-sm font-bold text-white shadow-[0_10px_28px_-10px_rgba(168,85,247,0.55)] active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-2"
+          >
+            <MapPin className="w-4 h-4" /> Start ride · alert circle
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="surface-elev p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="section-eyebrow">Ride active</p>
+              <span className={`pill ${secondsLeft > 60 ? "pill-info" : secondsLeft > 0 ? "pill-watch" : "pill-danger"}`}>
+                {secondsLeft > 0 ? "Check-in in" : "Check-in due"}
+              </span>
+            </div>
+            <p className="text-[44px] font-black text-white tabular-nums tracking-tighter leading-none">{mm}:{ss}</p>
+            <div className="rounded-xl bg-white/[0.04] border border-white/[0.08] p-3 space-y-1.5">
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Trip</p>
+              <p className="text-sm font-bold text-white">{active.app} · {active.destination || "—"}</p>
+              <p className="text-[11px] text-slate-400 font-mono">{active.driver || "—"} · plate {active.plate || "—"}{active.model ? ` · ${active.model}` : ""}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={finish}
+                className="rounded-xl bg-emerald-600 hover:bg-emerald-700 py-3 text-sm font-bold text-white active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" /> I'm safe
+              </button>
+              <button
+                type="button"
+                onClick={alertCircle}
+                className="rounded-xl bg-rose-600 hover:bg-rose-700 py-3 text-sm font-bold text-white active:scale-[0.98] transition-transform inline-flex items-center justify-center gap-2"
+              >
+                <AlertTriangle className="w-4 h-4" /> Alert circle
+              </button>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-amber-500/15 bg-amber-500/[0.05] p-4">
+            <p className="text-xs font-semibold text-amber-300">If something feels off</p>
+            <p className="text-[11px] text-amber-200/75 leading-relaxed mt-1">
+              Ask the driver to stop near a busy spot. Get out and call a contact. If you can't, hit <strong>Alert circle</strong> — they'll get your last known location with the driver details you logged.
+            </p>
+          </div>
+        </>
       )}
     </div>
   );
 }
-
-function DeepfakeDetector() {
-  const { error: toastError } = useToast();
-  const [imageBase64, setImageBase64] = useState(null);
-  const [imageMimeType, setImageMimeType] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setImageBase64(event.target.result.split(",")[1]);
-      setImageMimeType(file.type);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const analyze = async () => {
-    if (!imageBase64 || loading) return;
-    setLoading(true);
-    try {
-      const data = await api("/ai/analyze-image", {
-        method: "POST",
-        body: JSON.stringify({
-          imageBase64,
-          imageMimeType,
-          toolType: "deepfake",
-        }),
-      });
-      setResult(data.result);
-    } catch (e) {
-      toastError(e?.message || "Image analysis failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
-      <h2 className="text-xl font-semibold text-white">Deepfake Detector</h2>
-      <div className="rounded-2xl glass p-6 sm:p-8 text-center space-y-4">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-full max-w-full sm:max-w-md md:max-w-lg h-56 sm:h-64 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative group hover:bg-white/5 hover:border-purple-500/50 transition-all cursor-pointer">
-            {imageBase64 ? (
-              <img src={`data:${imageMimeType};base64,${imageBase64}`} alt="Target" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
-            ) : (
-              <div className="flex flex-col items-center gap-3 text-slate-500 group-hover:text-purple-400 transition-colors">
-                <ImageIcon className="w-10 h-10 opacity-50 group-hover:scale-110 transition-transform" />
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-white">Click to Upload Image</p>
-                  <p className="text-[10px] uppercase tracking-widest font-semibold">JPG, PNG, WEBP</p>
-                </div>
-              </div>
-            )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleImageChange} 
-              className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-            />
-          </div>
-          <p className="text-xs text-slate-400">Analysis for AI-generation, lighting inconsistencies, and artifacts.</p>
-        </div>
-        
-        <button 
-          onClick={analyze} 
-          disabled={!imageBase64 || loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 text-sm font-bold shadow-lg shadow-indigo-900/20 active:scale-95 transition-transform disabled:opacity-50"
-        >
-          {loading ? "Analyzing Image with Gemini..." : "Run AI Integrity Check"}
-        </button>
-
-        {result && (
-          <div className="rounded-2xl glass-dark p-4 text-left space-y-3 animate-in slide-up">
-            <div className="flex items-center justify-between">
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${result.classification === "AI-Generated" ? "bg-red-500/20 text-red-400" : result.classification === "Suspicious" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
-                {result.classification}
-              </span>
-              <span className="text-[10px] text-slate-400">
-                Confidence:{" "}
-                {typeof result.confidence_score === "number"
-                  ? result.confidence_score <= 1
-                    ? Math.round(result.confidence_score * 100)
-                    : Math.round(result.confidence_score)
-                  : "—"}
-                %
-              </span>
-            </div>
-            <p className="text-sm text-slate-200">{result.explanation}</p>
-            {result.anomalies?.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Detected Anomalies</p>
-                <ul className="text-xs text-slate-400 list-disc list-inside">
-                  {result.anomalies.map((a, i) => <li key={i}>{a}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function VoiceDetector() {
-  const { error: toastError } = useToast();
-  const [fileBase64, setFileBase64] = useState(null);
-  const [mimeType, setMimeType] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setFileBase64(event.target.result.split(",")[1]);
-      setMimeType(file.type);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const analyze = async () => {
-    if (!fileBase64 || loading) return;
-    setLoading(true);
-    try {
-      const data = await api("/ai/analyze-image", {
-        method: "POST",
-        body: JSON.stringify({
-          imageBase64: fileBase64,
-          imageMimeType: mimeType,
-          toolType: "voice",
-        }),
-      });
-      setResult(data.result);
-    } catch (e) {
-      toastError(e?.message || "Voice analysis failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 pt-4 pb-28 space-y-5 animate-in fade-in">
-      <h2 className="text-xl font-semibold text-white">Voice Clone Detector</h2>
-      <div className="rounded-2xl glass p-6 sm:p-8 text-center space-y-4">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-full max-w-full sm:max-w-md h-36 sm:h-40 rounded-2xl glass-dark border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden relative group hover:bg-white/5 hover:border-purple-500/50 transition-all cursor-pointer">
-            {fileBase64 ? (
-              <div className="flex flex-col items-center gap-2 text-purple-400">
-                <Volume2 className="w-8 h-8 group-hover:scale-110 transition-transform" />
-                <p className="text-xs font-semibold">Audio Ready (Click to change)</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3 text-slate-500 group-hover:text-purple-400 transition-colors">
-                <Volume2 className="w-10 h-10 opacity-50 group-hover:scale-110 transition-transform" />
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-white">Click to Upload Audio</p>
-                  <p className="text-[10px] uppercase tracking-widest font-semibold">MP3, WAV, M4A</p>
-                </div>
-              </div>
-            )}
-            <input 
-              type="file" 
-              accept="audio/*" 
-              onChange={handleFileChange} 
-              className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-            />
-          </div>
-          <p className="text-xs text-slate-400">Upload a recording to check for AI cloning or synthetic robotic patterns.</p>
-        </div>
-        
-        <button 
-          onClick={analyze} 
-          disabled={!fileBase64 || loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-3.5 text-sm font-bold shadow-lg active:scale-95 transition-transform disabled:opacity-50"
-        >
-          {loading ? "Analyzing Audio with Gemini..." : "Run AI Voice Integrity Check"}
-        </button>
-
-        {result && (
-          <div className="rounded-2xl glass-dark p-4 text-left space-y-3 animate-in slide-up">
-            <div className="flex items-center justify-between">
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${result.classification === "Synthetic" ? "bg-red-500/20 text-red-400" : result.classification === "Suspicious" ? "bg-amber-500/20 text-amber-400" : "bg-emerald-500/20 text-emerald-400"}`}>
-                {result.classification}
-              </span>
-              <span className="text-[10px] text-slate-400">
-                Confidence:{" "}
-                {typeof result.confidence_score === "number"
-                  ? result.confidence_score <= 1
-                    ? Math.round(result.confidence_score * 100)
-                    : Math.round(result.confidence_score)
-                  : "—"}
-                %
-              </span>
-            </div>
-            <p className="text-sm text-slate-200">{result.explanation}</p>
-            {result.anomalies?.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Detected Artifacts</p>
-                <ul className="text-xs text-slate-400 list-disc list-inside">
-                  {result.anomalies.map((a, i) => <li key={i}>{a}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-
 
 function DistressListener({ onTriggerSOS }) {
   const [listening, setListening] = useState(false);
@@ -3226,11 +3466,11 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
 }
 
 function ShieldHub({ onSelectTool, onNavigate }) {
-  const aiTools = [
-    { id: "dm",       title: "DM Harassment Scanner", icon: MessageSquare, desc: "Scan screenshots for threats · PECA 2016 citations", accent: "text-pink-400",   bg: "bg-pink-500/10" },
-    { id: "deepfake", title: "Deepfake Detector",      icon: ImageIcon,     desc: "Verify image authenticity with Gemini vision",         accent: "text-violet-400", bg: "bg-violet-500/10" },
-    { id: "voice",    title: "Voice Clone Detector",   icon: Volume2,       desc: "Analyze suspicious audio for manipulation",            accent: "text-blue-400",   bg: "bg-blue-500/10" },
-    { id: "distress", title: "Distress Listener",      icon: Ear,           desc: "Auto-SOS when a scream or keyword is detected",        accent: "text-rose-400",   bg: "bg-rose-500/10" },
+  const safetyTools = [
+    { id: "capture",  title: "Quick Capture",     icon: Camera,        desc: "Photo + GPS + timestamp · stays on this device · no upload",  accent: "text-emerald-300", bg: "bg-emerald-500/12" },
+    { id: "scripts",  title: "Safety Scripts",    icon: FileText,      desc: "Preset SMS for unsafe moments · ride · workplace · boundary", accent: "text-violet-300",  bg: "bg-violet-500/14" },
+    { id: "ride",     title: "Ride Safety",       icon: Car,           desc: "Log driver, plate, destination · auto-alert circle on miss",  accent: "text-blue-300",    bg: "bg-blue-500/12" },
+    { id: "distress", title: "Distress Listener", icon: Ear,           desc: "Auto-trigger SOS when a scream or keyword is detected",       accent: "text-rose-300",    bg: "bg-rose-500/12" },
   ];
 
   return (
@@ -3244,26 +3484,26 @@ function ShieldHub({ onSelectTool, onNavigate }) {
             <Shield className="w-6 h-6 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="section-eyebrow mb-1">AI Shield</p>
-            <h2 className="text-lg font-bold text-white tracking-tight">Verify before you trust.</h2>
+            <p className="section-eyebrow mb-1">Safety toolkit</p>
+            <h2 className="text-lg font-bold text-white tracking-tight">Tools that work the moment you need them.</h2>
             <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-              Scan messages, images, voice, and ambient sound — all on demand. Your evidence stays on this device unless you choose to share it.
+              Every tool here runs on this device. No AI key required. Your evidence stays with you unless you choose to share it.
             </p>
           </div>
         </div>
       </div>
 
-      {/* AI Protection */}
+      {/* Safety toolkit */}
       <div>
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="section-eyebrow">AI protection tools</p>
-            <p className="text-[10px] text-slate-600 mt-0.5">Groq Llama 3.3 · Gemini Vision</p>
+            <p className="section-eyebrow">Safety toolkit</p>
+            <p className="text-[10px] text-slate-600 mt-0.5">Offline-first · works without external APIs</p>
           </div>
-          <span className="pill pill-info">Beta</span>
+          <span className="pill pill-safe">Working</span>
         </div>
         <div className="space-y-2">
-          {aiTools.map((t) => {
+          {safetyTools.map((t) => {
             const Icon = t.icon;
             return (
               <button key={t.id} type="button" onClick={() => onSelectTool(t.id)}
@@ -3666,9 +3906,9 @@ export default function App() {
     if (screen === "community") return <CommunityScreen />;
     if (screen === "more") return <MoreScreen settings={settings} setSettings={setSettings} contacts={contacts} setContacts={setContacts} onNavigate={handleNavigate} />;
     if (screen === "shield") {
-      if (shieldTool === "dm") return <DMScanner />;
-      if (shieldTool === "deepfake") return <DeepfakeDetector />;
-      if (shieldTool === "voice") return <VoiceDetector />;
+      if (shieldTool === "capture")  return <QuickCapture />;
+      if (shieldTool === "scripts")  return <SafetyScripts contacts={contacts} />;
+      if (shieldTool === "ride")     return <RideSafety contacts={contacts} />;
       if (shieldTool === "distress") return <DistressListener onTriggerSOS={() => setSosActive(true)} />;
       return <ShieldHub onSelectTool={setShieldTool} onNavigate={handleNavigate} />;
     }
@@ -3686,16 +3926,16 @@ export default function App() {
       ? "Legal AI Desk"
       : screen === "hifazat"
       ? "Hifazat Guide"
-      : screen === "shield" && shieldTool === "dm"
-      ? "DM Harassment Scanner"
-      : screen === "shield" && shieldTool === "deepfake"
-      ? "Deepfake Detector"
-      : screen === "shield" && shieldTool === "voice"
-      ? "Voice Clone Detector"
+      : screen === "shield" && shieldTool === "capture"
+      ? "Quick Capture"
+      : screen === "shield" && shieldTool === "scripts"
+      ? "Safety Scripts"
+      : screen === "shield" && shieldTool === "ride"
+      ? "Ride Safety"
       : screen === "shield" && shieldTool === "distress"
       ? "Distress Listener"
       : screen === "shield" && !shieldTool
-      ? "AI Shield"
+      ? "Safety Toolkit"
       : null;
 
   const authShellLoading = !clerkLoaded || !supabaseAuthReady;

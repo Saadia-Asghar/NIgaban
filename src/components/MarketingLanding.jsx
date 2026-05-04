@@ -1,22 +1,21 @@
 import {
   Activity,
   ArrowRight,
+  Camera,
+  Car,
   CheckCircle2,
   Ear,
   FileText,
-  Image as ImageIcon,
   Keyboard,
   Layers,
   Lock,
   MapPin,
-  MessageCircle,
   Mic,
   Phone,
   Scale,
   Shield,
   Smartphone,
   Sparkles,
-  Volume2,
   Waves,
 } from "lucide-react";
 import { NigabanLogo, NigabanWordmark } from "./Brand.jsx";
@@ -61,10 +60,10 @@ const FEATURES = [
   { icon: Phone,         tone: "emerald", title: "Fake call",           desc: "Realistic incoming call screen. Slip away from threatening situations without confrontation." },
   { icon: Waves,         tone: "rose",    title: "Shake-to-SOS",        desc: "A short countdown gives you a chance to cancel. If you don't, full SOS fires automatically." },
   { icon: MapPin,        tone: "emerald", title: "Safe transit",        desc: "Share live trip with trusted contacts. Auto-alerts on route deviation or missed check-ins." },
-  { icon: ImageIcon,     tone: "violet",  title: "Deepfake detector",   desc: "Verify suspicious images with Gemini Vision. Find tampering before believing the threat." },
-  { icon: Volume2,       tone: "blue",    title: "Voice clone scan",    desc: "Analyze suspicious audio for synthetic patterns and impersonation cues." },
+  { icon: Camera,        tone: "emerald", title: "Quick capture",       desc: "Photo with date, time, and GPS stamped on it — saved on this device. No upload." },
+  { icon: FileText,      tone: "violet",  title: "Safety scripts",      desc: "Preset SMS for unsafe moments — polite extraction, ride emergency, workplace boundary, post-incident." },
+  { icon: Car,           tone: "blue",    title: "Ride safety",         desc: "Log driver, plate, destination. Auto-alert your circle if you miss a check-in." },
   { icon: Ear,           tone: "rose",    title: "Distress listener",   desc: "Auto-SOS when scream patterns or trigger words are detected nearby. Off by default." },
-  { icon: MessageCircle, tone: "violet",  title: "DM harassment scan",  desc: "Paste a screenshot. Get a calm, structured read with PECA 2016 citations." },
   { icon: Mic,           tone: "amber",   title: "Voice journal",       desc: "Discreet recording for your own paper trail. Stays on this device until you download." },
   { icon: Activity,      tone: "blue",    title: "Community pulse",     desc: "Anonymous reports from women near you. Tap any pin for an AI-written safety summary." },
 ];
@@ -236,7 +235,7 @@ export default function MarketingLanding({ onTryBrowser, onBypass, installPrompt
       <section className="px-5 py-16 max-w-5xl mx-auto">
         <div className="text-center space-y-2 mb-10">
           <p className="section-eyebrow">Everything in one app</p>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Twelve tools. One calm flow.</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Every tool. One calm flow.</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {FEATURES.map(({ icon: Icon, tone, title, desc }) => (
