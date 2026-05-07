@@ -110,9 +110,12 @@ function Header({ lang, setLang, title, showBack, onBack, userProfile, onSignOut
 function ShieldSubNav({ active, onSelect }) {
   const tools = [
     { id: null,        label: "Overview" },
+    { id: "guardian",  label: "Guardian" },
+    { id: "places",    label: "Places" },
     { id: "capture",   label: "Capture" },
     { id: "scripts",   label: "Scripts" },
     { id: "ride",      label: "Ride" },
+    { id: "defense",   label: "Defense" },
     { id: "rights",    label: "Rights" },
     { id: "help",      label: "Verified" },
     { id: "distress",  label: "Distress" },
@@ -2312,6 +2315,558 @@ function RideSafety({ contacts }) {
 }
 
 /**
+ * GuardianTimer — "Watch over me for N minutes."
+ *
+ * The simplest possible safety contract: user arms a timer with a
+ * destination ("Home from class"). At T-2-min the user gets a check-in
+ * prompt. If they don't respond before T=0, an SMS to the circle goes
+ * out automatically with last-known GPS. Inspired by bSafe's "Follow Me"
+ * and Watch Over Me's activity timer.
+ */
+function GuardianTimer({ contacts }) {
+  const { success, info, error: toastError } = useToast();
+  const [duration, setDuration] = useState(15);
+  const [label, setLabel] = useState("");
+  const [active, setActive] = useState(null);
+  const [remaining, setRemaining] = useState(0);
+  const [warned, setWarned] = useState(false);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    intervalRef.current = setInterval(() => {
+      const left = Math.max(0, Math.round((active.endsAt - Date.now()) / 1000));
+      setRemaining(left);
+      if (left <= 120 && !warned) {
+        setWarned(true);
+        info("2 minutes left — please tap 'I'm safe' or extend.");
+      }
+      if (left === 0) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+        autoAlert();
+      }
+    }, 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, warned]);
+
+  const autoAlert = () => {
+    if (!contacts?.length) {
+      toastError("Timer expired — but no contacts configured.");
+      setActive(null);
+      return;
+    }
+    const send = (lat, lon) => {
+      const gps = lat && lon ? `https://www.google.com/maps?q=${lat},${lon}` : "(GPS unavailable)";
+      const body = `🚨 NIgaban Guardian — I missed my "${active.label || "safety"}" check-in. Last known: ${gps}. Please call me. If no answer in 5 min, call 15.`;
+      const nums = contacts.slice(0, 3).map((c) => String(c.phone || "").replace(/[^\d+]/g, "")).filter(Boolean);
+      if (nums.length) window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(body)}`;
+    };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => send(pos.coords.latitude, pos.coords.longitude),
+        () => send(),
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      send();
+    }
+    haptics.alarm();
+    setActive(null);
+  };
+
+  const start = () => {
+    const mins = Math.max(1, Math.min(180, Number(duration) || 15));
+    const startedAt = Date.now();
+    const endsAt = startedAt + mins * 60 * 1000;
+    setActive({ label: label.trim() || "Watch me", startedAt, endsAt, durationMin: mins });
+    setRemaining(mins * 60);
+    setWarned(false);
+    haptics.confirm();
+    success(`Guardian armed for ${mins} min.`);
+    api("/safety/timeline", {
+      method: "POST",
+      body: JSON.stringify({ text: `Guardian timer armed: "${label.trim() || "Watch me"}" · ${mins} min`, context: "guardian-arm" }),
+    }).catch(() => { /* offline ok */ });
+  };
+
+  const safe = () => {
+    haptics.tap();
+    api("/safety/timeline", {
+      method: "POST",
+      body: JSON.stringify({ text: `Guardian "${active?.label || "watch me"}" closed safely`, context: "guardian-safe" }),
+    }).catch(() => {});
+    setActive(null);
+    setRemaining(0);
+    success("Marked safe. Guardian closed.");
+  };
+
+  const extend = (mins) => {
+    if (!active) return;
+    setActive((a) => ({ ...a, endsAt: a.endsAt + mins * 60 * 1000 }));
+    setWarned(false);
+    info(`Extended by ${mins} min.`);
+    haptics.tap();
+  };
+
+  const cancel = () => {
+    if (!active) return;
+    setActive(null);
+    setRemaining(0);
+    info("Guardian cancelled. No alert sent.");
+  };
+
+  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const ss = String(remaining % 60).padStart(2, "0");
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Guardian Timer</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          "Watch over me until I check in." If you don't tap <strong>I'm safe</strong> in time, your circle gets your last-known GPS automatically.
+        </p>
+      </div>
+
+      {!active ? (
+        <div className="surface-strong p-4 space-y-3">
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Home from class"
+            className="w-full rounded-xl px-3.5 py-2.5 text-sm text-white outline-none"
+            aria-label="Guardian session label"
+          />
+          <div className="flex items-center gap-2">
+            <select
+              value={duration}
+              onChange={(e) => setDuration(e.target.value)}
+              className="flex-1 rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+            >
+              {[5, 10, 15, 20, 30, 45, 60, 90, 120].map((m) => (
+                <option key={m} value={m}>{m} minutes</option>
+              ))}
+            </select>
+            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">duration</span>
+          </div>
+          <button
+            type="button"
+            onClick={start}
+            disabled={!contacts?.length}
+            className="btn-primary w-full"
+          >
+            {contacts?.length ? "Arm Guardian" : "Add contacts to arm"}
+          </button>
+          {!contacts?.length ? (
+            <p className="text-[11px] text-amber-300 text-center">Add at least one trusted contact in Profile so the auto-alert can reach someone.</p>
+          ) : null}
+        </div>
+      ) : (
+        <>
+          <div className="surface-elev p-5 text-center space-y-4">
+            <div>
+              <p className="section-eyebrow">Guardian active</p>
+              <p className="text-base font-bold text-white mt-1">{active.label}</p>
+            </div>
+            <p className={`text-[56px] font-black tabular-nums tracking-tighter leading-none ${remaining <= 120 ? "text-rose-300" : "text-white"}`}>
+              {mm}:{ss}
+            </p>
+            <p className="text-[11px] text-slate-400 leading-relaxed max-w-xs mx-auto">
+              Auto-SMS to your circle when this hits zero.
+            </p>
+            <div className="grid grid-cols-2 gap-2 max-w-sm mx-auto">
+              <button type="button" onClick={safe} className="btn-primary inline-flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-4 h-4" /> I'm safe
+              </button>
+              <button type="button" onClick={() => extend(10)} className="neu inline-flex items-center justify-center gap-2">
+                <Plus className="w-4 h-4" /> +10 min
+              </button>
+            </div>
+            <button type="button" onClick={cancel} className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors">
+              Cancel without alert
+            </button>
+          </div>
+        </>
+      )}
+
+      <div className="rounded-2xl border border-violet-500/15 bg-violet-500/[0.05] p-4">
+        <p className="text-xs font-semibold text-violet-300">When to use this</p>
+        <p className="text-[11px] text-violet-200/75 leading-relaxed mt-1">
+          Walking home alone · meeting someone new · a late commute · a first date. Set the timer for slightly longer than you expect to need. If you arrive safely you tap <strong>I'm safe</strong> — done. If anything goes wrong, your circle is alerted automatically.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SavedPlaces — store frequent destinations and one-tap-share them with
+ * the trusted circle. Like the "Home / Work" pins in Google Maps but
+ * with quick-share SMS templates: "On my way", "I've arrived", "Pick me
+ * up". Locations stay in localStorage — never uploaded.
+ */
+function SavedPlaces({ contacts }) {
+  const { success, info, error: toastError } = useToast();
+  const [places, setPlaces] = useState(() => {
+    try {
+      const raw = localStorage.getItem("nigaban_places_v1");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [form, setForm] = useState({ label: "", address: "" });
+
+  useEffect(() => {
+    try { localStorage.setItem("nigaban_places_v1", JSON.stringify(places)); } catch { /* ignore */ }
+  }, [places]);
+
+  const addPlace = () => {
+    if (!form.label.trim() || !form.address.trim()) {
+      toastError("Both label and address are required.");
+      return;
+    }
+    const id = `p-${Date.now()}`;
+    setPlaces((prev) => [{ id, ...form }, ...prev]);
+    setForm({ label: "", address: "" });
+    haptics.tap();
+    success(`"${form.label}" saved.`);
+  };
+
+  const remove = (id) => {
+    setPlaces((prev) => prev.filter((p) => p.id !== id));
+    info("Place removed.");
+  };
+
+  const share = (place, kind) => {
+    if (!contacts?.length) {
+      toastError("Add trusted contacts in Profile first.");
+      return;
+    }
+    const nums = contacts.slice(0, 3).map((c) => String(c.phone || "").replace(/[^\d+]/g, "")).filter(Boolean);
+    if (!nums.length) {
+      toastError("Contacts have no valid numbers.");
+      return;
+    }
+    const templates = {
+      onway:    `🚶 NIgaban — On my way to ${place.label} (${place.address}). Will share live location next.`,
+      arrived:  `✅ NIgaban — I've arrived safely at ${place.label} (${place.address}).`,
+      pickup:   `🆘 NIgaban — Please pick me up at ${place.label} (${place.address}). I'll explain when you arrive.`,
+    };
+    const body = templates[kind];
+    haptics.confirm();
+    if (kind === "onway" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const gps = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+          window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(body + " Live: " + gps)}`;
+        },
+        () => { window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(body)}`; },
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    } else {
+      window.location.href = `sms:${nums.join(",")}?body=${encodeURIComponent(body)}`;
+    }
+  };
+
+  const presetIcons = (label) => {
+    const l = label.toLowerCase();
+    if (l.includes("home") || l.includes("ghar")) return Home;
+    if (l.includes("work") || l.includes("office") || l.includes("daftar")) return Building2;
+    if (l.includes("school") || l.includes("uni") || l.includes("college")) return Sparkles;
+    return MapPin;
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Saved Places</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Save your frequent spots — Home, Work, friends' houses. One tap shares "On my way", "Arrived", or "Pick me up" with your trusted circle.
+        </p>
+      </div>
+
+      {/* Add form */}
+      <div className="surface-strong p-4 space-y-2.5">
+        <p className="section-eyebrow">Add a place</p>
+        <div className="grid grid-cols-2 gap-2">
+          <input
+            value={form.label}
+            onChange={(e) => setForm({ ...form, label: e.target.value })}
+            placeholder="Label · e.g. Home"
+            className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+          />
+          <input
+            value={form.address}
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+            placeholder="Area · e.g. DHA Phase 5"
+            className="rounded-xl px-3 py-2.5 text-sm text-white outline-none"
+          />
+        </div>
+        <button type="button" onClick={addPlace} className="btn-primary w-full inline-flex items-center justify-center gap-2">
+          <Plus className="w-4 h-4" /> Save place
+        </button>
+      </div>
+
+      {/* List */}
+      {places.length === 0 ? (
+        <div className="surface-strong p-6 text-center">
+          <div className="w-10 h-10 rounded-xl bg-white/[0.04] mx-auto flex items-center justify-center mb-2">
+            <MapPin className="w-5 h-5 text-slate-500" />
+          </div>
+          <p className="text-sm text-slate-300 font-bold">No places yet</p>
+          <p className="text-[11px] text-slate-500 mt-1 max-w-xs mx-auto">Add Home, Work, and family addresses for one-tap circle updates.</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {places.map((p) => {
+            const Icon = presetIcons(p.label);
+            return (
+              <div key={p.id} className="surface-strong p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="w-9 h-9 rounded-xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center shrink-0">
+                      <Icon className="w-4 h-4 text-violet-300" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-white">{p.label}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 truncate">{p.address}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => remove(p.id)}
+                    aria-label="Remove place"
+                    className="rounded-lg p-1.5 hover:bg-white/[0.06] text-slate-500 hover:text-rose-300 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => share(p, "onway")}
+                    className="rounded-xl border border-white/[0.08] bg-white/[0.025] hover:bg-white/[0.06] py-2 text-[11px] font-bold text-slate-200 transition-colors active:scale-[0.97]"
+                  >
+                    On my way
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => share(p, "arrived")}
+                    className="rounded-xl border border-emerald-500/25 bg-emerald-500/[0.08] hover:bg-emerald-500/[0.16] py-2 text-[11px] font-bold text-emerald-200 transition-colors active:scale-[0.97]"
+                  >
+                    Arrived
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => share(p, "pickup")}
+                    className="rounded-xl border border-rose-500/25 bg-rose-500/[0.08] hover:bg-rose-500/[0.16] py-2 text-[11px] font-bold text-rose-200 transition-colors active:scale-[0.97]"
+                  >
+                    Pick me up
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4">
+        <p className="text-xs font-semibold text-emerald-300">Stays on this device</p>
+        <p className="text-[11px] text-emerald-200/75 leading-relaxed mt-1">
+          Saved places live in this browser's storage. Nothing uploads. Clearing browser data removes them.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SelfDefense — verified, plain-language self-defense reference.
+ *
+ * Hand-curated cards covering the most common urban-Pakistan threat
+ * scenarios. Pure content, no AI. Marked clearly: this is orientation,
+ * not professional training — a hands-on class will always serve better.
+ */
+function SelfDefense() {
+  const [openId, setOpenId] = useState("shout");
+
+  const TIPS = [
+    {
+      id: "shout",
+      tone: "amber",
+      eyebrow: "Voice · first response",
+      title: "What to shout — and why",
+      summary: "Loud, specific words attract more attention than 'help'.",
+      points: [
+        "Shout 'AAG! AAG!' (fire, fire) — bystanders react faster to fire than to other distress.",
+        "Or shout 'CHOR! CHOR!' (thief, thief) — same principle, mobilises bystanders.",
+        "Use a short, repeating word — easier to project at full volume than a sentence.",
+        "Make eye contact with the closest person and point: 'YOU — call the police.' Diffuses bystander effect.",
+      ],
+      action: "Practice yelling at full volume in a safe space — the first time you shout that loud should not be in a real emergency.",
+    },
+    {
+      id: "wrist",
+      tone: "rose",
+      eyebrow: "Grab · escape",
+      title: "Escaping a wrist grab",
+      summary: "Rotate your wrist toward the gap between the attacker's thumb and fingers — the weakest point of any grip.",
+      points: [
+        "Twist your forearm so your thumb points UP and away from their grip line.",
+        "Pull sharply through the gap between their thumb and fingers — never against the four fingers.",
+        "If grabbed by both wrists, drop your weight low and snap both arms outward and down at once.",
+        "Free hand should immediately become a strike: palm to nose or open-hand to ear.",
+      ],
+      action: "Practice with a partner at low intensity. Speed matters more than strength — grips are weakest in the first 1–2 seconds.",
+    },
+    {
+      id: "behind",
+      tone: "rose",
+      eyebrow: "Grab · from behind",
+      title: "Grabbed from behind (bear hug)",
+      summary: "Drop your weight, stomp the foot, throw the head back, then peel-and-turn.",
+      points: [
+        "Drop your hips low — bend your knees. This makes you heavy and harder to lift.",
+        "Stomp DOWN on the top of their foot with your heel — the metatarsals are very fragile.",
+        "Snap your head BACK into their nose or chin (only if your skull will reach).",
+        "Once their grip loosens, peel one arm down and pivot on that side to face them.",
+      ],
+      action: "If you can run, run as soon as the grip loosens. Don't try to fight to win — fight to escape.",
+    },
+    {
+      id: "weapon",
+      tone: "violet",
+      eyebrow: "Weapon · de-escalate",
+      title: "If a weapon is shown",
+      summary: "Property is replaceable. You are not. Comply with property demands; resist only if your life is the demand.",
+      points: [
+        "Hand over phone, bag, jewellery without argument. Toss them slightly to the side — gives you space to move while they reach.",
+        "If they try to move you to a second location, your odds are far worse there. Resist with everything you have to stay where there are witnesses.",
+        "Keep your eyes on their eyes / hands, not the weapon. Look for distance + cover.",
+        "If unavoidable, attack the weapon-holding hand first: bite, twist, strike.",
+      ],
+      action: "Memorise: 'Stuff is replaceable. I am not.' This single sentence has saved lives.",
+    },
+    {
+      id: "pressure",
+      tone: "rose",
+      eyebrow: "Strike · vulnerable points",
+      title: "Where to strike if you must",
+      summary: "Eyes, nose, throat, knees, groin. Anything else wastes precious seconds.",
+      points: [
+        "Eyes — open-hand thumb-strike. Causes immediate retreat and watering.",
+        "Nose — palm-heel strike upward. Disorients without you needing to make a fist.",
+        "Throat — knife-edge of hand. Causes coughing, breaks grip.",
+        "Knees — front kick at the kneecap. A bent knee that hyperextends ends the chase.",
+        "Groin — knee strike if close, kick if at distance. Brief but reliable.",
+      ],
+      action: "Train one or two of these to muscle memory. Don't try to remember a list under stress — pick two and practice.",
+    },
+    {
+      id: "stalking",
+      tone: "amber",
+      eyebrow: "Followed · on foot or by vehicle",
+      title: "Being followed",
+      summary: "Verify, then change context fast.",
+      points: [
+        "On foot: cross the road. Cross again 30 seconds later. Genuine traffic doesn't follow you across two crossings.",
+        "Make a phone call out loud — say someone is meeting you 'in 2 minutes at the corner'.",
+        "Walk into a busy shop, hotel lobby, restaurant — somewhere with staff and CCTV.",
+        "By car: take three right turns. A real follower will become obvious. Drive to the nearest police station, not home.",
+      ],
+      action: "Never lead a follower to your home. The point is to expose them in public, not in private.",
+    },
+    {
+      id: "online",
+      tone: "blue",
+      eyebrow: "Cyber · evidence first",
+      title: "Online harassment & blackmail",
+      summary: "Preserve evidence before reacting. Then escalate cleanly.",
+      points: [
+        "SCREENSHOT every message before blocking. Include URL, timestamp, profile name.",
+        "Do NOT delete the conversation, even if it disgusts you — it's evidence.",
+        "Do not negotiate with blackmailers. Paying once becomes paying forever.",
+        "File at FIA Cybercrime (1991) or complaint.fia.gov.pk under PECA Section 21/24 (depending on the offence).",
+      ],
+      action: "Tell one trusted person — even if you're embarrassed. Isolation is what blackmailers rely on.",
+    },
+  ];
+
+  const TONE = {
+    rose:    "from-rose-500/12    to-rose-500/[0.04]    border-rose-500/25    text-rose-300",
+    amber:   "from-amber-500/12   to-amber-500/[0.04]   border-amber-500/25   text-amber-300",
+    violet:  "from-violet-500/12  to-violet-500/[0.04]  border-violet-500/25  text-violet-300",
+    blue:    "from-blue-500/12    to-blue-500/[0.04]    border-blue-500/25    text-blue-300",
+    emerald: "from-emerald-500/12 to-emerald-500/[0.04] border-emerald-500/25 text-emerald-300",
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4 pt-4 pb-28 space-y-4 animate-in fade-in">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-white tracking-tight">Self-Defense Quick Reference</h2>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          Plain-language techniques curated from Pakistan-context safety advice. <strong className="text-slate-400">Orientation only — a hands-on class will always serve you better.</strong>
+        </p>
+      </div>
+
+      <div className="space-y-2.5">
+        {TIPS.map((t) => {
+          const open = openId === t.id;
+          return (
+            <div
+              key={t.id}
+              className={`rounded-2xl border bg-gradient-to-br ${TONE[t.tone]} overflow-hidden transition-all`}
+            >
+              <button
+                type="button"
+                onClick={() => setOpenId(open ? null : t.id)}
+                className="w-full px-4 py-3.5 flex items-start gap-3 text-left"
+              >
+                <Shield className={`w-4 h-4 shrink-0 mt-0.5 ${TONE[t.tone].split(" ").pop()}`} />
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[10px] uppercase tracking-[0.18em] font-bold ${TONE[t.tone].split(" ").pop()}`}>{t.eyebrow}</p>
+                  <p className="text-sm font-bold text-white mt-0.5 leading-snug">{t.title}</p>
+                </div>
+                <ChevronRight className={`w-4 h-4 text-slate-500 shrink-0 mt-1 transition-transform ${open ? "rotate-90" : ""}`} />
+              </button>
+              {open ? (
+                <div className="px-4 pb-4 space-y-3 animate-in slide-up duration-200">
+                  <p className="text-[13px] text-slate-200 leading-relaxed">{t.summary}</p>
+                  <ul className="space-y-1.5">
+                    {t.points.map((p, i) => (
+                      <li key={i} className="flex gap-2 text-[12px] text-slate-300 leading-relaxed">
+                        <span className="text-slate-500 shrink-0">·</span>
+                        <span>{p}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="rounded-xl bg-black/30 border border-white/[0.06] px-3 py-2.5">
+                    <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Practice tip</p>
+                    <p className="text-[12px] text-slate-200 mt-1 leading-relaxed">{t.action}</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.05] p-4">
+        <p className="text-xs font-semibold text-violet-300">Train it, don't read it</p>
+        <p className="text-[11px] text-violet-200/75 leading-relaxed mt-1">
+          Reading techniques won't make you safer. Pick one — wrist escape or where-to-strike — and practice it slowly with a friend until it's reflex. Look up local self-defense classes for women in your city via the <strong className="text-violet-200">Verified Help</strong> directory.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * KnowYourRights — verified, citation-backed reference cards.
  *
  * Hand-curated content from public Pakistani statute. No AI, no
@@ -4039,9 +4594,12 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
 
 function ShieldHub({ onSelectTool, onNavigate }) {
   const safetyTools = [
+    { id: "guardian", title: "Guardian Timer",     icon: Activity,  desc: "Watch over me until I check in · auto-alert if I miss the timer",  accent: "text-violet-300",  bg: "bg-violet-500/14" },
+    { id: "places",   title: "Saved Places",       icon: Home,      desc: "Home · Work · friends · one-tap 'On my way' / 'Arrived' SMS",     accent: "text-blue-300",    bg: "bg-blue-500/12" },
     { id: "capture",  title: "Quick Capture",      icon: Camera,    desc: "Photo + GPS + timestamp · stays on this device · no upload",      accent: "text-emerald-300", bg: "bg-emerald-500/12" },
     { id: "scripts",  title: "Safety Scripts",     icon: FileText,  desc: "Preset SMS for unsafe moments · ride · workplace · boundary",     accent: "text-violet-300",  bg: "bg-violet-500/14" },
     { id: "ride",     title: "Ride Safety",        icon: Car,       desc: "Log driver, plate, destination · auto-alert circle on miss",      accent: "text-blue-300",    bg: "bg-blue-500/12" },
+    { id: "defense",  title: "Self-Defense",       icon: Shield,    desc: "Verified techniques · escape grabs · what to shout · where to hit", accent: "text-rose-300",   bg: "bg-rose-500/12" },
     { id: "rights",   title: "Know Your Rights",   icon: Scale,     desc: "Verified Pakistan-law cards · Anti-Harassment 2010 · PECA · PPC", accent: "text-amber-300",   bg: "bg-amber-500/12" },
     { id: "help",     title: "Verified Help",      icon: Building2, desc: "Hand-curated NGOs & helplines · every number dialable",           accent: "text-teal-300",    bg: "bg-teal-500/12" },
     { id: "distress", title: "Distress Listener",  icon: Ear,       desc: "Listens for keywords · 5s confirmation before SOS fires",         accent: "text-rose-300",    bg: "bg-rose-500/12" },
@@ -4481,9 +5039,12 @@ export default function App() {
     if (screen === "more") return <MoreScreen settings={settings} setSettings={setSettings} contacts={contacts} setContacts={setContacts} onNavigate={handleNavigate} />;
     if (screen === "about") return <AboutScreen onBack={() => handleNavigate("more")} />;
     if (screen === "shield") {
+      if (shieldTool === "guardian") return <GuardianTimer contacts={contacts} />;
+      if (shieldTool === "places")   return <SavedPlaces contacts={contacts} />;
       if (shieldTool === "capture")  return <QuickCapture />;
       if (shieldTool === "scripts")  return <SafetyScripts contacts={contacts} />;
       if (shieldTool === "ride")     return <RideSafety contacts={contacts} />;
+      if (shieldTool === "defense")  return <SelfDefense />;
       if (shieldTool === "rights")   return <KnowYourRights />;
       if (shieldTool === "help")     return <VerifiedHelp />;
       if (shieldTool === "distress") return <DistressListener onTriggerSOS={() => setSosActive(true)} />;
@@ -4505,12 +5066,18 @@ export default function App() {
       ? "Legal AI Desk"
       : screen === "hifazat"
       ? "Hifazat Guide"
+      : screen === "shield" && shieldTool === "guardian"
+      ? "Guardian Timer"
+      : screen === "shield" && shieldTool === "places"
+      ? "Saved Places"
       : screen === "shield" && shieldTool === "capture"
       ? "Quick Capture"
       : screen === "shield" && shieldTool === "scripts"
       ? "Safety Scripts"
       : screen === "shield" && shieldTool === "ride"
       ? "Ride Safety"
+      : screen === "shield" && shieldTool === "defense"
+      ? "Self-Defense"
       : screen === "shield" && shieldTool === "rights"
       ? "Know Your Rights"
       : screen === "shield" && shieldTool === "help"
