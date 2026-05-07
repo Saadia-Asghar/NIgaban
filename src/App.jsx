@@ -9,10 +9,12 @@ import FakeCallOverlay from "./components/FakeCallOverlay.jsx";
 import VoiceNoteRecorder from "./components/VoiceNoteRecorder.jsx";
 import FirstVisitWelcome from "./components/FirstVisitWelcome.jsx";
 import HifazatGuide from "./components/HifazatGuide.jsx";
+import AboutScreen from "./components/AboutScreen.jsx";
 import { NigabanLogo, NigabanWordmark } from "./components/Brand.jsx";
 import { BRAND_TAGLINE_EN, BRAND_TAGLINE_UR, BRAND_TAGLINE_SHORT } from "./lib/brand.js";
 import { buildIncidentReportText, downloadIncidentReport, printIncidentReportAsPdf } from "./lib/incidentReport.js";
 import { useToast } from "./lib/toastContext.jsx";
+import haptics from "./lib/haptics.js";
 import {
   Activity,
   AlertCircle,
@@ -40,6 +42,7 @@ import {
   Scale,
   Send,
   Shield,
+  Sparkles,
   Volume2,
   X,
   Smartphone,
@@ -177,7 +180,7 @@ function BottomNav({ active, onNavigate, onSOS }) {
         <div className="flex flex-col items-center -mt-7">
           <button
             type="button"
-            onClick={onSOS}
+            onClick={() => { haptics.warn(); onSOS(); }}
             aria-label="Emergency SOS"
             className="w-[68px] h-[68px] rounded-full bg-gradient-to-br from-rose-500 via-rose-600 to-red-700 flex flex-col items-center justify-center text-white active:scale-95 transition-transform sos-pulse"
             style={{
@@ -343,6 +346,7 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
 function HomeScreen({
   onNavigate,
   contacts,
+  settings,
   timelineEntries,
   timelineText,
   setTimelineText,
@@ -429,10 +433,70 @@ function HomeScreen({
               onClick={() => onNavigate("shield")}
               className="flex-1 rounded-xl aurora-bg px-3 py-2 text-[11px] font-bold text-white shadow-[0_6px_18px_-6px_rgba(168,85,247,0.55)] active:scale-[0.97] transition-transform flex items-center justify-center gap-1.5"
             >
-              <Shield className="w-3.5 h-3.5" /> AI Shield
+              <Shield className="w-3.5 h-3.5" /> Safety toolkit
             </button>
           </div>
         </div>
+
+        {/* ── 1.5 Setup nudge ── */}
+        {(() => {
+          const noContacts = (contacts?.length || 0) === 0;
+          const defaultPin = !settings?.cancelPin || settings?.cancelPin === "1234";
+          const incomplete = noContacts || defaultPin;
+          if (!incomplete) return null;
+          const total = 2;
+          const done = (noContacts ? 0 : 1) + (defaultPin ? 0 : 1);
+          const pct = Math.round((done / total) * 100);
+          return (
+            <div className="surface-strong p-4 space-y-3 animate-in slide-up">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="section-eyebrow">Finish setup</p>
+                  <p className="text-sm font-bold text-white mt-0.5">Make NIgaban truly yours.</p>
+                  <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{done}/{total} steps done · takes 30 seconds</p>
+                </div>
+                <span className="pill pill-info">{pct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden" style={{ boxShadow: "inset 2px 2px 4px rgba(0,0,0,0.4)" }}>
+                <div className="h-full aurora-bg rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+              </div>
+              <div className="space-y-2">
+                {noContacts ? (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("more")}
+                    className="w-full flex items-center gap-3 rounded-xl bg-white/[0.025] border border-white/[0.06] px-3 py-2.5 hover:bg-white/[0.05] transition-colors active:scale-[0.99] text-left"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/25 flex items-center justify-center shrink-0">
+                      <Heart className="w-4 h-4 text-rose-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-white">Add trusted contacts</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">They get your live GPS the moment SOS fires.</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+                  </button>
+                ) : null}
+                {defaultPin ? (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate("more")}
+                    className="w-full flex items-center gap-3 rounded-xl bg-white/[0.025] border border-white/[0.06] px-3 py-2.5 hover:bg-white/[0.05] transition-colors active:scale-[0.99] text-left"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center shrink-0">
+                      <Lock className="w-4 h-4 text-violet-300" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-white">Set a private SOS PIN</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Used to cancel a misfired SOS — change from default 1234.</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── 2. Quick action grid ── */}
         <div>
@@ -1785,6 +1849,7 @@ function QuickCapture() {
       const url = URL.createObjectURL(blob);
       const id = `cap-${Date.now()}`;
       setCaptures((prev) => [{ id, url, createdAt: ts.toISOString(), gps: coords }, ...prev].slice(0, 6));
+      haptics.confirm();
       success("Captured.");
     }, "image/jpeg", 0.92);
   };
@@ -2431,6 +2496,7 @@ function KnowYourRights() {
  * users can dial directly. Curated from public sources — verifiable.
  */
 function VerifiedHelp() {
+  const [query, setQuery] = useState("");
   const HELPLINES = [
     { name: "Police emergency",                    phone: "15",   tag: "24/7 nationwide",         icon: Shield,        tone: "rose"    },
     { name: "Madadgaar (Women's helpline)",        phone: "1099", tag: "Govt. of Pakistan",       icon: Phone,         tone: "violet"  },
@@ -2550,9 +2616,29 @@ function VerifiedHelp() {
 
       {/* NGOs */}
       <div>
-        <p className="section-eyebrow mb-3">Verified women's rights organisations</p>
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <p className="section-eyebrow">Verified women's rights organisations</p>
+          <p className="text-[10px] text-slate-600">{NGOS.filter((n) => {
+            if (!query.trim()) return true;
+            const q = query.toLowerCase();
+            return n.name.toLowerCase().includes(q) || n.role.toLowerCase().includes(q) || n.city.toLowerCase().includes(q) || n.services.some((s) => s.toLowerCase().includes(q));
+          }).length}/{NGOS.length}</p>
+        </div>
+        <div className="mb-3">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, city, or service…"
+            className="w-full rounded-xl px-3.5 py-2.5 text-sm text-white outline-none"
+            aria-label="Filter organisations"
+          />
+        </div>
         <div className="space-y-2.5">
-          {NGOS.map((n) => (
+          {NGOS.filter((n) => {
+            if (!query.trim()) return true;
+            const q = query.toLowerCase();
+            return n.name.toLowerCase().includes(q) || n.role.toLowerCase().includes(q) || n.city.toLowerCase().includes(q) || n.services.some((s) => s.toLowerCase().includes(q));
+          }).map((n) => (
             <div key={n.name} className="surface-strong p-4">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="min-w-0">
@@ -2593,6 +2679,16 @@ function VerifiedHelp() {
               </div>
             </div>
           ))}
+          {query.trim() && NGOS.filter((n) => {
+            const q = query.toLowerCase();
+            return n.name.toLowerCase().includes(q) || n.role.toLowerCase().includes(q) || n.city.toLowerCase().includes(q) || n.services.some((s) => s.toLowerCase().includes(q));
+          }).length === 0 ? (
+            <div className="surface-strong p-6 text-center">
+              <p className="text-sm text-slate-300 font-bold">No matches for "{query}"</p>
+              <p className="text-[11px] text-slate-500 mt-1">Try a different search term, or call <a href="tel:1099" className="text-violet-300 underline">1099</a> for general guidance.</p>
+              <button type="button" onClick={() => setQuery("")} className="mt-3 text-[11px] text-violet-300 hover:text-violet-200 font-bold">Clear search</button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -3921,6 +4017,22 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
           </div>
         ) : null}
       </div>
+
+      {/* About / Privacy link */}
+      <button
+        type="button"
+        onClick={() => onNavigate("about")}
+        className="surface-strong w-full flex items-center gap-3 px-4 py-3.5 text-left hover:opacity-90 transition-opacity active:scale-[0.99]"
+      >
+        <div className="w-9 h-9 rounded-xl bg-violet-500/15 border border-violet-500/25 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4 h-4 text-violet-300" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-white">About NIgaban</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Version, privacy, FAQs, credits</p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-slate-500" />
+      </button>
     </div>
   );
 }
@@ -4361,12 +4473,13 @@ export default function App() {
   };
 
   const rendered = useMemo(() => {
-    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} contacts={contacts} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} communityFeed={communityFeed} />;
+    if (screen === "home") return <HomeScreen onNavigate={handleNavigate} contacts={contacts} settings={settings} timelineEntries={timelineEntries} timelineText={timelineText} setTimelineText={setTimelineText} onAddTimeline={addTimelineEntry} timelineSaving={timelineSaving} communityFeed={communityFeed} />;
     if (screen === "hifazat") return <HifazatGuide variant="page" />;
     if (screen === "legal") return <LegalChat />;
     if (screen === "transit") return <SafeTransit contacts={contacts} autoDialPolice={settings.autoDialPolice} />;
     if (screen === "community") return <CommunityScreen />;
     if (screen === "more") return <MoreScreen settings={settings} setSettings={setSettings} contacts={contacts} setContacts={setContacts} onNavigate={handleNavigate} />;
+    if (screen === "about") return <AboutScreen onBack={() => handleNavigate("more")} />;
     if (screen === "shield") {
       if (shieldTool === "capture")  return <QuickCapture />;
       if (shieldTool === "scripts")  return <SafetyScripts contacts={contacts} />;
@@ -4386,6 +4499,8 @@ export default function App() {
       ? "Community"
       : screen === "more"
       ? "Profile"
+      : screen === "about"
+      ? "About NIgaban"
       : screen === "legal"
       ? "Legal AI Desk"
       : screen === "hifazat"
@@ -4450,12 +4565,14 @@ export default function App() {
                 (screen === "shield" && shieldTool !== null) ||
                 screen === "hifazat" ||
                 screen === "legal" ||
-                screen === "transit"
+                screen === "transit" ||
+                screen === "about"
               }
               onBack={() => {
                 if (screen === "hifazat") handleNavigate("shield");
                 else if (screen === "legal") handleNavigate("shield");
                 else if (screen === "transit") handleNavigate("home");
+                else if (screen === "about") handleNavigate("more");
                 else setShieldTool(null);
               }}
               userProfile={userProfile}
