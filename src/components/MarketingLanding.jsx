@@ -91,7 +91,7 @@ const TONE = {
 
 export default function MarketingLanding({ onTryBrowser, onBypass, installPromptEvent, onInstall }) {
   return (
-    <div className="w-full bg-[#07091a] text-slate-100 overflow-x-hidden">
+    <div className="w-full bg-[#1b1f33] text-slate-100 overflow-x-hidden">
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="relative px-5 pt-16 pb-20 max-w-3xl mx-auto">

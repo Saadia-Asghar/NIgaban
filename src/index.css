@@ -9,25 +9,34 @@
    =================================================================== */
 
 :root {
-  /* Surface — true midnight, slight blue cast */
-  --color-bg:           #07091a;
-  --color-bg-elevated:  #0d1027;
-  --color-surface:      #14182f;
-  --color-surface-2:    #1c2143;
-  --color-overlay:      rgba(7, 9, 26, 0.72);
+  /* ===================================================================
+     Neumorphic surface palette — slightly raised base so the shadow
+     pair has room to breathe. The contrast between --neu-light and
+     --neu-dark on top of --color-bg is what creates depth.
+     =================================================================== */
+  --color-bg:           #1b1f33;   /* base surface for neumorphic depth */
+  --color-bg-elevated:  #1f2339;
+  --color-surface:      #232843;
+  --color-surface-2:    #2a3050;
+  --color-overlay:      rgba(15, 17, 32, 0.74);
+
+  --neu-light:          rgba(255, 255, 255, 0.045);   /* top-left highlight */
+  --neu-dark:           rgba(0, 0, 0, 0.55);          /* bottom-right shadow */
+  --neu-light-strong:   rgba(255, 255, 255, 0.07);
+  --neu-dark-strong:    rgba(0, 0, 0, 0.7);
 
   /* Borders */
-  --color-border:       rgba(255, 255, 255, 0.06);
-  --color-border-2:     rgba(255, 255, 255, 0.10);
-  --color-border-hot:   rgba(167, 139, 250, 0.28);
+  --color-border:       rgba(255, 255, 255, 0.04);
+  --color-border-2:     rgba(255, 255, 255, 0.07);
+  --color-border-hot:   rgba(167, 139, 250, 0.30);
 
   /* Text */
   --color-text:         #f1f5f9;
-  --color-text-muted:   #94a3b8;
-  --color-text-faint:   #64748b;
-  --color-text-mute2:   #475569;
+  --color-text-muted:   #aab3c5;
+  --color-text-faint:   #768097;
+  --color-text-mute2:   #586075;
 
-  /* Brand — Aurora */
+  /* Brand — Aurora (kept as accent for buttons / brand mark) */
   --aurora-1:           #6366f1;   /* indigo-500 */
   --aurora-2:           #a855f7;   /* purple-500 */
   --aurora-3:           #ec4899;   /* pink-500 */
@@ -39,15 +48,22 @@
   --status-danger:      #ef4444;
   --status-info:        #3b82f6;
 
-  /* Radii */
-  --r-sm: 0.625rem;
-  --r-md: 0.875rem;
-  --r-lg: 1.125rem;
-  --r-xl: 1.5rem;
-  --r-2xl: 1.75rem;
+  /* Radii — neumorphic prefers larger radii for the soft pillow look */
+  --r-sm: 0.75rem;
+  --r-md: 1rem;
+  --r-lg: 1.25rem;
+  --r-xl: 1.625rem;
+  --r-2xl: 2rem;
 
-  /* Shadows */
-  --shadow-card:    0 24px 48px -12px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(255,255,255,0.05) inset;
+  /* Composite shadow recipes */
+  --neu-raised:         8px 8px 20px var(--neu-dark), -8px -8px 20px var(--neu-light);
+  --neu-raised-sm:      4px 4px 10px var(--neu-dark), -4px -4px 10px var(--neu-light);
+  --neu-raised-lg:      14px 14px 32px var(--neu-dark-strong), -14px -14px 32px var(--neu-light-strong);
+  --neu-pressed:        inset 6px 6px 12px var(--neu-dark), inset -6px -6px 12px var(--neu-light);
+  --neu-pressed-sm:     inset 3px 3px 6px var(--neu-dark), inset -3px -3px 6px var(--neu-light);
+
+  /* Legacy alias kept for backwards-compat */
+  --shadow-card:    var(--neu-raised);
   --shadow-glow-p:  0 0 40px rgba(168, 85, 247, 0.35);
   --shadow-glow-r:  0 0 40px rgba(244, 63, 94, 0.45);
   --shadow-glow-e:  0 0 32px rgba(16, 185, 129, 0.3);
@@ -63,10 +79,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--color-text);
+  /* Neumorphic base — uniform, slightly elevated background.
+     Subtle aurora glow remains so brand colour still breathes. */
   background:
-    radial-gradient(ellipse 70% 60% at 12% 0%,    rgba(99, 102, 241, 0.14) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 88% 8%,    rgba(168,  85, 247, 0.10) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 50% 100%,  rgba(236,  72, 153, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 12% 0%,    rgba(99, 102, 241, 0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 60% at 88% 8%,    rgba(168,  85, 247, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 60% at 50% 100%,  rgba(236,  72, 153, 0.05) 0%, transparent 60%),
     var(--color-bg);
   background-attachment: fixed;
 }
@@ -116,96 +134,168 @@ body {
   pointer-events: none;
 }
 
-/* ===== Surfaces ===== */
-.surface {
-  background: rgba(255, 255, 255, 0.025);
+/* ===================================================================
+   Neumorphic surface system
+   ─────────────────────────────────────────────────────────────────
+   Every surface uses the same body colour as the page so the soft
+   shadow pair (dark bottom-right, light top-left) creates the floating
+   pillow effect. Borders are barely visible — depth comes from shadow.
+   =================================================================== */
+
+.surface,
+.surface-strong {
+  background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--r-xl);
+  box-shadow: var(--neu-raised-sm);
 }
-.surface-strong {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border-2);
-  border-radius: var(--r-xl);
-}
+
+.surface-strong { box-shadow: var(--neu-raised); }
+
 .surface-elev {
-  background: linear-gradient(165deg,
-    rgba(255, 255, 255, 0.07) 0%,
-    rgba(255, 255, 255, 0.02) 45%,
-    rgba(20, 24, 47, 0.55) 100%);
+  background: var(--color-bg);
   border: 1px solid var(--color-border-2);
   border-radius: var(--r-2xl);
-  box-shadow: var(--shadow-card);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  box-shadow: var(--neu-raised-lg);
 }
+
 .surface-card {
   border-radius: var(--r-2xl);
   border: 1px solid var(--color-border-2);
-  background: linear-gradient(165deg,
-    rgba(255, 255, 255, 0.075) 0%,
-    rgba(255, 255, 255, 0.02) 42%,
-    rgba(13, 16, 39, 0.55) 100%);
-  box-shadow: var(--shadow-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--color-bg);
+  box-shadow: var(--neu-raised);
 }
 .surface-card-interactive {
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease, background 0.25s ease;
+  transition: box-shadow 0.25s ease, transform 0.18s ease;
 }
 .surface-card-interactive:hover {
-  border-color: var(--color-border-hot);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.08) inset,
-    0 28px 56px -14px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(168, 85, 247, 0.12);
+  box-shadow: var(--neu-raised-lg);
+  transform: translateY(-1px);
+}
+.surface-card-interactive:active {
+  box-shadow: var(--neu-pressed);
+  transform: translateY(0);
 }
 
+/* Inset/pressed surface — used for input fields and active states */
+.surface-pressed {
+  background: var(--color-bg);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  box-shadow: var(--neu-pressed-sm);
+}
+
+/* Glass kept for translucent overlays only (sticky header, modals).
+   Now matches neumorphic palette. */
 .glass {
-  background: rgba(255,255,255,0.045);
+  background: rgba(255, 255, 255, 0.025);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 .glass-dark {
-  background: rgba(13, 16, 39, 0.78);
+  background: rgba(27, 31, 51, 0.82);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-/* ===== Buttons ===== */
+/* ===================================================================
+   Neumorphic buttons
+   ─────────────────────────────────────────────────────────────────
+   Three styles:
+     .neu          — raised tactile button, blends with background
+     .neu-press    — same but presses inward when active
+     .neu-aurora   — aurora-tinted raised pill for primary actions
+   =================================================================== */
+
+.neu {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-2);
+  border-radius: var(--r-md);
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  box-shadow: var(--neu-raised-sm);
+  transition: box-shadow 0.18s ease, transform 0.15s ease;
+}
+.neu:hover  { box-shadow: var(--neu-raised); }
+.neu:active { box-shadow: var(--neu-pressed-sm); transform: translateY(1px); }
+.neu:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+/* btn-primary — aurora-tinted raised pill */
 .btn-primary {
   background: linear-gradient(135deg, var(--aurora-1), var(--aurora-2), var(--aurora-3));
   color: white;
   font-weight: 700;
-  border-radius: 0.875rem;
+  border-radius: var(--r-md);
   padding: 0.75rem 1.25rem;
-  box-shadow: 0 8px 24px -8px rgba(168, 85, 247, 0.55), 0 1px 0 rgba(255,255,255,0.18) inset;
-  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  box-shadow:
+    var(--neu-raised-sm),
+    0 0 24px rgba(168, 85, 247, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: box-shadow 0.18s ease, transform 0.15s ease, opacity 0.18s ease;
 }
-.btn-primary:hover    { box-shadow: 0 12px 32px -10px rgba(168, 85, 247, 0.7), 0 1px 0 rgba(255,255,255,0.18) inset; }
-.btn-primary:active   { transform: scale(0.98); }
-.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-primary:hover {
+  box-shadow:
+    var(--neu-raised),
+    0 0 32px rgba(168, 85, 247, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.btn-primary:active   { transform: translateY(1px); box-shadow: var(--neu-pressed-sm); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
 .btn-ghost {
-  background: rgba(255,255,255,0.04);
+  background: var(--color-bg);
   color: var(--color-text);
   border: 1px solid var(--color-border-2);
-  border-radius: 0.875rem;
+  border-radius: var(--r-md);
   padding: 0.75rem 1.25rem;
   font-weight: 600;
-  transition: background 0.2s ease, transform 0.15s ease;
+  box-shadow: var(--neu-raised-sm);
+  transition: box-shadow 0.18s ease, transform 0.15s ease;
 }
-.btn-ghost:hover  { background: rgba(255,255,255,0.08); }
-.btn-ghost:active { transform: scale(0.98); }
+.btn-ghost:hover  { box-shadow: var(--neu-raised); }
+.btn-ghost:active { transform: translateY(1px); box-shadow: var(--neu-pressed-sm); }
 
 .btn-danger {
   background: linear-gradient(135deg, #f43f5e, #dc2626);
   color: white;
   font-weight: 700;
-  border-radius: 0.875rem;
+  border-radius: var(--r-md);
   padding: 0.75rem 1.25rem;
-  box-shadow: 0 8px 24px -8px rgba(244, 63, 94, 0.55);
+  box-shadow:
+    var(--neu-raised-sm),
+    0 0 28px rgba(244, 63, 94, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.btn-danger:active { transform: translateY(1px); box-shadow: var(--neu-pressed-sm); }
+
+/* Tactile icon disc — raised circular button for icons */
+.neu-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  background: var(--color-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--neu-raised-sm);
+  transition: box-shadow 0.18s ease, transform 0.15s ease;
+}
+.neu-icon:hover  { box-shadow: var(--neu-raised); }
+.neu-icon:active { box-shadow: var(--neu-pressed-sm); transform: translateY(1px); }
+
+/* Inset / pressed disc — for active toggle states */
+.neu-icon-pressed {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  background: var(--color-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--neu-pressed-sm);
 }
 
 /* ===== Section eyebrow / title ===== */
@@ -310,61 +400,78 @@ body {
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 100%);
 }
 
-/* ===== Form controls ===== */
+/* ===================================================================
+   Neumorphic form controls — inset / embossed look
+   =================================================================== */
 @layer base {
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
   textarea,
   select {
-    background-color: rgba(13, 16, 39, 0.7);
+    background-color: var(--color-bg);
     color: var(--color-text);
+    box-shadow: var(--neu-pressed-sm);
+    border: 1px solid var(--color-border) !important;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    box-shadow:
+      var(--neu-pressed-sm),
+      0 0 0 1px rgba(168, 85, 247, 0.35);
+    outline: none;
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: rgba(148, 163, 184, 0.45);
+    color: rgba(170, 179, 197, 0.42);
   }
 }
 
-select option { background-color: #0d1027; color: var(--color-text); }
+select option { background-color: var(--color-bg-elevated); color: var(--color-text); }
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--color-text);
-  -webkit-box-shadow: 0 0 0px 1000px var(--color-bg-elevated) inset;
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-bg) inset, var(--neu-pressed-sm);
   transition: background-color 5000s ease-in-out 0s;
 }
 
-/* ===== Toggle switch ===== */
+/* ===== Toggle switch — neumorphic ===== */
 .toggle-switch {
   position: relative; display: inline-block;
-  width: 42px; height: 24px; flex-shrink: 0;
+  width: 46px; height: 26px; flex-shrink: 0;
 }
 .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
 .toggle-track {
   position: absolute; inset: 0;
-  background: rgba(255, 255, 255, 0.10);
+  background: var(--color-bg);
   border-radius: 99px;
   cursor: pointer;
-  transition: background 0.25s ease;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: var(--neu-pressed-sm);
   border: 1px solid rgba(255,255,255,0.08);
 }
 .toggle-track::before {
   content: "";
   position: absolute;
-  height: 16px; width: 16px;
+  height: 18px; width: 18px;
   left: 3px; top: 3px;
-  background: #94a3b8;
+  background: #aab3c5;
   border-radius: 50%;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.4), -1px -1px 3px rgba(255,255,255,0.05);
   transition: transform 0.25s ease, background 0.25s ease;
 }
 .toggle-switch input:checked + .toggle-track {
   background: linear-gradient(135deg, var(--aurora-1), var(--aurora-2), var(--aurora-3));
-  border-color: transparent;
+  box-shadow: var(--neu-raised-sm), 0 0 14px rgba(168,85,247,0.32);
 }
 .toggle-switch input:checked + .toggle-track::before {
-  transform: translateX(18px);
+  transform: translateX(20px);
   background: white;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.45), -1px -1px 4px rgba(255,255,255,0.18);
 }
 
 /* ===== Section divider ===== */

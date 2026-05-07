@@ -115,7 +115,7 @@ function ShieldSubNav({ active, onSelect }) {
     { id: "distress",  label: "Distress" },
   ];
   return (
-    <div className="border-t border-white/[0.05] bg-[#07091a]/60">
+    <div className="border-t border-white/[0.05] bg-[#1b1f33]/60">
       <nav className="flex gap-1.5 overflow-x-auto px-3 py-2.5 scrollbar-thin" aria-label="AI Shield tools">
         {tools.map((t) => (
           <button
@@ -148,7 +148,15 @@ function BottomNav({ active, onNavigate, onSOS }) {
         aria-current={on ? "page" : undefined}
         className="flex flex-col items-center gap-1 px-3 py-1 min-w-0 group"
       >
-        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200 ${on ? "bg-white/[0.10] shadow-[0_8px_24px_-12px_rgba(168,85,247,0.5)] ring-1 ring-violet-400/25" : "group-hover:bg-white/[0.04]"}`}>
+        <div
+          className="w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200"
+          style={{
+            background: "var(--color-bg)",
+            boxShadow: on
+              ? "inset 4px 4px 9px rgba(0,0,0,0.55), inset -4px -4px 9px rgba(255,255,255,0.045), 0 0 12px rgba(168,85,247,0.18)"
+              : "4px 4px 10px rgba(0,0,0,0.45), -4px -4px 10px rgba(255,255,255,0.04)",
+          }}
+        >
           <Icon className={`w-[22px] h-[22px] transition-colors ${on ? "text-violet-300" : "text-slate-500 group-hover:text-slate-300"}`} />
         </div>
         <span className={`text-[9px] font-bold tracking-[0.05em] uppercase transition-colors ${on ? "text-violet-200" : "text-slate-600 group-hover:text-slate-400"}`}>{label}</span>
@@ -159,7 +167,7 @@ function BottomNav({ active, onNavigate, onSOS }) {
   return (
     <nav
       aria-label="Primary navigation"
-      className="fixed bottom-0 inset-x-0 z-40 bg-[#07091a]/95 backdrop-blur-2xl border-t border-white/[0.06] pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+      className="fixed bottom-0 inset-x-0 z-40 bg-[#1b1f33]/95 backdrop-blur-2xl border-t border-white/[0.06] pb-[max(0.5rem,env(safe-area-inset-bottom))]"
     >
       <div className="w-full max-w-md mx-auto flex items-end justify-around pt-2">
         {btn("home", Home, "Home")}
@@ -171,7 +179,11 @@ function BottomNav({ active, onNavigate, onSOS }) {
             type="button"
             onClick={onSOS}
             aria-label="Emergency SOS"
-            className="w-[68px] h-[68px] rounded-full bg-gradient-to-br from-rose-500 via-rose-600 to-red-700 border-[4px] border-[#07091a] shadow-[0_10px_32px_-6px_rgba(239,68,68,0.7),0_0_28px_rgba(239,68,68,0.45)] flex flex-col items-center justify-center text-white active:scale-95 transition-transform sos-pulse"
+            className="w-[68px] h-[68px] rounded-full bg-gradient-to-br from-rose-500 via-rose-600 to-red-700 flex flex-col items-center justify-center text-white active:scale-95 transition-transform sos-pulse"
+            style={{
+              boxShadow:
+                "8px 8px 18px rgba(0,0,0,0.55), -6px -6px 14px rgba(255,255,255,0.05), 0 0 28px rgba(239,68,68,0.5), inset 0 1px 0 rgba(255,255,255,0.25)",
+            }}
           >
             <AlertTriangle className="w-7 h-7" strokeWidth={2.6} />
           </button>
@@ -211,7 +223,7 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
 
   if (showMarketing) {
     return (
-      <div className="min-h-screen bg-[#07091a] w-full animate-in fade-in overflow-y-auto">
+      <div className="min-h-screen bg-[#1b1f33] w-full animate-in fade-in overflow-y-auto">
         <MarketingLanding
           onTryBrowser={() => setShowMarketing(false)}
           onBypass={onBypass}
@@ -223,9 +235,9 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#07091a] flex flex-col lg:flex-row animate-in fade-in">
+    <div className="min-h-[100dvh] bg-[#1b1f33] flex flex-col lg:flex-row animate-in fade-in">
       {/* LEFT PANEL — branding + features (desktop only / top on mobile) */}
-      <div className="lg:flex-1 lg:min-h-screen relative overflow-hidden bg-gradient-to-br from-[#07091a] via-[#0d1027] to-[#07091a] flex flex-col justify-between px-6 pt-10 pb-8 lg:px-12 lg:pt-16">
+      <div className="lg:flex-1 lg:min-h-screen relative overflow-hidden bg-gradient-to-br from-[#1b1f33] via-[#1f2339] to-[#1b1f33] flex flex-col justify-between px-6 pt-10 pb-8 lg:px-12 lg:pt-16">
         <div className="pointer-events-none absolute inset-0 hero-grid opacity-30" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
 
@@ -283,7 +295,7 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
       </div>
 
       {/* RIGHT PANEL — auth form */}
-      <div className="lg:w-[480px] lg:min-h-screen flex flex-col justify-center px-6 py-8 lg:px-12 lg:py-16 bg-[#07091a] border-t border-white/5 lg:border-t-0 lg:border-l">
+      <div className="lg:w-[480px] lg:min-h-screen flex flex-col justify-center px-6 py-8 lg:px-12 lg:py-16 bg-[#1b1f33] border-t border-white/5 lg:border-t-0 lg:border-l">
         <div className="w-full max-w-sm mx-auto space-y-6">
           <div>
             <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight">
@@ -299,7 +311,7 @@ function WelcomeAuthScreen({ onBypass, installPromptEvent, onInstall }) {
           <div className="relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/8" /></div>
             <div className="relative flex justify-center">
-              <span className="bg-[#07091a] px-3 text-[10px] text-slate-600 uppercase tracking-widest">or</span>
+              <span className="bg-[#1b1f33] px-3 text-[10px] text-slate-600 uppercase tracking-widest">or</span>
             </div>
           </div>
 
@@ -992,8 +1004,8 @@ function CommunityScreen() {
                 onChange={(e) => setChatForm((prev) => ({ ...prev, mode: e.target.value }))}
                 className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
               >
-                <option value="chat" className="bg-[#0d1027]">General chat</option>
-                <option value="incident" className="bg-[#0d1027]">Report incident</option>
+                <option value="chat" className="bg-[#1f2339]">General chat</option>
+                <option value="incident" className="bg-[#1f2339]">Report incident</option>
               </select>
               <select
                 value={chatForm.category}
@@ -1001,7 +1013,7 @@ function CommunityScreen() {
                 className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
               >
                 {["Harassment", "Unsafe Transit", "Suspicious Activity", "Cyber Abuse", "Other"].map((cat) => (
-                  <option key={cat} value={cat} className="bg-[#0d1027]">{cat}</option>
+                  <option key={cat} value={cat} className="bg-[#1f2339]">{cat}</option>
                 ))}
               </select>
             </div>
@@ -1111,7 +1123,7 @@ function CommunityScreen() {
             className="rounded-lg glass-dark px-2.5 py-2 text-sm text-slate-300 outline-none focus:ring-2 focus:ring-purple-500/50"
           >
             {["Harassment", "Unsafe Transit", "Suspicious Activity", "Cyber Abuse", "Other"].map((cat) => (
-              <option key={cat} value={cat} className="bg-[#0d1027]">{cat}</option>
+              <option key={cat} value={cat} className="bg-[#1f2339]">{cat}</option>
             ))}
           </select>
           <input
@@ -1499,7 +1511,7 @@ function LegalChat() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#07091a] text-white animate-in fade-in">
+    <div className="flex flex-col h-full bg-[#1b1f33] text-white animate-in fade-in">
       <div className="glass-dark border-b border-white/8 px-4 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Scale className="w-4 h-4 text-purple-400" />
@@ -1536,7 +1548,7 @@ function LegalChat() {
               className="text-xs rounded-lg glass px-2 py-1 text-slate-300 focus:ring-2 focus:ring-purple-500/50 outline-none"
             >
               {["Lahore", "Karachi", "Islamabad", "Peshawar"].map((city) => (
-                <option key={city} value={city} className="bg-[#0d1027] text-white">{city}</option>
+                <option key={city} value={city} className="bg-[#1f2339] text-white">{city}</option>
               ))}
             </select>
           </div>
@@ -1635,7 +1647,7 @@ function LegalChat() {
               <input value={consultForm.city} onChange={(e) => setConsultForm((prev) => ({ ...prev, city: e.target.value }))} placeholder="City" className="rounded-lg glass-dark px-2.5 py-2 text-xs text-white placeholder-slate-500 outline-none focus:ring-1 focus:ring-purple-500/50" />
               <select value={consultForm.issueType} onChange={(e) => setConsultForm((prev) => ({ ...prev, issueType: e.target.value }))} className="rounded-lg glass-dark px-2.5 py-2 text-xs text-slate-300 outline-none focus:ring-1 focus:ring-purple-500/50">
                 {["Harassment", "Cyber Abuse", "Blackmail", "Domestic Violence", "FIR Filing", "Other"].map((issue) => (
-                  <option key={issue} value={issue} className="bg-[#0d1027]">{issue}</option>
+                  <option key={issue} value={issue} className="bg-[#1f2339]">{issue}</option>
                 ))}
               </select>
             </div>
@@ -1649,7 +1661,7 @@ function LegalChat() {
       ) : null}
       {showDraft ? (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center sm:justify-center p-4">
-          <div className="w-full max-w-md bg-[#0d1027] border border-white/10 shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md bg-[#1f2339] border border-white/10 shadow-2xl rounded-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-5 py-4">
               <p className="font-semibold text-white">FIR Draft</p>
               <button onClick={() => setShowDraft(false)} className="text-slate-400 hover:text-white transition-colors">
@@ -3422,7 +3434,7 @@ function MoreScreen({ settings, setSettings, contacts, setContacts, onNavigate }
       <FakeCallOverlay open={fakeCallOpen} onClose={() => setFakeCallOpen(false)} />
 
       {/* ── 1. Profile Hero ── */}
-      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-violet-900/25 via-[#07091a]/90 to-pink-950/20 p-5">
+      <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-violet-900/25 via-[#1b1f33]/90 to-pink-950/20 p-5">
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <div className="relative shrink-0">
@@ -4403,7 +4415,7 @@ export default function App() {
     return (
       <>
         {firstVisitOverlay}
-        <div className="min-h-screen bg-[#07091a] flex flex-col items-center justify-center px-6 text-center">
+        <div className="min-h-screen bg-[#1b1f33] flex flex-col items-center justify-center px-6 text-center">
           <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
           <p className="mt-4 text-xs text-slate-500 max-w-sm">
             Loading sign-in… If this never finishes, check <span className="text-slate-400">VITE_CLERK_PUBLISHABLE_KEY</span>, Supabase URL/keys, and network. Run{" "}
@@ -4426,10 +4438,10 @@ export default function App() {
   return (
     <>
       {firstVisitOverlay}
-    <div className="min-h-[100dvh] bg-[#07091a] text-white w-full">
-      <div className="w-full min-h-[100dvh] bg-[#07091a] overflow-hidden flex flex-col relative z-0">
+    <div className="min-h-[100dvh] bg-[#1b1f33] text-white w-full">
+      <div className="w-full min-h-[100dvh] bg-[#1b1f33] overflow-hidden flex flex-col relative z-0">
         {!sosActive ? (
-          <div className="sticky top-0 z-20 shrink-0 bg-[#07091a]/85 border-b border-white/[0.06] backdrop-blur-xl">
+          <div className="sticky top-0 z-20 shrink-0 bg-[#1b1f33]/85 border-b border-white/[0.06] backdrop-blur-xl">
             <Header
               lang={lang}
               setLang={setLang}
@@ -4471,7 +4483,7 @@ export default function App() {
           <>
             {installPromptEvent ? (
               <div className="fixed bottom-[5.75rem] left-0 right-0 z-[45] px-3 pointer-events-none max-w-md mx-auto">
-                <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-white/[0.10] bg-[#0d1027]/95 backdrop-blur-xl px-3 py-2.5 shadow-[0_18px_42px_-12px_rgba(0,0,0,0.7)]">
+                <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-white/[0.10] bg-[#1f2339]/95 backdrop-blur-xl px-3 py-2.5 shadow-[0_18px_42px_-12px_rgba(0,0,0,0.7)]">
                   <NigabanLogo size={28} className="shrink-0" />
                   <p className="text-[11px] text-slate-200 leading-snug flex-1 min-w-0">
                     <span className="font-bold text-white">Install NIgaban</span>
@@ -4492,7 +4504,7 @@ export default function App() {
         ) : null}
         {shakeSosSecs !== null ? (
           <div className="fixed inset-0 z-[190] flex items-center justify-center bg-black/75 px-5">
-            <div className="w-full max-w-sm rounded-2xl border border-rose-500/35 bg-[#07091a] p-6 text-center space-y-4 shadow-2xl">
+            <div className="w-full max-w-sm rounded-2xl border border-rose-500/35 bg-[#1b1f33] p-6 text-center space-y-4 shadow-2xl">
               <p className="text-sm font-bold text-white uppercase tracking-wide">Shake SOS</p>
               <p className="text-5xl font-black text-rose-400 tabular-nums">{shakeSosSecs}</p>
               <p className="text-xs text-slate-400 leading-relaxed">

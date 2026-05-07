@@ -61,11 +61,11 @@ export default function FirstVisitWelcome({ onComplete }) {
           "radial-gradient(ellipse 70% 60% at 12% 0%, rgba(99,102,241,0.16) 0%, transparent 55%)," +
           "radial-gradient(ellipse 70% 60% at 88% 8%, rgba(168,85,247,0.12) 0%, transparent 55%)," +
           "radial-gradient(ellipse 70% 60% at 50% 100%, rgba(236,72,153,0.08) 0%, transparent 55%)," +
-          "#07091a",
+          "#1b1f33",
       }}
     >
       {/* ── Top bar ──────────────────────────────────────────── */}
-      <header className="shrink-0 border-b border-white/[0.06] bg-[#07091a]/85 backdrop-blur-xl">
+      <header className="shrink-0 border-b border-white/[0.06] bg-[#1b1f33]/85 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <NigabanLogo size={36} className="logo-glow shrink-0" />
@@ -97,7 +97,7 @@ export default function FirstVisitWelcome({ onComplete }) {
       </header>
 
       {/* ── Mobile tab strip ────────────────────────────────── */}
-      <div className="md:hidden shrink-0 border-b border-white/[0.05] bg-[#0d1027]/70 overflow-x-auto">
+      <div className="md:hidden shrink-0 border-b border-white/[0.05] bg-[#1f2339]/70 overflow-x-auto">
         <div className="flex gap-1.5 px-3 py-2 min-w-max">
           {PAGES.map((p) => (
             <button
@@ -118,7 +118,7 @@ export default function FirstVisitWelcome({ onComplete }) {
 
       <div className="flex flex-1 min-h-0 max-w-7xl mx-auto w-full">
         {/* Desktop sidebar */}
-        <aside className="hidden md:flex w-60 lg:w-72 shrink-0 flex-col border-r border-white/[0.06] p-4 lg:p-5 gap-1 bg-[#07091a]/40">
+        <aside className="hidden md:flex w-60 lg:w-72 shrink-0 flex-col border-r border-white/[0.06] p-4 lg:p-5 gap-1 bg-[#1b1f33]/40">
           <p className="section-eyebrow px-2 mb-2.5">Tour</p>
           {PAGES.map((p) => navBtn(p.id))}
           <div className="mt-auto pt-6 px-2">
