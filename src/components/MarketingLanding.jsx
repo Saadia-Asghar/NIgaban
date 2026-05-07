@@ -20,12 +20,6 @@ import {
 } from "lucide-react";
 import { NigabanLogo, NigabanWordmark } from "./Brand.jsx";
 
-const HERO_LINES = [
-  "Safety that thinks ahead.",
-  "AI on your side, in your hand.",
-  "Your rights, your route, your record.",
-];
-
 const PILLARS = [
   {
     icon: Shield,

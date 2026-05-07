@@ -36,6 +36,21 @@
       "noMovementSince": null,
       "distanceTrendUpCount": 0,
       "lastDistanceToDestinationKm": null
+    },
+    {
+      "id": "c3d40f9e-0342-4192-9524-61531a15d5ae",
+      "destination": "Test",
+      "destinationCoords": null,
+      "startedAt": "2026-05-07T17:57:39.598Z",
+      "status": "active",
+      "events": [
+        "Trip started",
+        "Tracking link sent to trusted contacts"
+      ],
+      "locationHistory": [],
+      "noMovementSince": null,
+      "distanceTrendUpCount": 0,
+      "lastDistanceToDestinationKm": null
     }
   ],
   "sosLogs": [],
@@ -98,6 +113,22 @@
         "status": "pending"
       },
       "at": "2026-05-04T07:59:43.509Z"
+    },
+    {
+      "id": "96ebe4e3-b02f-4170-9ee0-d2e71d980370",
+      "action": "safety_timeline_added",
+      "metadata": {
+        "entryId": "8237e618-d394-4131-889f-31b61733364e"
+      },
+      "at": "2026-05-07T17:57:39.444Z"
+    },
+    {
+      "id": "95984ed3-75d2-41be-9660-dc900a7100aa",
+      "action": "trip_started",
+      "metadata": {
+        "tripId": "c3d40f9e-0342-4192-9524-61531a15d5ae"
+      },
+      "at": "2026-05-07T17:57:39.598Z"
     }
   ],
   "communityChatMessages": [],
@@ -107,6 +138,12 @@
       "text": "market-test entry",
       "context": "final-verify",
       "createdAt": "2026-05-04T07:59:43.070Z"
+    },
+    {
+      "id": "8237e618-d394-4131-889f-31b61733364e",
+      "text": "publish smoke test",
+      "context": null,
+      "createdAt": "2026-05-07T17:57:39.444Z"
     }
   ]
 }

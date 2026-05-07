@@ -1,73 +1,213 @@
-# Nigehbaan
+# NIgaban — AI Safety Companion 🛡️
 
-Women’s safety companion (React + Vite + Express). Auth uses **Clerk** (email + Google in the Clerk UI) and optional **Supabase Auth** (email/password + Google). App data can live in **Supabase Postgres** via `SUPABASE_DB_URL`.
+Pakistan's first AI-aware safety companion for women. Live trip share, encrypted SOS, fake call, ride-driver logger, verified legal-rights cards, and a hand-curated NGO directory — all built as a Progressive Web App that works **offline-first**.
 
-## Run locally
+> **One-line pitch:** Safety that thinks ahead — for women who refuse to wait.
+
+[![PWA](https://img.shields.io/badge/PWA-ready-green.svg)]() [![Offline](https://img.shields.io/badge/Offline--first-Yes-blue.svg)]() [![License](https://img.shields.io/badge/license-MIT-violet.svg)]()
+
+---
+
+## ✨ What's inside
+
+### Safety Toolkit (10 tools, all work offline, all deterministic)
+
+| Tool | What it does | Needs internet? |
+|---|---|---|
+| **SOS button** (centre of bottom nav) | 3-second cancel countdown → SMS to circle + GPS log | ❌ |
+| **Guardian Timer** | "Watch over me until I check in" — auto-alerts circle on miss | ❌ |
+| **Saved Places** | Home / Work / friends — one-tap "On my way / Arrived / Pick me up" SMS | ❌ |
+| **Quick Capture** | Photo + GPS + timestamp stamped on JPEG, saved on device | ❌ |
+| **Safety Scripts** | 12 preset SMS templates across 4 categories | ❌ |
+| **Ride Safety** | Log driver/plate/destination + 15-min check-in countdown | ❌ |
+| **Self-Defense** | 7 verified technique cards (Pakistan-context advice) | ❌ |
+| **Know Your Rights** | 6 verified Pakistan-law cards (Anti-Harassment 2010, PECA 2016, PPC §354/§509) | ❌ |
+| **Verified Help** | 6 government helplines + 8 women's-rights NGOs, all dialable | ❌ |
+| **Distress Listener** | Web Speech keyword detection + 5-second cancel countdown | ❌ |
+
+### AI features (clearly disclaimed, with offline fallbacks)
+
+- **Hifazat Legal Guide** — Pakistan-aware safety Q&A in English & Urdu
+- **Legal AI Desk** — chat, draft FIR, request lawyer consult
+
+### Supporting features
+
+- **Safe Transit** — backend-tracked live trip sharing
+- **Community Pulse** — anonymous incident reports + heatmap
+- **Fake Call** overlay, **Siren** (Web Audio), **Voice Note** recorder
+- **Shake-to-SOS** + **triple-S** keyboard shortcut
+- **Stealth mode** (renames the app to "Personal Notes")
+- **Three OS-level shortcuts** when installed: SOS / Hifazat / Transit
+
+---
+
+## 🚀 Deploy in 5 minutes (Vercel)
+
+The app **boots and works fully without any API keys.** AI features stay disabled gracefully.
+
+### 1. Clone & install
 
 ```bash
-cp .env.example .env
+git clone https://github.com/Saadia-Asghar/NIgaban.git
+cd NIgaban
 npm install
-npm run dev:full
 ```
 
-- Frontend: [http://localhost:5173](http://localhost:5173) (proxies `/api` to the server).
-- API: `http://localhost:8787` (override with `PORT`).
-
-## Auth setup
-
-1. **Clerk** (dashboard): Create an application; enable **Email** and **Google**. Under **Developers → API keys**, copy keys into **`.env`** (never commit `.env`):
-   - **Publishable key** → `VITE_CLERK_PUBLISHABLE_KEY` (this app is **Vite**, not Next.js: use `VITE_…`, not `NEXT_PUBLIC_…`).
-   - **Secret key** → `CLERK_SECRET_KEY` (required for `/api/auth/clerk-sync` and JWT auth on the Express server). If you see **“Account sync: Server missing CLERK_SECRET_KEY”**, the server process does not have this variable—add it to `.env` in **`nigehbaan-app`**, restart `npm run dev:full`, and confirm with `curl http://localhost:8787/api/auth/status` (`clerkSecretConfigured` should be `true`).
-2. **Optional** `CLERK_AUTHORIZED_PARTIES`: comma-separated origins (e.g. `http://localhost:5173`) for stricter JWT checks. Leave empty for local experiments.
-3. **Supabase** (dashboard): Project URL + anon key → `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. Enable **Google** if you use Supabase Google sign-in; set **Redirect URLs** to match your site.
-4. **Database**: Set `SUPABASE_DB_URL` (or `DATABASE_URL`) so the server can run. Apply SQL under `supabase/migrations/` (includes `clerk_profiles` for Clerk user sync).
-
-### Verify the auth backend
-
-With the API running (`npm run server` or `npm run dev:full`):
+### 2. Local development
 
 ```bash
-curl -s http://localhost:8787/api/auth/status
+npm run dev:full   # frontend (5173) + backend (8787) together
+# or run them separately:
+npm run dev        # frontend only
+npm run server     # backend only
 ```
 
-You want `clerkSecretConfigured` and `databaseQueryable` both **true** so Clerk JWT verification and `clerk_profiles` sync work. If `databaseUrlConfigured` is false, set `SUPABASE_DB_URL` in `.env` and restart the server.
+Open <http://localhost:5173> — sign in with Clerk if configured, or click **Continue as guest**.
 
-## Clerk → database sync
+### 3. One-click Vercel deploy
 
-After sign-in or sign-up with Clerk, the app calls `POST /api/auth/clerk-sync` with the Clerk session token. The server verifies the JWT and upserts a row in `public.clerk_profiles` (same database as Supabase). This keeps a mirror of Clerk users in Postgres for your own queries and RLS you may add later.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Saadia-Asghar/NIgaban)
 
-All frontend `fetch("/api/...")` helpers send **`Authorization: Bearer <Clerk session JWT>`** when you are signed in with Clerk (and fall back to the legacy OTP token when present). Protected routes (`/api/auth/me`, `/api/auth/verify-identity`, moderation) resolve that JWT on the server with `CLERK_SECRET_KEY`, so **Clerk authentication is tied to the same Express + Postgres stack** as the rest of the app.
+After the import, add environment variables (all optional — the app works without any of them):
 
-### GitHub / Cursor “authority” vs this app
+| Variable | Purpose | Free tier |
+|---|---|---|
+| `GROQ_API_KEY` | Hifazat + Legal chat | [console.groq.com](https://console.groq.com) |
+| `GEMINI_API_KEY` | (optional) image vision fallback | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| `GOOGLE_MAPS_API_KEY` | server-side directions | [Google Cloud](https://console.cloud.google.com) |
+| `VITE_GOOGLE_MAPS_API_KEY` | browser maps | same |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk auth | [clerk.com](https://clerk.com) |
+| `CLERK_SECRET_KEY` | Clerk JWT verify | same |
+| `SUPABASE_URL` | Supabase auth fallback | [supabase.com](https://supabase.com) |
+| `MODERATOR_BOOTSTRAP_KEY` | Moderation panel | any random string |
 
-Authorizing **Supabase** or **Clerk** in GitHub or in **Cursor** (MCP / integrations) only helps those products talk to those platforms from the IDE or GitHub features. **It does not set environment variables for Nigehbaan.**
+See [.env.example](.env.example) for the full list with examples.
 
-For sync to run, the **Express server** process must still have, in real env vars (or a `.env` file you never commit):
+### 4. Verify the deploy
 
-- `CLERK_SECRET_KEY` — so `/api/auth/clerk-sync` can verify the Clerk JWT  
-- `SUPABASE_DB_URL` — so the server can write to `clerk_profiles` in Postgres  
+After Vercel builds:
 
-If you deploy with **GitHub Actions** or another host, add the same keys as **encrypted repository / environment secrets** and inject them into the deploy step (for example `CLERK_SECRET_KEY`, `SUPABASE_DB_URL`, `VITE_*` for the build). The publishable Supabase anon key stays client-side (`VITE_SUPABASE_ANON_KEY`); the DB URL and Clerk secret stay server-side only.
+- Visit your domain → boot splash → marketing landing
+- Click **Try in browser** → guest mode → home dashboard
+- Tap each bottom-nav tab → all should render without errors
+- Bottom-centre SOS button → 3-second countdown should appear
 
-## Scripts
+---
 
-| Command        | Description                          |
-| -------------- | ------------------------------------ |
-| `npm run dev`  | Vite only                            |
-| `npm run server` | Express API                        |
-| `npm run dev:full` | API + Vite (recommended)         |
-| `npm run build` | Production frontend bundle        |
+## 🧱 Tech stack
 
-## Cursor: Google Stitch MCP + Gemini keys
+| Layer | Choice |
+|---|---|
+| Framework | React 19 + Vite 8 |
+| Styling | Tailwind CSS v4 + custom Aurora + neumorphic design system |
+| Icons | [Lucide](https://lucide.dev) |
+| Auth | [Clerk](https://clerk.com) (primary) + [Supabase](https://supabase.com) (fallback) + Guest mode |
+| Backend | Express 5 (single `api/index.js` deployed as Vercel function) |
+| Storage | Local JSON file (dev) → Supabase Postgres (prod, optional) |
+| AI | Groq Llama 3.3 (chat), Gemini Vision (optional image fallback) |
+| PWA | Custom service worker (cache-first shell, network-first APIs) |
 
-Google Cloud **Agent Platform** lists many MCP servers (BigQuery, Vertex, **Stitch**, etc.). In Cursor, **do not** point Stitch at a raw `https://stitch.googleapis.com/...` URL (Cursor often errors on that). Use the official **stdio proxy** instead — already added as **`stitch`** in **`.cursor/mcp.json`** (`npx @_davideast/stitch-mcp proxy`).
+### Project layout
 
-1. Copy **`.env.example` → `.env`** and set **`STITCH_API_KEY`** and/or **`GOOGLE_CLOUD_PROJECT`**, or run **`npx @_davideast/stitch-mcp init`** once for OAuth + project setup.
-2. For **Gemini / API key** experiments (outside MCP), set **`GEMINI_API_KEY`** or **`GOOGLE_API_KEY`** in `.env` (see Google AI Studio).
-3. Restart Cursor so MCP reloads; the Stitch entry uses **`envFile`: `${workspaceFolder}/.env`** so those variables load into the proxy process.
+```
+nigaban-app/
+├── api/
+│   └── index.js                # Express app — deployed as Vercel function
+├── public/
+│   ├── favicon.svg             # Aurora shield logo
+│   ├── manifest.webmanifest    # PWA manifest with 3 shortcuts
+│   └── sw.js                   # service worker
+├── src/
+│   ├── App.jsx                 # main app (Header, all screens, BottomNav)
+│   ├── components/
+│   │   ├── AboutScreen.jsx     # version, FAQs, credits, disclaimers
+│   │   ├── AppShell.jsx        # ErrorBoundary + OfflineIndicator
+│   │   ├── AuthHub.jsx         # Clerk + Supabase + guest entry
+│   │   ├── Brand.jsx           # NigabanLogo (SVG) + NigabanWordmark
+│   │   ├── FakeCallOverlay.jsx
+│   │   ├── FirstVisitWelcome.jsx
+│   │   ├── HifazatGuide.jsx    # Legal AI chat (with offline fallback)
+│   │   ├── MarketingLanding.jsx
+│   │   ├── SafeZonesMap.jsx
+│   │   ├── SafetyMapScreen.jsx
+│   │   └── VoiceNoteRecorder.jsx
+│   ├── lib/
+│   │   ├── api.js              # fetch wrapper + bearer auth
+│   │   ├── authClients.js      # Supabase init
+│   │   ├── brand.js            # taglines, hero copy
+│   │   ├── haptics.js          # Vibration API helpers
+│   │   ├── incidentReport.js   # PDF/text export
+│   │   └── toastContext.jsx
+│   └── index.css               # Aurora + neumorphic design system
+├── .env.example                # all environment variables
+├── package.json
+├── vite.config.js
+└── vercel.json                 # rewrites + headers
+```
 
-## Lint & CI
+---
 
-`npm run lint` should pass (warnings only for a few intentional `useEffect` dependency choices). The Express server is linted with **Node** globals; `.agents/` is excluded.
+## 🛡️ Trust & safety design principles
 
-Local-only **`server/data.json`** (file fallback when Postgres is down) is **gitignored** — it is recreated at runtime when needed.
+1. **Deterministic over AI for safety-critical actions.** No AI scanner can fire SOS or replace a human decision.
+2. **Confirmation gates.** Every auto-trigger (Distress Listener, Guardian Timer expiry) gives the user a cancel window.
+3. **Local-first storage.** Voice notes, captures, saved places — all live in browser memory or localStorage. Nothing uploads unless the user chooses.
+4. **Verifiable content.** Legal cards cite their statute. NGO entries link to public websites. No AI-generated authority.
+5. **Honest disclaimers.** AI features carry "orientation, not advice" labels. Self-defense content tells users to take a real class.
+6. **Offline-first.** App shell + every safety tool works without internet. AI chat has static fallbacks for common questions.
+
+---
+
+## 🌍 Localising for other countries
+
+The app is Pakistan-tuned but easy to localise:
+
+1. **Helplines & NGOs** — edit `VerifiedHelp` in `src/App.jsx`
+2. **Legal cards** — edit `KnowYourRights` in `src/App.jsx`
+3. **Self-defense advice** — edit `SelfDefense` in `src/App.jsx`
+4. **Brand tagline** — edit `src/lib/brand.js`
+5. **Default city** — search `"Lahore"` in `src/App.jsx`
+
+---
+
+## 🔒 Privacy summary
+
+| Data | Where it lives | Uploaded? |
+|---|---|---|
+| Trusted-circle SMS | Native phone SMS app | ❌ — NIgaban never sees the message |
+| Voice notes | Browser memory | ❌ — until user downloads |
+| Quick captures | Browser memory | ❌ — until user downloads |
+| Saved places | localStorage | ❌ |
+| Timeline entries | Backend (your deploy) | ✅ — owned by deployer |
+| GPS during SOS | Backend (one-shot) | ✅ — only on active SOS |
+| Community reports | Backend | ✅ — anonymous by default |
+
+---
+
+## 🤝 Contributing
+
+PRs welcome. Especially valuable:
+
+- **Verified content updates** — phone numbers change, NGOs move offices. Open a PR with the source.
+- **Translations** — Urdu UI, regional languages.
+- **City presets** — additional cities beyond Lahore / Karachi / Islamabad / Peshawar.
+- **Accessibility audits** — VoiceOver / TalkBack walkthroughs.
+
+---
+
+## 📜 License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## 🆘 In immediate danger?
+
+This README is not a substitute for emergency services.
+
+- **Police** — `15`
+- **Madadgaar (Women's Helpline)** — `1099`
+- **FIA Cybercrime** — `1991`
+- **Rescue** — `1122`
+
+Made with ♥ for women in Pakistan.
